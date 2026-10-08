@@ -23,7 +23,8 @@ FIELDS = ["title", "status", "touched", "wish", "picture", "why", "window",
           "cash", "obstacle", "ifthen", "note", "fruit", "feel", "effort", "worth",
           "task", "done", "minutes"]
 MAX_STAGES = 7
-TEXT_MAX = 100
+TEXT_MAX = 80
+MAX_ASSUME = 6
 
 
 # ---------------------------------------------------------------- helpers
@@ -44,6 +45,11 @@ def cut(s, a, b):
         out = out + s[i]
         i = i + 1
     return out
+
+
+def akey(text):
+    # crack key for an assumption: short, so the text isn't stored twice
+    return "a:" + cut(text, 0, 16)
 
 
 def has_digit(s):
@@ -108,11 +114,11 @@ def pct(n, p):
 
 def free_kb():
     # diagnostic: how many 1 KB blocks can still be allocated (hidden key %)
-    base = "x"
-    while len(base) < 1000:
-        base = base + base
     keep = []
     try:
+        base = "x"
+        while len(base) < 1000:
+            base = base + base
         while True:
             keep.append(base + str(len(keep)))
     except MemoryError:
@@ -122,7 +128,7 @@ def free_kb():
     return n
 
 
-# A 4 KB block taken while the heap is clean and dropped just before each whole-file read
+# A 3 KB block taken while the heap is clean and dropped just before each whole-file read
 # or write: the device's SD API has no append, so a file is one string that needs one
 # contiguous run of heap, and a long session leaves the heap fragmented.
 SPARE = [None]
@@ -131,7 +137,7 @@ SPARE = [None]
 def spare_take():
     try:
         b = "x"
-        while len(b) < 4096:
+        while len(b) < 3072:
             b = b + b
         SPARE[0] = b
     except MemoryError:
@@ -331,7 +337,7 @@ def find_cracks(idea, pl, pw):
             out.append(["endbelow", "Ends below the money you start with", False, "money"])
     for a in idea.assume:
         if not a[0]:
-            out.append(["assume:" + a[1], "Unchecked: " + a[1], False, "assume"])
+            out.append([akey(a[1]), "Unchecked: " + a[1], False, "assume"])
     if idea.get("picture") != "" and not has_digit(idea.get("picture")):
         out.append(["vague", "Proof has no number to check", False, "vision"])
     if idea.get("obstacle") == "":
@@ -1157,6 +1163,7 @@ class App:
             if sel >= len(cr):
                 sel = len(cr) - 1
             self.paint(self.r_cracks, (sel,))
+            self.msg = ""
             k = self.nav(self.key())
             if k == "q" or k == "ESC":
                 return
@@ -1375,6 +1382,7 @@ class App:
         sel = 0
         while True:
             self.paint(self.r_assume, (sel,))
+            self.msg = ""
             k = self.nav(self.key())
             n = len(idea.assume)
             if k == "q" or k == "ESC":
@@ -1385,6 +1393,8 @@ class App:
                 sel = sel - 1
             elif self.readonly():
                 pass
+            elif k == "a" and n >= MAX_ASSUME:
+                self.msg = "6 is the limit: check or drop one"
             elif k == "a":
                 v = self.ask_text("ASSUMPTION", "What has to be true for this to work?",
                                   "One thing you're counting on.", "", 60)
@@ -1405,7 +1415,7 @@ class App:
                     self.dirty = True
             elif k == "f" and not idea.assume[sel][0]:
                 a = idea.assume[sel][1]
-                self.face(["assume:" + a, "Unchecked: " + a, False, "assume"])
+                self.face([akey(a), "Unchecked: " + a, False, "assume"])
 
     def r_assume(self, sel):
         idea = self.idea
@@ -1422,7 +1432,7 @@ class App:
             box = "[ ] "
             if a[0]:
                 box = "[x] "
-            elif ("assume:" + a[1]) in idea.faced:
+            elif akey(a[1]) in idea.faced:
                 box = "[~] "
             self.row(y, box + a[1], i == sel)
             y = y + self.lh
@@ -1507,12 +1517,8 @@ class App:
         if not self.holds():
             self.msg = "Doesn't hold yet: c shows the cracks"
             return
-        k = self.show("PROMOTE", "charter", [
-            ("Wish: " + idea.get("wish"), self.c_em),
-            ("Proof: " + idea.get("picture"), self.c_text),
-            ("Obstacle: " + idea.get("obstacle"), self.c_text),
-            ("If-Then: " + idea.get("ifthen"), self.c_text)],
-            [("ENT", "commit to this"), ("ESC", "not yet")])
+        self.paint(self.r_charter, ())
+        k = self.key()
         if k != "ENTER":
             return
         if idea.get("wish") == "" or idea.get("picture") == "":
@@ -1553,6 +1559,26 @@ class App:
             (idea.get("wish"), self.c_em), ("", self.c_text),
             ("First: " + t, self.c_text), ("", self.c_text),
             ("Harness picks it up from " + path, self.c_dim)], [("any", "key")])
+
+    def r_charter(self):
+        # the four WOOP chunks, two lines each at most, so all four always fit
+        idea = self.idea
+        self.frame("PROMOTE", "charter")
+        y = self.top + 2
+        parts = [("Wish ", "wish"), ("Proof", "picture"), ("Snag ", "obstacle"),
+                 ("Plan ", "ifthen")]
+        for p in parts:
+            ln = wrap(idea.get(p[1]), self.cols - 6)
+            self.t(4, y, p[0], self.c_em)
+            self.t(4 + 6 * self.cw, y, ln[0], self.c_text)
+            if len(ln) > 1:
+                more = ln[1]
+                if len(ln) > 2:
+                    more = more + ">"
+                self.t(4 + 6 * self.cw, y + 12, more, self.c_text)
+                y = y + 12
+            y = y + 13
+        Widget.hints(self.sp, [("ENT", "commit to this"), ("ESC", "not yet")])
 
     def write_goal(self, seeds):
         idea = self.idea
