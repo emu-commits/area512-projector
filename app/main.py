@@ -1,13 +1,12 @@
 # PROJECTOR - play your ideas forward.  AREA512 MicroPython (MINIMUM level:
-# no imports, no slicing, no f-strings).  Sister app to Harness: a projection
-# that holds is promoted to /data/harness/inbox (docs/PROMOTION_FORMAT.md).
+# no imports, no slicing, no f-strings).  Planning half of the Harness system; the
+# hand-off to Harness is designed (docs/PROMOTION_FORMAT.md) but not wired in yet.
 # The app never suggests words or numbers; it asks, and it does arithmetic.
 
 APPDIR = "/data/projector"
 IDEAS = "/data/projector/ideas"
 INDEX = "/data/projector/library.txt"
 META = "/data/projector/meta.txt"
-OUTBOX = "/data/harness/inbox"
 
 CONF = ["", "sure", "rough", "guess"]
 SPREAD = [0, 10, 30, 60]          # % a stage's numbers can be off, by confidence
@@ -17,8 +16,7 @@ HARD_OVERRUN = 25                 # hard stages run this much % longer in the wo
 WINDOWS = [6, 12, 24, 36, 60]
 WINDOW_NAMES = ["6 months", "1 year", "2 years", "3 years", "5 years"]
 SCEN = ["best", "likely", "worst"]
-TAG = {"incubating": "new", "simulating": "sim", "ready": "HOLDS",
-       "promoted": "sent", "archived": "arch"}
+TAG = {"incubating": "new", "simulating": "sim", "ready": "HOLDS", "archived": "arch"}
 FIELDS = ["title", "status", "touched", "wish", "picture", "why", "window",
           "cash", "obstacle", "ifthen", "note", "fruit", "feel", "effort", "worth",
           "task", "done", "minutes"]
@@ -112,6 +110,12 @@ def pct(n, p):
     return r
 
 
+def heap_total():
+    if GC is None:
+        return 0
+    return GC.mem_free() + GC.mem_alloc()
+
+
 def free_kb():
     # diagnostic: how many 1 KB blocks can still be allocated (hidden key %)
     keep = []
@@ -128,16 +132,57 @@ def free_kb():
     return n
 
 
-# A 3 KB block taken while the heap is clean and dropped just before each whole-file read
-# or write: the device's SD API has no append, so a file is one string that needs one
-# contiguous run of heap, and a long session leaves the heap fragmented.
+try:
+    GC = __import__("gc")     # the import statement is off at MINIMUM; __import__ works
+except Exception:
+    GC = None
+
+
+def collect():
+    if GC is not None:
+        GC.collect()
+
+
+def find_home():
+    # the app folder holds the .ovl overlays; Filer can launch it from anywhere
+    for d in ["/home/ai/projector", "/home/tool/projector", "/home/projector", "/projector"]:
+        if File.exist(d + "/ovl/holds.0"):
+            return d
+    try:
+        top = Dir("/home")
+        a = top.read()
+        while a is not None:
+            sub = Dir("/home/" + a)
+            b = sub.read()
+            while b is not None:
+                d = "/home/" + a + "/" + b
+                if File.exist(d + "/ovl/holds.0"):
+                    sub.close()
+                    top.close()
+                    return d
+                b = sub.read()
+            sub.close()
+            a = top.read()
+        top.close()
+    except Exception:
+        pass
+    return ""
+
+
+# Files are written in parts of at most PART_MAX bytes (<path>, <path>.1, <path>.2, ...):
+# the SD API has no append, so a part is one string and needs one contiguous run of heap,
+# which a fragmented heap may not have for a 3 KB idea. A 1 KB block, taken while the
+# heap is clean, is dropped just before each part is read or written.
+PART_MAX = 900
 SPARE = [None]
 
 
 def spare_take():
+    if SPARE[0] is not None:
+        return
     try:
         b = "x"
-        while len(b) < 3072:
+        while len(b) < 1024:
             b = b + b
         SPARE[0] = b
     except MemoryError:
@@ -148,22 +193,52 @@ def spare_free():
     SPARE[0] = None
 
 
-def write_lines(path, out):
-    out.append("")
+def part_path(path, k):
+    if k == 0:
+        return path
+    return path + "." + str(k)
+
+
+def write_part(path, buf):
+    buf.append("")
     spare_free()
     try:
-        SD.write(path, "\n".join(out))
+        SD.write(path, "\n".join(buf))
     finally:
-        out.clear()
         spare_take()
+
+
+def write_lines(path, out):
+    buf = []
+    size = 0
+    k = 0
+    for line in out:
+        if size + len(line) + 1 > PART_MAX and len(buf) > 0:
+            write_part(part_path(path, k), buf)
+            k = k + 1
+            buf = []
+            size = 0
+        buf.append(line)
+        size = size + len(line) + 1
+    write_part(part_path(path, k), buf)
+    out.clear()
+    k = k + 1
+    while File.exist(part_path(path, k)):      # a shorter file than last time
+        File.unlink(part_path(path, k))
+        k = k + 1
 
 
 def read_lines(path):
-    spare_free()
-    try:
-        return SD.read(path).split("\n")
-    finally:
-        spare_take()
+    lines = []
+    k = 0
+    while File.exist(part_path(path, k)):
+        spare_free()
+        try:
+            lines.extend(SD.read(part_path(path, k)).split("\n"))
+        finally:
+            spare_take()
+        k = k + 1
+    return lines
 
 
 def ensure_dir(path):
@@ -361,6 +436,7 @@ class App:
         self.session = 1
         self.next_id = 1
         self.idea = None
+        self.home = ""
         self.dirty = False
         self.msg = ""
         self.sel = 0
@@ -389,8 +465,11 @@ class App:
 
     def nav(self, k):
         if k == "%":
-            n = free_kb()
-            self.msg = "free ~{} KB".format(n)
+            collect()
+            g = 0
+            if GC is not None:
+                g = GC.mem_free() // 1024
+            self.msg = "{} KB free ({} in 1 KB blocks) of {}".format(g, free_kb(), heap_total() // 1024)
         if k == "j":
             return "DOWN"
         if k == "k":
@@ -400,6 +479,65 @@ class App:
         if k == "l":
             return "RIGHT"
         return k
+
+    def ov(self, name, fn, *args):
+        # Run fn from overlay ovl/<name>.*: compile it into the globals, call, then delete
+        # exactly the names it added, so its code is resident only while it runs.
+        G = globals()
+        loaded = []
+        if not (fn in G):
+            if self.home == "":
+                self.home = find_home()
+            if self.home == "":
+                self.msg = "Missing ovl/ folder: reinstall"
+                return None
+            before = {}
+            for k in G:
+                before[k] = 1
+            spare_free()
+            collect()
+            ok = False
+            i = 0
+            n_parts = 0
+            try:
+                # One file per top-level def (tools/ovl.py), read and compiled one at a
+                # time: the compiler's working memory grows with what it compiles at once,
+                # and no step needs a big contiguous block (a fragmented heap has none).
+                base = self.home + "/ovl/" + name + "."
+                while File.exist(base + str(i)):
+                    exec(SD.read(base + str(i)), G)
+                    i = i + 1
+                n_parts = i
+                ok = True
+            except MemoryError:
+                collect()
+                g = 0
+                if GC is not None:
+                    g = GC.mem_free() // 1024
+                self.msg = "No memory: {} {}/{} {}KB {}b".format(name, i, n_parts, g, free_kb())
+            except Exception as e:
+                self.msg = "Overlay {}: {}".format(name, e)
+            for k in G:
+                if not (k in before):
+                    loaded.append(k)
+            before = None
+            if not ok or not (fn in G):
+                for k in loaded:
+                    del G[k]
+                collect()
+                spare_take()
+                return None
+            # take the spare back now, before the overlay runs: a save it makes needs
+            # that contiguous block
+            collect()
+            spare_take()
+        try:
+            return G[fn](self, *args)
+        finally:
+            for k in loaded:
+                del G[k]
+            if len(loaded) > 0:
+                collect()
 
     def paint(self, fn, args):
         # BandedSprite: fn redraws the WHOLE screen once per band
@@ -609,7 +747,7 @@ class App:
     def save(self):
         idea = self.idea
         st = idea.get("status")
-        if st != "promoted" and st != "archived":
+        if st != "archived":
             if self.holds():
                 st = "ready"
             elif len(idea.stages) > 0:
@@ -670,7 +808,7 @@ class App:
             elif k == "UP" and sel > 0:
                 sel = sel - 1
             elif k == "a":
-                if self.new_idea():
+                if self.ov("newidea", "newidea_main"):
                     sel = 0
                     self.work()
                 self.idea = None
@@ -718,139 +856,7 @@ class App:
             self.save()
             self.msg = ""
 
-    # ---- new idea: one question per screen
-
-    def new_idea(self):
-        T = "NEW IDEA"
-        name = self.ask_text(T, "What's the idea? Give it a short name.", "", "", 24)
-        if name is None or name == "":
-            return False
-        idea = Idea(self.next_id)
-        self.next_id = self.next_id + 1
-        self.save_meta()
-        idea.f["title"] = name
-        self.idea = idea
-        steps = [("wish", "What are you trying to make happen?", "I want to ..."),
-                 ("picture", "Picture it working. What could you point to that proves it?",
-                  "Something you could show someone. Add a number."),
-                 ("why", "Why does this matter to you?",
-                  "Picture it done first: where you are, how it feels.")]
-        for s in steps:
-            v = self.ask_text(T, s[1], s[2], "", TEXT_MAX)
-            if v is None:
-                break
-            idea.f[s[0]] = v
-        w = self.ask_choice(T, "How far ahead should we look?", WINDOW_NAMES, 3)
-        if w is None:
-            w = 3
-        idea.f["window"] = str(WINDOWS[w])
-        c = self.ask_number(T, "How much money can you put toward this right now?",
-                            "0 is fine.", 0, 0, 99999999)
-        if c is None:
-            c = 0
-        idea.f["cash"] = str(c)
-        self.msg = ""
-        while len(idea.stages) < MAX_STAGES:
-            q = "Lay it out in stages. First stage?"
-            if len(idea.stages) > 0:
-                q = "What comes after '{}'?".format(idea.stages[len(idea.stages) - 1][0])
-            if not self.add_stage(len(idea.stages), q):
-                break
-            if len(idea.stages) >= MAX_STAGES:
-                break
-            more = self.ask_yn(T, "Another stage after this one?",
-                               ["{} stage(s) so far.".format(len(idea.stages))])
-            if not more:
-                break
-        self.sel = 0
-        self.save()
-        return True
-
     # ---- stages
-
-    def add_stage(self, at, q):
-        T = "STAGE"
-        name = self.ask_text(T, q, "A short name: Learn, Build, Launch ...", "", 12)
-        if name is None or name == "":
-            return False
-        st = [name, 3, 0, 2, 2]
-        if not self.stage_numbers(st):
-            return False
-        self.idea.stages.insert(at, st)
-        self.sel = at
-        self.dirty = True
-        return True
-
-    def stage_numbers(self, st):
-        T = st[0].upper()
-        m = self.ask_number(T, "How many months will '{}' take?".format(st[0]),
-                            "Calendar months.", st[1], 1, 120)
-        if m is None:
-            return False
-        st[1] = m
-        n = self.ask_number(T, "Money each month during '{}'?".format(st[0]),
-                            "Spending is negative (-500), income positive.", st[2],
-                            -9999999, 9999999)
-        if n is None:
-            return False
-        st[2] = n
-        c = self.ask_choice(T, "How sure are you of those numbers?",
-                            ["sure", "rough idea", "a guess"], st[3] - 1)
-        if c is None:
-            return False
-        st[3] = c + 1
-        d = self.ask_choice(T, "How hard will '{}' be for you?".format(st[0]),
-                            ["easy", "medium", "hard"], st[4] - 1)
-        if d is None:
-            return False
-        st[4] = d + 1
-        return True
-
-    def edit_stage(self, i):
-        st = self.idea.stages[i]
-        sel = 0
-        while True:
-            labels = ["Name     " + st[0], "Months   {}".format(st[1]),
-                      "Monthly  " + smoney(st[2]), "Sure?    " + CONF[st[3]],
-                      "Hard?    " + DIFF[st[4]]]
-            self.paint(self.r_form, ("STAGE {}".format(i + 1), labels, sel,
-                                           [("ENT", "edit"), ("1-3", "set"), ("ESC", "done")]))
-            k = self.nav(self.key())
-            if k == "ESC" or k == "q":
-                return
-            if k == "DOWN" and sel < 4:
-                sel = sel + 1
-            elif k == "UP" and sel > 0:
-                sel = sel - 1
-            elif (sel == 3 or sel == 4) and (k == "1" or k == "2" or k == "3"):
-                st[sel] = ord(k) - ord("0")
-                self.dirty = True
-            elif k == "ENTER":
-                v = None
-                if sel == 0:
-                    v = self.ask_text("STAGE", "Stage name?", "", st[0], 12)
-                    if v == "":
-                        v = None
-                elif sel == 1:
-                    v = self.ask_number("STAGE", "Months for '{}'?".format(st[0]), "",
-                                        st[1], 1, 120)
-                elif sel == 2:
-                    v = self.ask_number("STAGE", "Money each month in '{}'?".format(st[0]),
-                                        "Spending negative, income positive.", st[2],
-                                        -9999999, 9999999)
-                elif sel == 3:
-                    v = self.ask_choice("STAGE", "How sure are you?",
-                                        ["sure", "rough idea", "a guess"], st[3] - 1)
-                    if v is not None:
-                        v = v + 1
-                else:
-                    v = self.ask_choice("STAGE", "How hard?", ["easy", "medium", "hard"],
-                                        st[4] - 1)
-                    if v is not None:
-                        v = v + 1
-                if v is not None:
-                    st[sel] = v
-                    self.dirty = True
 
     def r_form(self, title, labels, sel, hints):
         self.frame(title, "")
@@ -880,12 +886,6 @@ class App:
         self.refresh()
         return self.n_open == 0 and len(self.idea.stages) > 0
 
-    def readonly(self):
-        if self.idea.get("status") == "promoted":
-            self.msg = "Promoted: Harness owns it now"
-            return True
-        return False
-
     def work(self):
         idea = self.idea
         self.sel = 0
@@ -895,6 +895,7 @@ class App:
                       [(note, self.c_em), ("", self.c_text),
                        ("Any key to pick it back up.", self.c_dim)], [("any", "key")])
         while True:
+            spare_take()
             self.refresh()
             if self.sel >= len(idea.stages):
                 self.sel = len(idea.stages) - 1
@@ -915,16 +916,13 @@ class App:
             elif k == "c":
                 self.crack_list()
             elif k == "$":
-                self.money_view()
+                self.ov("money", "money_main")
             elif k == "?":
-                self.help()
+                self.ov("help", "help_main")
             elif k == "s":
-                if not self.readonly():
-                    self.save()
-            elif self.readonly():
-                pass
+                self.save()
             elif k == "e" and len(idea.stages) > 0:
-                self.edit_stage(self.sel)
+                self.ov("edit", "edit_main", self.sel)
             elif k == "n":
                 if len(idea.stages) >= MAX_STAGES:
                     self.msg = "7 stages is the limit"
@@ -932,19 +930,17 @@ class App:
                     at = self.sel + 1
                     if len(idea.stages) == 0:
                         at = 0
-                    self.add_stage(at, "Name the new stage.")
+                    self.ov("stage", "stage_add", at, "Name the new stage.")
             elif k == "x" and len(idea.stages) > 0:
                 if self.ask_yn("STAGE", "Delete '{}'?".format(idea.stages[self.sel][0]), []):
                     idea.stages.pop(self.sel)
                     self.dirty = True
             elif k == "v":
-                self.vision()
+                self.ov("vision", "vision_main")
             elif k == "a":
-                self.assumptions()
+                self.ov("assume", "assume_main")
             elif k == "o":
                 self.premortem()
-            elif k == "P":
-                self.promote()
 
     def leave(self):
         if not self.dirty:
@@ -966,8 +962,6 @@ class App:
         right = "{} !".format(self.n_open)
         if self.n_open == 0 and len(idea.stages) > 0:
             right = "HOLDS"
-        if idea.get("status") == "promoted":
-            right = "SENT"
         self.frame(Widget.clip(self.sp, idea.get("title"), self.W - 70), right)
         y = self.top + 2
         n = len(idea.stages)
@@ -1006,7 +1000,7 @@ class App:
         if first_open is not None:
             self.t(6, y, Widget.clip(self.sp, "! " + first_open[1], self.W - 12), self.c_sel)
         elif n > 0:
-            self.t(6, y, "The projection holds.  P promotes.", self.c_em)
+            self.t(6, y, "The projection holds.", self.c_em)
         self.foot([("p", "play"), ("c", "cracks"), ("e", "edit"), ("?", "keys")])
 
     def stage_flag(self, i):
@@ -1059,14 +1053,6 @@ class App:
             self.sp.pixel(x + px, py - 1, c)
             px = px + 1
 
-    def help(self):
-        self.show("KEYS", "", [
-            ("h/l stage   p play   c cracks", self.c_text),
-            ("e edit  n new  x delete stage", self.c_text),
-            ("v vision   a assumptions", self.c_text),
-            ("$ money    o obstacle (premortem)", self.c_text),
-            ("P promote  s save   q back", self.c_text)], [("any", "key")])
-
     # ---- play forward
 
     def play(self):
@@ -1093,13 +1079,13 @@ class App:
                 i = i - 1
             elif (k == "ENTER" or k == "RIGHT") and i == n:
                 if self.n_open == 0:
-                    self.holds_screen()
+                    self.ov("holds", "holds_main")
                     return
                 self.crack_list()
                 return
-            elif k == "e" and i < n and not self.readonly():
-                self.edit_stage(i)
-            elif k == "f" and i < n and not self.readonly():
+            elif k == "e" and i < n:
+                self.ov("edit", "edit_main", i)
+            elif k == "f" and i < n:
                 for c in self.cr:
                     if c[3] == i and is_open(idea, c) and not c[2]:
                         self.face(c)
@@ -1171,7 +1157,7 @@ class App:
                 sel = sel + 1
             elif k == "UP" and sel > 0:
                 sel = sel - 1
-            elif k == "ENTER" and not self.readonly():
+            elif k == "ENTER":
                 self.crack_action(cr[sel])
 
     def r_cracks(self, sel):
@@ -1216,17 +1202,17 @@ class App:
         w = c[3]
         if isinstance(w, int):
             self.sel = w
-            self.edit_stage(w)
+            self.ov("edit", "edit_main", w)
         elif w == "money":
-            self.money_view()
+            self.ov("money", "money_main")
         elif w == "vision":
-            self.vision()
+            self.ov("vision", "vision_main")
         elif w == "assume":
-            self.assumptions()
+            self.ov("assume", "assume_main")
         elif w == "premortem":
             self.premortem()
         elif w == "stage":
-            self.add_stage(0, "Name the first stage.")
+            self.ov("stage", "stage_add", 0, "Name the first stage.")
 
     def face(self, c):
         v = self.ask_text("FACE IT", "Say it happens: " + c[1] + ". What will you do?",
@@ -1255,362 +1241,8 @@ class App:
         if p is not None and p != "" and p != "When":
             idea.f["ifthen"] = p
 
-    # ---- money
-
-    def money_view(self):
-        sc = 1
-        while True:
-            self.refresh()
-            self.paint(self.r_money, (sc,))
-            k = self.nav(self.key())
-            if k == "q" or k == "ESC":
-                return
-            if k == "s" or k == "RIGHT":
-                sc = (sc + 1) % 3
-            elif k == "LEFT":
-                sc = (sc + 2) % 3
-            elif k == "e" and not self.readonly():
-                v = self.ask_number("MONEY", "Money you can put toward this now?", "",
-                                    self.idea.num("cash", 0), 0, 99999999)
-                if v is not None:
-                    self.idea.f["cash"] = str(v)
-                    self.dirty = True
-
-    def r_money(self, sc):
-        self.frame("MONEY", "start " + money(self.idea.num("cash", 0)))
-        x = 4
-        y = self.top + 2
-        widths = [52, 62, 52, 62]
-        Widget.table_header(self.sp, x, y, widths, ["case", "lowest", "out", "end"])
-        y = y + 14
-        ps = [self.pb, self.pl, self.pw]
-        i = 0
-        while i < 3:
-            p = ps[i]
-            out = "-"
-            if p.out_m > 0:
-                out = "M{}".format(p.out_m)
-            Widget.table_row(self.sp, x, y, widths,
-                             [SCEN[i], money(p.low), out, money(p.end)], i == sc)
-            y = y + 14
-            i = i + 1
-        y = y + 3
-        p = ps[sc]
-        self.t(6, y, "{}: {} months".format(SCEN[sc], p.months), self.c_dim)
-        y = y + self.lh
-        vals = []
-        lo = p.low
-        if lo > 0:
-            lo = 0
-        hi = 0
-        j = 0
-        while j < 40:
-            v = p.bal((j * p.months) // 39) - lo
-            vals.append(v)
-            if v > hi:
-                hi = v
-            j = j + 1
-        if hi < 1:
-            hi = 1
-        h = self.bot - y - 2
-        if h > 8:
-            Widget.line_chart(self.sp, 4, y, self.W - 8, h, vals, hi)
-        self.foot([("s", "case"), ("e", "start $"), ("ESC", "back")])
-
     # ---- vision
 
-    def vision(self):
-        idea = self.idea
-        sel = 0
-        keys = ["title", "wish", "picture", "why", "window", "cash"]
-        names = ["Name", "Wish", "Proof", "Why", "Window", "Start $"]
-        qs = ["Short name for the idea?", "What are you trying to make happen?",
-              "Picture it working. What proves it? Add a number.",
-              "Why does this matter to you?", "", ""]
-        while True:
-            labels = []
-            i = 0
-            while i < 6:
-                v = idea.get(keys[i])
-                if i == 4:
-                    v = v + " months"
-                elif i == 5:
-                    v = money(idea.num("cash", 0))
-                labels.append("{:<8}{}".format(names[i], v))
-                i = i + 1
-            self.paint(self.r_form, ("VISION", labels, sel,
-                                           [("ENT", "edit"), ("ESC", "back")]))
-            k = self.nav(self.key())
-            if k == "q" or k == "ESC":
-                return
-            if k == "DOWN" and sel < 5:
-                sel = sel + 1
-            elif k == "UP" and sel > 0:
-                sel = sel - 1
-            elif k == "ENTER" and not self.readonly():
-                if sel == 4:
-                    cur = 3
-                    j = 0
-                    while j < len(WINDOWS):
-                        if WINDOWS[j] == idea.num("window", 36):
-                            cur = j
-                        j = j + 1
-                    w = self.ask_choice("VISION", "How far ahead should we look?",
-                                        WINDOW_NAMES, cur)
-                    if w is not None:
-                        idea.f["window"] = str(WINDOWS[w])
-                        self.dirty = True
-                elif sel == 5:
-                    v = self.ask_number("VISION", "Money you can put toward this now?", "",
-                                        idea.num("cash", 0), 0, 99999999)
-                    if v is not None:
-                        idea.f["cash"] = str(v)
-                        self.dirty = True
-                else:
-                    mx = TEXT_MAX
-                    if sel == 0:
-                        mx = 24
-                    v = self.ask_text("VISION", qs[sel], "", idea.get(keys[sel]), mx)
-                    if v is not None and (v != "" or sel != 0):
-                        idea.f[keys[sel]] = v
-                        self.dirty = True
-
-    # ---- assumptions
-
-    def assumptions(self):
-        idea = self.idea
-        sel = 0
-        while True:
-            self.paint(self.r_assume, (sel,))
-            self.msg = ""
-            k = self.nav(self.key())
-            n = len(idea.assume)
-            if k == "q" or k == "ESC":
-                return
-            if k == "DOWN" and sel < n - 1:
-                sel = sel + 1
-            elif k == "UP" and sel > 0:
-                sel = sel - 1
-            elif self.readonly():
-                pass
-            elif k == "a" and n >= MAX_ASSUME:
-                self.msg = "6 is the limit: check or drop one"
-            elif k == "a":
-                v = self.ask_text("ASSUMPTION", "What has to be true for this to work?",
-                                  "One thing you're counting on.", "", 60)
-                if v is not None and v != "":
-                    idea.assume.append([0, v])
-                    sel = len(idea.assume) - 1
-                    self.dirty = True
-            elif n == 0:
-                pass
-            elif k == "ENTER" or k == " ":
-                idea.assume[sel][0] = 1 - idea.assume[sel][0]
-                self.dirty = True
-            elif k == "d":
-                if self.ask_yn("ASSUMPTION", "Delete it?", [idea.assume[sel][1]]):
-                    idea.assume.pop(sel)
-                    if sel > 0:
-                        sel = sel - 1
-                    self.dirty = True
-            elif k == "f" and not idea.assume[sel][0]:
-                a = idea.assume[sel][1]
-                self.face([akey(a), "Unchecked: " + a, False, "assume"])
-
-    def r_assume(self, sel):
-        idea = self.idea
-        self.frame("ASSUMPTIONS", "{}".format(len(idea.assume)))
-        if len(idea.assume) == 0:
-            Widget.center_lines(self.sp, [("What must be true?", self.c_em),
-                                          ("a adds one.", self.c_text)])
-        rows = self.visible_rows()
-        top = self.list_top(sel, len(idea.assume), rows)
-        y = self.top + 3
-        i = top
-        while i < len(idea.assume) and i < top + rows:
-            a = idea.assume[i]
-            box = "[ ] "
-            if a[0]:
-                box = "[x] "
-            elif akey(a[1]) in idea.faced:
-                box = "[~] "
-            self.row(y, box + a[1], i == sel)
-            y = y + self.lh
-            i = i + 1
-        self.foot([("a", "add"), ("ENT", "checked"), ("f", "face"), ("d", "del")])
-
     # ---- the projection holds
-
-    def holds_screen(self):
-        idea = self.idea
-        pl = self.pl
-        frames = 24
-        f = 0
-        while f <= frames:
-            self.paint(self.r_holds_anim, (f, frames))
-            sleep_ms(60)
-            f = f + 1
-        self.show("IT HOLDS", "month {}".format(pl.months), [
-            (idea.get("picture"), self.c_em), ("", self.c_text),
-            ("Because: " + idea.get("why"), self.c_text), ("", self.c_text),
-            ("You faced {} crack(s) to get here.".format(len(idea.faced)), self.c_dim)],
-            [("any", "key")])
-        if idea.get("fruit") == "":
-            self.judge()
-        if idea.get("status") != "promoted":
-            r = self.ask_yn("IT HOLDS", "Promote it to Harness now?",
-                            ["It stays here until you do. P promotes later."])
-            if r:
-                self.promote()
-
-    def r_holds_anim(self, f, frames):
-        idea = self.idea
-        pl = self.pl
-        self.frame("PROJECTOR", "playing")
-        total = pl.months
-        x0 = 6
-        w = self.W - 12
-        y = self.top + 30
-        self.sp.rect(x0, y, w, 12, Widget.theme_border())
-        filled = (w * f) // frames
-        self.sp.fill_rect(x0, y, filled, 12, self.c_em)
-        for e in pl.ends:
-            ex = x0 + (w * e) // total
-            self.sp.line(ex, y - 3, ex, y + 14, self.c_text)
-        month = (total * f) // frames
-        cur = pl.stage_at(month)
-        if month == 0:
-            cur = 0
-        self.t(x0, y - 18, "Month {}".format(month), self.c_text)
-        Widget.text_right(self.sp, self.W - 6, y - 18, idea.stages[cur][0], self.c_em)
-        if f >= frames:
-            Widget.text_center(self.sp, y + 30, "THE PROJECTION HOLDS", self.c_sel)
-        Widget.footer(self.sp, "")
-
-    def judge(self):
-        idea = self.idea
-        T = "JUDGMENT"
-        r = self.ask_choice(T, "How fruitful could this be?",
-                            ["barely", "a little", "worthwhile", "a lot", "life-changing"], 2)
-        if r is None:
-            return
-        idea.f["fruit"] = str(r + 1)
-        r = self.ask_choice(T, "How will the time feel?", ["quick", "moderate", "dragged out"], 1)
-        if r is not None:
-            idea.f["feel"] = str(r + 1)
-        r = self.ask_choice(T, "How hard, overall?", ["easy", "medium", "hard"], 1)
-        if r is not None:
-            idea.f["effort"] = str(r + 1)
-        v = self.ask_text(T, "Is it worth it? Say why in a line.", "", idea.get("worth"),
-                          TEXT_MAX)
-        if v is not None:
-            idea.f["worth"] = v
-        self.dirty = True
-
-    # ---- promote to Harness
-
-    def promote(self):
-        idea = self.idea
-        if idea.get("status") == "promoted":
-            self.msg = "Already promoted"
-            return
-        if not self.holds():
-            self.msg = "Doesn't hold yet: c shows the cracks"
-            return
-        self.paint(self.r_charter, ())
-        k = self.key()
-        if k != "ENTER":
-            return
-        if idea.get("wish") == "" or idea.get("picture") == "":
-            self.msg = "Wish and proof first: v"
-            return
-        T = "FIRST ACTION"
-        t = self.ask_text(T, "What's one action under an hour you could take this week?",
-                          "A verb and an object.", idea.get("task"), TEXT_MAX)
-        if t is None or t == "":
-            return
-        idea.f["task"] = t
-        d = self.ask_text(T, "How will you know it's done?",
-                          "Something you could see: a file, a number, a yes.",
-                          idea.get("done"), TEXT_MAX)
-        if d is None or d == "":
-            return
-        idea.f["done"] = d
-        m = self.ask_number(T, "About how many minutes?", "", idea.num("minutes", 30), 1, 600)
-        if m is None:
-            return
-        idea.f["minutes"] = str(m)
-        seeds = self.ask_yn("SEED TASKS", "Bring your stages along as starting tasks?",
-                            ["They land in Harness's inbox to plan there."])
-        if seeds is None:
-            return
-        r = self.ask_yn("COMMIT", "This creates a live goal in Harness. Ready to commit?",
-                        [idea.get("wish")])
-        if not r:
-            return
-        try:
-            path = self.write_goal(seeds)
-        except MemoryError:
-            self.msg = "Out of memory: not promoted. P again"
-            return
-        idea.f["status"] = "promoted"
-        self.save()
-        self.show("COMMITTED", "", [
-            (idea.get("wish"), self.c_em), ("", self.c_text),
-            ("First: " + t, self.c_text), ("", self.c_text),
-            ("Harness picks it up from " + path, self.c_dim)], [("any", "key")])
-
-    def r_charter(self):
-        # the four WOOP chunks, two lines each at most, so all four always fit
-        idea = self.idea
-        self.frame("PROMOTE", "charter")
-        y = self.top + 2
-        parts = [("Wish ", "wish"), ("Proof", "picture"), ("Snag ", "obstacle"),
-                 ("Plan ", "ifthen")]
-        for p in parts:
-            ln = wrap(idea.get(p[1]), self.cols - 6)
-            self.t(4, y, p[0], self.c_em)
-            self.t(4 + 6 * self.cw, y, ln[0], self.c_text)
-            if len(ln) > 1:
-                more = ln[1]
-                if len(ln) > 2:
-                    more = more + ">"
-                self.t(4 + 6 * self.cw, y + 12, more, self.c_text)
-                y = y + 12
-            y = y + 13
-        Widget.hints(self.sp, [("ENT", "commit to this"), ("ESC", "not yet")])
-
-    def write_goal(self, seeds):
-        idea = self.idea
-        pl = self.pl
-        ensure_dir("/data/harness")
-        ensure_dir(OUTBOX)
-        out = ["HARNESS-GOAL 1", "source: projector", "source_id: {}".format(idea.id),
-               "title: " + idea.get("title"),
-               "wish: " + idea.get("wish"), "outcome: " + idea.get("picture"),
-               "obstacle: " + idea.get("obstacle"), "ifthen: " + idea.get("ifthen"),
-               "why: " + idea.get("why"), "window_months: " + idea.get("window"),
-               "money_baseline: {}".format(idea.num("cash", 0)),
-               "money_projected: {}".format(pl.end)]
-        out.append("TASK|next|{}|{}||{}|||".format(idea.get("task"), idea.get("done"),
-                                                     idea.get("minutes")))
-        if seeds:
-            for st in idea.stages:
-                out.append("TASK|inbox|{}||||||{} months, {} a month".format(
-                    st[0], st[1], smoney(st[2])))
-        for a in idea.assume:
-            state = "unchecked"
-            if a[0]:
-                state = "checked"
-            out.append("ASSUME|{}|{}".format(state, a[1]))
-        for c in self.cr:
-            if c[0] in idea.faced:
-                out.append("IFTHEN|{}|{}".format(c[1], idea.faced[c[0]]))
-        out.append("JUDGE|{}|{}|{}|{}".format(idea.get("fruit"), idea.get("feel"),
-                                             idea.get("effort"), idea.get("worth")))
-        path = OUTBOX + "/goal-{}.txt".format(idea.id)
-        write_lines(path, out)
-        return path
-
 
 App().run()

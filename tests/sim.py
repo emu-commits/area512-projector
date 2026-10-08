@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Run Projector in a512sim (AREA512's MicroPython + API mocks) along key scripts.
 
-  tests/sim.py                 every scenario in SCENARIOS, against app/main.mpy
+  tests/sim.py                 every scenario in SCENARIOS, against dist/projector (./build.sh)
   tests/sim.py -v NAME         one scenario, print the last screen + SD files
-  tests/sim.py --py            run main.py instead (line numbers in errors)
+  tests/sim.py --py            run build/core.py instead (line numbers in errors)
 
 Script syntax: tokens separated by spaces; "T:some text" types the text (spaces
 included, use _ for a space inside the token); ENTER ESC BS UP DOWN LEFT RIGHT as is.
 """
-import os, pathlib, subprocess, sys
+import os, pathlib, re, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FACTORY = pathlib.Path(os.environ.get("AREA512_FACTORY", pathlib.Path.home() / "area512-factory"))
@@ -50,6 +50,8 @@ SCENARIOS = {
            "$ % SHOT:m_money ESC q",
     # create an idea, look at it, quit without saving more
     "new_idea": NEW_IDEA + "p l l l l ENTER ESC $ s s ESC ? ENTER q n q",
+    # whole arc with % probes before each overlay-heavy step (memory margins on firmware)
+    "arc_mem": None,
     # whole arc: premortem, face every crack, holds, judge, promote
     "full_arc": NEW_IDEA + "SHOT:strip p SHOT:play1 l l SHOT:play3 l l SHOT:playend ESC c SHOT:cracks ESC "
         "o T:I_lose_nerve_when_money_gets_tight ENTER "
@@ -58,9 +60,8 @@ SCENARIOS = {
         "DOWN ENTER 2 T:pause_and_take_part-time_work ENTER "
         "DOWN ENTER 2 T:hire_a_barista_for_opening_month ENTER "
         "SHOT:faced ESC SHOT:holdstrip $ SHOT:money ESC "
-        "p l l l l ENTER SHOT:holds x 3 2 3 T:a_place_I'm_proud_of ENTER y SHOT:charter "
-        "ENTER T:Call_3_landlords_about_rent ENTER T:3_quotes_written_down ENTER T:45 ENTER "
-        "y SHOT:commit y SHOT:committed x q",
+        "p l l l l ENTER SHOT:holds x 3 2 3 T:a_place_I'm_proud_of ENTER SHOT:judged "
+        "s SHOT:saved q",
     # reopen after a save in an earlier session: resumption note shown first
     "assumptions_vision": NEW_IDEA +
         "a a T:People_here_will_pay_$5_for_coffee ENTER a T:I_can_get_a_lease ENTER "
@@ -75,18 +76,62 @@ SCENARIOS = {
              "T:" + "word_" * 40 + " ENTER ESC ESC ESC ESC "
              "q ENTER q d y d y ENTER q q",
     # memory stress: 7 stages, 100-char answers, 8 assumptions, everything faced, promote
-    "big": 'a T:Biggest_idea_of_them_all ENTER T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_9 ENTER T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER 5 T:20k ENTER T:Stage1 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage2 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage3 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage4 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage5 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage6 ENTER T:9 ENTER T:-1500 ENTER 2 3 y T:Stage7 ENTER T:9 ENTER T:-1500 ENTER 2 3  SHOT:big_strip % SHOT:big_mem a a T:assumption_number_0_that_is_quite_long_indeed_ok ENTER a T:assumption_number_1_that_is_quite_long_indeed_ok ENTER a T:assumption_number_2_that_is_quite_long_indeed_ok ENTER a T:assumption_number_3_that_is_quite_long_indeed_ok ENTER a T:assumption_number_4_that_is_quite_long_indeed_ok ENTER a T:assumption_number_5_that_is_quite_long_indeed_ok ENTER a T:assumption_number_6_that_is_quite_long_indeed_ok ENTER a T:assumption_number_7_that_is_quite_long_indeed_ok ENTER ESC o T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER BS BS BS BS BS T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER c ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER DOWN ENTER 2 T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER ESC % SHOT:big_faced s % SHOT:big_saved q ENTER % SHOT:big_reopen P ENTER T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER T:abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_ ENTER T:50 ENTER y y SHOT:big_committed x % SHOT:big_after q',
+    # memory stress, the largest idea the caps allow: see big_script()
+    "big": None,
 }
 
 
+def big_script():
+    t80 = "T:" + "abcdefghi_" * 8                       # answers at the 80-char cap
+    out = ["a T:Biggest_idea_of_them_all ENTER", t80, "ENTER", t80 + "9", "ENTER", t80,
+           "ENTER 5 T:20k ENTER"]                        # window 5 years, $20k
+    for i in range(1, 8):                                # 7 stages, all hard and rough
+        out.append("T:Stage{} ENTER T:9 ENTER T:-1500 ENTER 2 3".format(i))
+        out.append("y" if i < 7 else "")
+    out.append("SHOT:big_strip % SHOT:big_mem a")
+    for i in range(6):                                   # 6 assumptions at the 60-char cap
+        out.append("a T:" + "assumption_{}_".format(i) + "x" * 46 + " ENTER")
+    out.append("ESC o " + t80 + " ENTER " + t80 + " ENTER")   # premortem + if-then
+    # face all 16 cracks (the proof's "9" falls past the 80-char cap: "no number" too)
+    out.append("c ENTER 2 " + t80 + " ENTER")
+    for i in range(15):
+        out.append("DOWN ENTER 2 " + t80 + " ENTER")
+    out.append("ESC % SHOT:big_faced s % SHOT:big_saved q ENTER % SHOT:big_reopen")
+    out.append("p l l l l l l l ENTER x 3 2 3 " + t80 + " ENTER % SHOT:big_judged s % "
+               "SHOT:big_after q q")
+    return " ".join(out)
+
+
+SCENARIOS["big"] = big_script()
+SCENARIOS["arc_mem"] = SCENARIOS["full_arc"].replace(
+    "SHOT:holdstrip $", "SHOT:holdstrip % SHOT:mem_strip $").replace(
+    "p l l l l ENTER SHOT:holds", "p l l l l % SHOT:mem_end ENTER SHOT:holds").replace(
+    "s SHOT:saved q", "% SHOT:mem_judged s SHOT:saved q")
+
+
 def run(name, script, target):
+    # Like the device: overlays on the card, then main.manifest's entries in order.
     work = ROOT / "tests/.work" / name
     work.mkdir(parents=True, exist_ok=True)
-    for f in ("main.mpy", "main.py"):
-        (work / f).write_bytes((ROOT / "app" / f).read_bytes())
+    dist = ROOT / "dist/projector"
+    seed = ["_sim_fs['/home'] = None", "_sim_fs['/home/ai'] = None",
+            "_sim_fs['/home/ai/projector'] = None", "_sim_fs['/home/ai/projector/ovl'] = None"]
+    for f in sorted((dist / "ovl").iterdir()):
+        seed.append("_sim_fs['/home/ai/projector/ovl/{}'] = {!r}".format(f.name, f.read_text()))
+    (work / "seed.py").write_text("\n".join(seed) + "\n")
+    for f in ("core.mpy", "start.mpy"):
+        (work / f).write_bytes((dist / f).read_bytes())
     (work / ".keys").write_text(expand(script))
-    r = subprocess.run([str(SIM), str(PRELUDE), ".keys", str(HEAP_KB), target],
-                       cwd=work, capture_output=True, text=True, timeout=120)
+    files = ["seed.py", "core.mpy", "start.mpy"]
+    if target == "py":
+        (work / "core.py").write_bytes((ROOT / "build/core.py").read_bytes())
+        (work / "start.py").write_bytes((ROOT / "build/start.py").read_bytes())
+        files = ["seed.py", "core.py", "start.py"]
+    heap = HEAP_KB
+    if name == "big" and heap < 400:
+        heap = 400          # its 3,500-key script is held in the sim's heap, not the app's
+    r = subprocess.run([str(SIM), str(PRELUDE), ".keys", str(heap)] + files,
+                       cwd=work, capture_output=True, text=True, timeout=300)
     return r.stdout + r.stderr
 
 
@@ -96,13 +141,17 @@ def verdict(out):
     if "@@RUNTIME_ERROR" in out:
         return "RUNTIME_ERROR"
     if "@@EXIT" in out:
+        # every key must be used: an early exit means the flow went somewhere unplanned
+        m = re.search(r"keys_used=(\d+)/(\d+)", out)
+        if m and m.group(1) != m.group(2):
+            return "EARLY_EXIT"
         return "ok"
     return "?"
 
 
 def main():
     args = sys.argv[1:]
-    target = "main.py" if "--py" in args else "main.mpy"
+    target = "py" if "--py" in args else "mpy"
     verbose = "-v" in args
     names = [a for a in args if not a.startswith("-")] or list(SCENARIOS)
     bad = 0

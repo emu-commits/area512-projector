@@ -8,12 +8,11 @@ PROJECTOR - play your ideas forward
    or face it: "If it happens, I will ...".
 5. o: premortem. "It didn't work out. Why?"
 6. When nothing is left open, the projection HOLDS.
-7. P promotes it to Harness (data/harness/inbox).
 
 Keys on the strip
   h/l stage    p play     c cracks    $ money
   e edit       n new      x delete    v vision
-  a assumptions           o obstacle  P promote
+  a assumptions           o obstacle
   s save (never automatic)            q back
 
 Numbers: 5k = 5000. Spending is negative.

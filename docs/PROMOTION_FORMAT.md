@@ -1,5 +1,9 @@
 # Projector → Harness promotion format (v1)
 
+> **Status: designed, not wired in.** Projector has no promote step until Harness exists
+> (decision 2026-10-08). A working writer was built and verified on the firmware; it is in git
+> history (commit 1c3666f, `write_goal` in app/main.py) for when this comes back.
+
 This closes the open question in Harness Conceptual Contract §11 ("exact file format for
 promotion payload"). A future Harness for AREA512 reads these files. Every field maps onto the
 contract's Live Goal Data Model (§4) without translation.
@@ -93,4 +97,7 @@ and refuse a higher major version.
     F|crack key|response                                             a faced crack
 
 `touched` is a session number, not a date (`meta.txt` counts launches).
+A file longer than 900 bytes continues in `<file>.1`, `<file>.2`, ...: read the parts in order
+and treat them as one file. Each part is written whole, and the SD API has no append, so a part is
+one string. Small parts keep that string small enough for a fragmented heap.
 `library.txt` holds one line per idea, `id|status|touched|title`.

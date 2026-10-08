@@ -11,7 +11,11 @@ out as 1–7 stages, and **play it forward**. The app does the arithmetic and po
 **cracks**: where the money runs out, where the hard stretches pile up, what you are only assuming.
 You fix each crack, either by changing the plan or by **facing** it with an If-Then. When nothing
 is left unanswered, **the projection holds**: the app replays the idea through to your own picture
-of success and your own *why*. Then you can **promote** it to Harness on the SD card.
+of success and your own *why*.
+
+**Harness hand-off: deferred** (user decision, 2026-10-08). Harness isn't built, and Projector gets
+lots of use on its own first, so promotion is not in the UI. Its file format stays designed in
+`PROMOTION_FORMAT.md` and the idea data still holds everything the contract's charter needs.
 
 The spec's five tabs are still there, but they hang off one main screen (the film strip of
 stages) instead of being five forms of equal weight.
@@ -29,7 +33,7 @@ stages) instead of being five forms of equal weight.
 | Working memory | One idea in focus; ≤ 4 chunks on the charter screen; one question per screen |
 | Resumption | "Note to future you" on leaving; shown first the next time the idea is opened |
 | Motivation | The HOLDS screen plays the strip to the finish, then shows your success picture + why |
-| Deliberate commitment | Promote restates the charter, asks for a first action with Done-when, then y/n to commit |
+| Deliberate commitment | (deferred with the Harness hand-off) |
 
 ## Cracks (deterministic, in severity order)
 
@@ -69,8 +73,9 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
 - No clock: "last touched" and resumption use a **session counter** in `meta.txt`.
   ⚠ Harness's "≥ 3 days away" rule will need the same substitute (or a typed date).
 - No `json`, no `import`: storage is line-based text (below).
-- One `main.mpy`, compiled with area512-factory's `mpyc/a512c`; checked in `a512sim` at 96 KB
-  heap and on the official firmware with `emu/fwrun.mjs`.
+- ~53 KB of Python heap in total, measured on the official firmware. The app ships as main.manifest + core.mpy +
+  start.mpy, with source overlays (`ovl/`, one file per def) compiled on entry; see README "Memory". Checked in
+  `a512sim` and on the official firmware with `emu/fwrun.mjs`.
 
 ## Storage (`/Area512_data/data/projector/`)
 
@@ -78,7 +83,6 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
     library.txt           id|status|touched|title     (one line per idea)
     ideas/<id>.txt        one idea (format in PROMOTION_FORMAT.md §Idea file)
 
-Promotion writes `/Area512_data/data/harness/inbox/goal-<id>.txt` (see `PROMOTION_FORMAT.md`).
 
 ## Screens and keys
 
@@ -87,20 +91,19 @@ Promotion writes `/Area512_data/data/harness/inbox/goal-<id>.txt` (see `PROMOTIO
   starting money → stages (name, months, $/month, sure?, hard?, "another?").
 - **Strip** (main): stages as cells, cash line, crack count / HOLDS.
   `h/l` stage, `p` play, `c` cracks, `e` edit stage, `n` new stage, `x` delete stage,
-  `v` vision, `a` assumptions, `$` money, `o` obstacle (premortem), `P` promote, `s` save,
+  `v` vision, `a` assumptions, `$` money, `o` obstacle (premortem), `s` save,
   `?` keys, `q` back.
 - **Play**: `l/Enter` next, `h` back, `e` edit this stage, `f` face a crack here, `q` stop.
 - **Cracks**: `Enter` → change the plan / face it.
 - **Money**: best / likely / worst table and the balance line; `s` switches scenario.
-- **Promote**: charter (4 chunks) → first action + Done-when + minutes → stages as seed
-  tasks? → "Ready to commit?" → writes the goal file, marks the idea promoted (read-only after).
+- **Holds**: replay to the finish, your proof and why, then the judgment (fruitful, feel, effort, worth it).
 
 ## Build order
 
 1. Engine (projection + cracks) + storage, checked in the sim.
 2. Library, new-idea flow, strip, stage editor.
 3. Play, cracks + face, premortem, money, vision, assumptions.
-4. HOLDS replay, judgment, promote + goal file.
+4. HOLDS replay and judgment. (Promote + goal file: built, then taken out until Harness exists.)
 5. Firmware run in the emulator with screenshots; heap check; README.
 
 ## Deferred (v0.2+)
