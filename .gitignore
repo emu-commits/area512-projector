@@ -1,0 +1,7 @@
+build/
+dist/
+app/main.mpy
+tests/.work/
+tests/.fw*/
+tests/.fw*.log
+__pycache__/
