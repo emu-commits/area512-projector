@@ -33,7 +33,7 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 ## Build and test
 
 You need [area512-factory](https://github.com/emu-commits/area512-factory) checked out at
-`~/area512-factory` (or set `AREA512_FACTORY`), with its `./setup.sh` run.
+`~/area512-factory` (or set `AREA512_FACTORY`), with its `./setup.sh` run (`tests/fw.py` needs its `emu/fwrun.mjs` with `--dump`).
 
     ./build.sh               # app/main.py -> dist/projector/{main.manifest, core.mpy, start.mpy}
     tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks)
