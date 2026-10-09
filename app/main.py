@@ -1001,7 +1001,7 @@ class App:
             self.t(6, y, Widget.clip(self.sp, "! " + first_open[1], self.W - 12), self.c_sel)
         elif n > 0:
             self.t(6, y, "The projection holds.", self.c_em)
-        self.foot([("p", "play"), ("c", "cracks"), ("e", "edit"), ("n", "new"), ("?", "keys")])
+        self.foot([("p", "play"), ("c", "cracks"), ("e", "edit"), ("n", "new")])
 
     def stage_flag(self, i):
         for c in self.cr:

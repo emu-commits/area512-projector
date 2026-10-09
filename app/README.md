@@ -13,7 +13,7 @@ Keys on the strip
   h/l stage    p play     c cracks    $ money
   e edit       n new      x delete    v vision
   a assumptions           o obstacle
-  s save (never automatic)            q back
+  s save (never automatic)    ? this help    q back
 
 Numbers: 5k = 5000. Spending is negative.
 Sure / rough / guess widens the best and worst cases.
