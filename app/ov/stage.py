@@ -6,7 +6,10 @@ def stage_add(self, at, q):
     name = self.ask_text(T, q, "A short name: Learn, Build, Launch ...", "", 12)
     if name is None or name == "":
         return False
-    st = [name, 3, 0, 2, 2]
+    st = [name, 3, 0, 2, 2, 0, 0]
+    if at > 0:
+        # ENTER keeps the stage before's monthly cost: your own number, carried over
+        st[2] = self.idea.stages[at - 1][2]
     if not stage_numbers(self, st):
         return False
     self.idea.stages.insert(at, st)
@@ -22,13 +25,19 @@ def stage_numbers(self, st):
     if m is None:
         return False
     st[1] = m
-    n = self.ask_number(T, "Money each month during '{}'?".format(st[0]),
-                        "Spending is negative (-500), income positive.", st[2],
-                        -9999999, 9999999)
-    if n is None:
-        return False
-    st[2] = n
+    for q in stage_qs():
+        v = self.ask_number(T, q[1].format(st[0]), q[2], st[q[0]], 0, 9999999)
+        if v is None:
+            return False
+        st[q[0]] = v
     return stage_levels(self, st, T)
+
+
+def stage_qs():
+    # [stage field, question, hint]: one-time spend, extra cost a month, income a month
+    return [(5, "One-time spend to start '{}'?", "Equipment, deposits ..."),
+            (2, "Extra costs each month during '{}'?", "On top of your fixed costs."),
+            (6, "Income each month during '{}'?", "Sales, pay ...")]
 
 
 def stage_levels(self, st, T):

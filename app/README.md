@@ -18,6 +18,8 @@ Keys on the strip
   a assumptions           o obstacle
   s save (never automatic)    ? this help    q back
 
-Numbers: 5k = 5000. Spending is negative.
+Numbers: 5k = 5000. Each stage: one-time spend,
+costs a month, income a month. Fixed costs
+(on $ money, f) come on top of every stage.
 Sure / rough / guess widens the best and worst cases.
 Hard stages run longer in the worst case.

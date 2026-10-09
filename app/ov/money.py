@@ -14,21 +14,27 @@ def money_main(self):
         elif k == "LEFT":
             sc = (sc + 2) % 3
         elif k == "e":
-            v = self.ask_number("MONEY", "Money you can put toward this now?", "",
-                                self.idea.num("cash", 0), 0, 99999999)
-            if v is not None:
-                self.idea.f["cash"] = str(v)
-                self.dirty = True
+            money_ask(self, "cash", "Money you can put toward this now?", 99999999)
+        elif k == "f":
+            money_ask(self, "fixed", "Fixed costs every month, whatever the stage?", 9999999)
+
+
+def money_ask(self, key, q, hi):
+    v = self.ask_number("MONEY", q, "", self.idea.num(key, 0), 0, hi)
+    if v is not None:
+        self.idea.f[key] = str(v)
+        self.dirty = True
 
 
 def money_r(self, sc):
-    self.frame("MONEY", "start " + money(self.idea.num("cash", 0)))
+    self.frame("MONEY", "{}, fixed {}/mo".format(money(self.idea.num("cash", 0)),
+                                                money(self.idea.num("fixed", 0))))
     ps = [self.pb, self.pl, self.pw]
     money_table(self, ps, sc)
     y = self.top + 16 + 14 * 3 + 3
     self.t(6, y, "{}: {} months".format(SCEN[sc], ps[sc].months), self.c_dim)
     money_chart(self, ps[sc], y + self.lh)
-    self.foot([("s", "case"), ("e", "start $"), ("ESC", "back")])
+    self.foot([("s", "case"), ("e", "start $"), ("f", "fixed")])
 
 
 def money_table(self, ps, sc):

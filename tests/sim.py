@@ -38,11 +38,13 @@ def expand_keep_shots(script):
 
 NEW_IDEA = ("a T:Corner_cafe ENTER T:Open_a_small_coffee_shop_in_my_town ENTER "
             "T:200_regulars_a_week_and_I_pay_myself_3k_a_month ENTER "
-            "T:I_want_a_place_people_come_back_to ENTER 4 T:5k ENTER "
-            "T:Plan ENTER T:3 ENTER T:-200 ENTER 1 1 y "
-            "T:Build ENTER T:6 ENTER T:-2k ENTER 2 3 y "
-            "T:Open ENTER T:6 ENTER T:-1000 ENTER 3 3 y "
-            "T:Grow ENTER T:18 ENTER T:2500 ENTER 2 2 n ")
+            "T:I_want_a_place_people_come_back_to ENTER 4 T:5k ENTER T:200 ENTER "
+            # stage: name, months, one-time, extra costs a month, income a month, sure, hard
+            # (nets a month with the $200 fixed cost: -200, -2000, -1000, +2500)
+            "T:Plan ENTER T:3 ENTER ENTER ENTER ENTER 1 1 y "
+            "T:Build ENTER T:6 ENTER ENTER T:1800 ENTER ENTER 2 3 y "
+            "T:Open ENTER T:6 ENTER ENTER T:800 ENTER ENTER 3 3 y "
+            "T:Grow ENTER T:18 ENTER ENTER ENTER T:3500 ENTER 2 2 n ")
 
 SCENARIOS = {
     # memory: hidden % key shows free KB in the footer
@@ -67,7 +69,7 @@ SCENARIOS = {
         "a a T:People_here_will_pay_$5_for_coffee ENTER a T:I_can_get_a_lease ENTER "
         "ENTER f T:test_a_market_stall_first ENTER d y ESC "
         "v DOWN ENTER BS BS BS T:now ENTER DOWN DOWN DOWN DOWN ENTER 1 ESC "
-        "h l e DOWN ENTER BS T:9 ENTER ESC n T:Extra ENTER T:2 ENTER T:-1 ENTER 1 1 x y "
+        "h l e DOWN ENTER BS T:9 ENTER ESC n T:Extra ENTER T:2 ENTER ENTER ENTER ENTER 1 1 x y "
         "q y T:pick_up_at_the_lease ENTER q",
     # edge cases: empty library, ESC everywhere, zero stages, long text, archive
     "edges": "j k ENTER d a ESC a T:X ENTER ESC ESC ESC ESC "
@@ -84,9 +86,9 @@ SCENARIOS = {
 def big_script():
     t80 = "T:" + "abcdefghi_" * 8                       # answers at the 80-char cap
     out = ["a T:Biggest_idea_of_them_all ENTER", t80, "ENTER", t80 + "9", "ENTER", t80,
-           "ENTER 5 T:20k ENTER"]                        # window 5 years, $20k
+           "ENTER 5 T:20k ENTER T:300 ENTER"]                        # window 5 years, $20k
     for i in range(1, 8):                                # 7 stages, all hard and rough
-        out.append("T:Stage{} ENTER T:9 ENTER T:-1500 ENTER 2 3".format(i))
+        out.append("T:Stage{} ENTER T:9 ENTER T:900 ENTER T:1500 ENTER T:300 ENTER 2 3".format(i))
         out.append("y" if i < 7 else "")
     out.append("SHOT:big_strip % SHOT:big_mem a")
     for i in range(6):                                   # 6 assumptions at the 60-char cap
@@ -105,6 +107,16 @@ def big_script():
 SCENARIOS["big"] = big_script()
 
 
+# An idea saved by v0.3 (one net figure a month per stage) opens with its money split:
+# a cost stage keeps its spending as costs, an earning stage its net as income.
+LEGACY = ("PROJECTOR-IDEA 1\ntitle: Old cafe\nstatus: simulating\ntouched: 1\nwindow: 36\n"
+          "cash: 5000\nS|Build|6|-2000|2|3\nS|Grow|18|2500|2|2\n")
+SEEDS = {"legacy": {"/data": None, "/data/projector": None, "/data/projector/ideas": None,
+                    "/data/projector/meta.txt": "session: 1\nnext_id: 2\n",
+                    "/data/projector/library.txt": "1|simulating|1|Old cafe",
+                    "/data/projector/ideas/1.txt": LEGACY}}
+SCENARIOS["legacy"] = "ENTER SHOT:l_strip e SHOT:l_edit ESC l e SHOT:l_edit2 ESC s q q"
+
 # The film: WAITs let an animation run to its end (in the sim each WAIT is one empty poll; on
 # the firmware ~0.25 s), so these reach the freeze frame; the other scenarios press keys
 # mid-animation, which skips it.
@@ -114,8 +126,11 @@ SCENARIOS["film_accept"] = (NEW_IDEA + "p " + W + "SHOT:f_card0 l " + W + "SHOT:
     "l " + W + "SHOT:f_open l " + W + "l " + W + "SHOT:f_end ENTER SHOT:f_cracks ESC "
     "c SHOT:f_list ESC q n q")
 SCENARIOS["film_edit"] = (NEW_IDEA + "p " + W + "l " + W + "SHOT:fe_freeze e SHOT:fe_edit "
-    "DOWN DOWN ENTER T:-500 ENTER SHOT:fe_edited ESC % SHOT:fe_back "
+    "DOWN DOWN DOWN ENTER T:300 ENTER SHOT:fe_edited ESC % SHOT:fe_back "
     "l " + W + "SHOT:fe_freeze2 f T:take_contract_work ENTER SHOT:fe_faced q q n q")
+# a one-time spend: the film's chart drops at the start of Build, and cash runs out sooner
+SCENARIOS["film_once"] = (NEW_IDEA.replace("T:Build ENTER T:6 ENTER ENTER", "T:Build ENTER T:6 ENTER T:3k ENTER")
+    + "p " + W + "l " + W + "SHOT:o_freeze l " + W + "SHOT:o_open q $ SHOT:o_money ESC e DOWN DOWN SHOT:o_edit ESC q n q")
 # accept the likely cash-out instead of facing it: HOLDS names the cost
 SCENARIOS["accept_arc"] = SCENARIOS["full_arc"].replace(
     "c ENTER 2 T:cut_hours_and_sell_beans_online ENTER",
@@ -139,6 +154,8 @@ def run(name, script, target):
             "_sim_fs['/home/ai/projector'] = None", "_sim_fs['/home/ai/projector/ovl'] = None"]
     for f in sorted((dist / "ovl").iterdir()):
         seed.append("_sim_fs['/home/ai/projector/ovl/{}'] = {!r}".format(f.name, f.read_text()))
+    for path, text in SEEDS.get(name, {}).items():
+        seed.append("_sim_fs[{!r}] = {!r}".format(path, text))
     (work / "seed.py").write_text("\n".join(seed) + "\n")
     for f in ("core.mpy", "start.mpy"):
         (work / f).write_bytes((dist / f).read_bytes())

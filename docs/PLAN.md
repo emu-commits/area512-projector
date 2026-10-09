@@ -58,13 +58,26 @@ as a faced one whose text starts with `=` (`F|out_base|=savings; worth it becaus
 
 ## Projection math (integer, monthly)
 
-Per stage: `months`, `net $/month` (negative = cost), `conf` 1–3, `diff` 1–3.
-Spread by confidence: sure 10%, rough 30%, guess 60%.
-- likely: as entered
-- worst: months × (1 + spread [+25% if hard]), rounded up; costs × (1 + spread), income × (1 − spread)
-- best: months × (1 − spread) (≥ 1); costs × (1 − spread), income × (1 + spread)
+Money is entered **apart and kept apart** (user, 2026-10-09: one net figure a month was too hard to
+work out in your head):
+- per idea: `fixed` cost a month (rent, phone ...), carried by every stage;
+- per stage: `months`, `one-time` spend at its start, extra `costs` a month, `income` a month
+  (all ≥ 0), `conf` 1–3, `diff` 1–3. A new stage's costs start at the stage before's (ENTER keeps
+  them: the user's own number, carried over).
 
-Running balance month by month from the starting cash. Outputs: lowest point and when, first month
+Spread by the stage's confidence: sure 10%, rough 30%, guess 60%. It moves the stage's own numbers,
+each in its bad (worst) or good (best) direction; the fixed cost isn't spread but lasts as long
+as the stage does.
+- likely: as entered; net a month = income − costs − fixed
+- worst: months × (1 + spread [+25% if hard]), rounded up; one-time and costs × (1 + spread),
+  income × (1 − spread)
+- best: months × (1 − spread) (≥ 1); one-time and costs × (1 − spread), income × (1 + spread)
+
+Why apart matters beyond input: a stage netting +$2.5k from $5k income and $2.5k costs used to
+lose 30% of its *net* in the worst case; now its income loses 30% and its costs gain 30%.
+
+Each stage is a drop for its one-time spend, then a straight line, so the projection keeps one
+segment per stage (no per-month list). Running balance from the starting cash. Outputs: lowest point and when, first month
 below zero, ending balance, total months. That's all: no solver, no Monte Carlo (spec §3.3).
 
 ## Platform constraints that shaped this
@@ -91,7 +104,8 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
 
 - **Library**: `j/k` move, `Enter` open, `a` new idea, `d` archive, `q` quit.
 - **New idea** (one question per screen): name → wish → success picture → why → window →
-  starting money → stages (name, months, $/month, sure?, hard?, "another?").
+  starting money → fixed costs a month → stages (name, months, one-time, costs a month,
+  income a month, sure?, hard?, "another?").
 - **Strip** (main): stages as cells, cash line, crack count / HOLDS.
   `h/l` stage, `p` play, `c` cracks, `e` edit stage, `n` new stage, `x` delete stage,
   `v` vision, `a` assumptions, `$` money, `o` obstacle (premortem), `s` save,
@@ -103,7 +117,8 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
   (edit / accept / holds / cracks) and `App.play` opens it once the film is unloaded, then
   plays on from that stage. With the largest idea there isn't room for both at once.
 - **Cracks**: `Enter` → change the plan / face it / accept the cost (money cracks) / open it again.
-- **Money**: best / likely / worst table and the balance line; `s` switches scenario.
+- **Money**: best / likely / worst table and the balance line; `s` switches scenario,
+  `e` starting money, `f` fixed costs a month.
 - **Holds**: replay to the finish, your proof and why, then the judgment (fruitful, feel, effort, worth it).
 
 ## Build order

@@ -19,7 +19,7 @@ SCEN = ["best", "likely", "worst"]
 TAG = {"incubating": "new", "simulating": "sim", "ready": "HOLDS", "archived": "arch"}
 FIELDS = ["title", "status", "touched", "wish", "picture", "why", "window",
           "cash", "obstacle", "ifthen", "note", "fruit", "feel", "effort", "worth",
-          "task", "done", "minutes", "runs"]
+          "task", "done", "minutes", "runs", "fixed"]
 MAX_STAGES = 7
 TEXT_MAX = 80
 MAX_ASSUME = 6
@@ -252,7 +252,10 @@ class Idea:
     def __init__(self, iid):
         self.id = iid
         self.f = {}
-        self.stages = []    # [name, months, net per month, conf 1-3, diff 1-3]
+        # [name, months, extra cost a month, conf 1-3, diff 1-3, one-time spend, income a month]
+        # money is entered apart and kept apart (user, 2026-10-09); the idea's "fixed" cost
+        # a month comes on top of every stage
+        self.stages = []
         self.assume = []    # [checked 0/1, text]
         self.faced = {}     # crack key -> "If it happens, I will ..."
 
@@ -274,8 +277,7 @@ def load_idea(iid):
         if len(line) > 1 and line[1] == "|":
             p = line.split("|")
             if line[0] == "S" and len(p) >= 6:
-                idea.stages.append([p[1], toint(p[2], 1), toint(p[3], 0),
-                                    toint(p[4], 2), toint(p[5], 2)])
+                idea.stages.append(read_stage(p))
             elif line[0] == "A" and len(p) >= 3:
                 idea.assume.append([toint(p[1], 0), p[2]])
             elif line[0] == "F" and len(p) >= 3:
@@ -287,6 +289,24 @@ def load_idea(iid):
     return idea
 
 
+def read_stage(p):
+    st = [p[1], toint(p[2], 1), toint(p[3], 0), toint(p[4], 2), toint(p[5], 2), 0, 0]
+    if len(p) >= 8:
+        st[5] = toint(p[6], 0)
+        st[6] = toint(p[7], 0)
+    elif st[2] > 0:
+        # v0.3 and older kept one net figure a month: income if positive
+        st[6] = st[2]
+        st[2] = 0
+    else:
+        st[2] = 0 - st[2]
+    return st
+
+
+def stage_net(idea, st):
+    return st[6] - st[2] - idea.num("fixed", 0)
+
+
 def save_idea(idea):
     ensure_dir(IDEAS)
     out = ["PROJECTOR-IDEA 1"]
@@ -295,7 +315,7 @@ def save_idea(idea):
         if v != "":
             out.append(k + ": " + v)
     for s in idea.stages:
-        out.append("S|{}|{}|{}|{}|{}".format(s[0], s[1], s[2], s[3], s[4]))
+        out.append("S|{}|{}|{}|{}|{}|{}|{}".format(s[0], s[1], s[2], s[3], s[4], s[5], s[6]))
     for a in idea.assume:
         out.append("A|{}|{}".format(a[0], a[1]))
     for k in idea.faced:
@@ -305,34 +325,34 @@ def save_idea(idea):
 
 # ---------------------------------------------------------------- engine
 
-def stage_case(st, sc):
-    # (months, net per month) for one stage in scenario sc: 0 best, 1 likely, 2 worst
+def stage_case(st, sc, fixed):
+    # [months, net a month, one-time] for one stage in scenario sc: 0 best, 1 likely,
+    # 2 worst. The stage's own numbers move with its confidence (costs up and income down
+    # in the worst case, each on its own); the fixed cost doesn't, but runs as long.
     m = st[1]
-    n = st[2]
     s = SPREAD[st[3]]
     if sc == 1:
-        return m, n
+        return [m, st[6] - st[2] - fixed, st[5]]
     if sc == 2:
         extra = 0
         if st[4] == 3:
             extra = HARD_OVERRUN
-        m2 = (m * (100 + s + extra) + 99) // 100
-        if n < 0:
-            return m2, pct(n, 100 + s)
-        return m2, pct(n, 100 - s)
-    m2 = (m * (100 - s)) // 100
-    if m2 < 1:
-        m2 = 1
-    if n < 0:
-        return m2, pct(n, 100 - s)
-    return m2, pct(n, 100 + s)
+        m = (m * (100 + s + extra) + 99) // 100
+        s = 0 - s
+    else:
+        m = (m * (100 - s)) // 100
+        if m < 1:
+            m = 1
+    return [m, pct(st[6], 100 + s) - pct(st[2], 100 - s) - fixed, pct(st[5], 100 - s)]
 
 
 class Proj:
-    # Within a stage the balance moves in a straight line, so per-stage segments are enough:
-    # no per-month list (RAM), and lowest point / first month below zero are exact.
+    # Within a stage the balance moves in a straight line after the one-time spend at its
+    # start, so per-stage segments are enough: no per-month list (RAM), and the lowest
+    # point and the first month below zero are exact.
     def __init__(self, idea, sc):
         b = idea.num("cash", 0)
+        fixed = idea.num("fixed", 0)
         self.start = b
         self.starts = []
         self.ends = []
@@ -342,27 +362,34 @@ class Proj:
         self.high = b
         self.low_m = 0
         self.out_m = 0
-        m = 0
+        self.months = 0
         for st in idea.stages:
-            r = stage_case(st, sc)
-            self.starts.append(m)
-            self.sbal.append(b)
-            self.nets.append(r[1])
-            if self.out_m == 0 and r[1] < 0 and b + r[0] * r[1] < 0:
-                if b < 0:
-                    self.out_m = m + 1
-                else:
-                    self.out_m = m + b // (0 - r[1]) + 1
-            b = b + r[0] * r[1]
-            m = m + r[0]
-            self.ends.append(m)
-            if b < self.low:
-                self.low = b
-                self.low_m = m
-            if b > self.high:
-                self.high = b
-        self.months = m
+            b = self.step(stage_case(st, sc, fixed), b)
         self.end = b
+
+    def step(self, r, b):
+        m = self.months
+        b = b - r[2]
+        self.starts.append(m)
+        self.sbal.append(b)
+        self.nets.append(r[1])
+        self.mark(b, m)
+        if self.out_m == 0 and b < 0:
+            self.out_m = m + 1
+        if self.out_m == 0 and r[1] < 0 and b + r[0] * r[1] < 0:
+            self.out_m = m + b // (0 - r[1]) + 1
+        b = b + r[0] * r[1]
+        self.months = m + r[0]
+        self.ends.append(self.months)
+        self.mark(b, self.months)
+        return b
+
+    def mark(self, b, m):
+        if b < self.low:
+            self.low = b
+            self.low_m = m
+        if b > self.high:
+            self.high = b
 
     def bal(self, month):
         if month <= 0 or len(self.ends) == 0:
@@ -872,10 +899,13 @@ class App:
     def r_form(self, title, labels, sel, hints):
         self.frame(title, "")
         y = self.top + 3
+        gap = 2
+        if len(labels) > 6:
+            gap = 0             # the 7-row stage form only fits close-set
         i = 0
         while i < len(labels):
             self.row(y, labels[i], i == sel)
-            y = y + self.lh + 2
+            y = y + self.lh + gap
             i = i + 1
         Widget.hints(self.sp, hints)
 
@@ -1034,7 +1064,7 @@ class App:
             c = self.c_sel
         self.t(x + 3, y + 1, Widget.clip(self.sp, st[0], w - 6), c)
         self.t(x + 3, y + 13, "{}mo {}".format(st[1], DTAG[st[4]]), c)
-        self.t(x + 3, y + 25, Widget.clip(self.sp, smoney(st[2]), w - 6), c)
+        self.t(x + 3, y + 25, Widget.clip(self.sp, smoney(stage_net(self.idea, st)), w - 6), c)
         self.t(x + 3, y + 37, CONF[st[3]], self.c_dim)
         if self.stage_flag(i):
             self.t(x + w - 8, y + 37, "!", self.c_sel)
@@ -1188,23 +1218,7 @@ class App:
             self.dirty = True
 
     def premortem(self):
-        idea = self.idea
-        win = idea.num("window", 36)
-        o = self.ask_text("PREMORTEM",
-                          "Jump to month {}. It didn't work out. What inside you got in the way?"
-                          .format(win), "A habit, a feeling, a pattern. Not bad luck.",
-                          idea.get("obstacle"), TEXT_MAX)
-        if o is None or o == "":
-            return
-        idea.f["obstacle"] = o
-        self.dirty = True
-        start = idea.get("ifthen")
-        if start == "":
-            start = "When "
-        p = self.ask_text("IF-THEN", "When that shows up, what will you do?",
-                          "When ___, I will ___.", start, TEXT_MAX)
-        if p is not None and p != "" and p != "When":
-            idea.f["ifthen"] = p
+        self.ov("obstacle", "obstacle_main")
 
     # ---- vision
 

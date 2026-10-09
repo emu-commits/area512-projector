@@ -10,7 +10,7 @@ def edit_main(self, i):
         k = self.nav(self.key())
         if k == "ESC" or k == "q":
             return
-        if k == "DOWN" and sel < 4:
+        if k == "DOWN" and sel < 6:
             sel = sel + 1
         elif k == "UP" and sel > 0:
             sel = sel - 1
@@ -18,27 +18,32 @@ def edit_main(self, i):
             edit_key(self, st, sel, k)
 
 
+# form row -> stage field
+edit_IX = [0, 1, 5, 2, 6, 3, 4]
+
+
 def edit_hint(sel):
-    if sel >= 3:
+    if sel >= 5:
         return [("1-3", "set")]
     return []
 
 
 def edit_labels(st):
-    return ["Name     " + st[0], "Months   {}".format(st[1]), "Monthly  " + smoney(st[2]),
-            "Sure?    " + CONF[st[3]], "Hard?    " + DIFF[st[4]]]
+    return ["Name      " + st[0], "Months    {}".format(st[1]), "One-time  " + money(st[5]),
+            "Costs/mo  " + money(st[2]), "Income/mo " + money(st[6]),
+            "Sure?     " + CONF[st[3]], "Hard?     " + DIFF[st[4]]]
 
 
 def edit_key(self, st, sel, k):
     v = None
-    if sel >= 3 and (k == "1" or k == "2" or k == "3"):
+    if sel >= 5 and (k == "1" or k == "2" or k == "3"):
         v = ord(k) - ord("0")
-    elif k == "ENTER" and sel < 3:
+    elif k == "ENTER" and sel < 5:
         v = edit_value(self, st, sel)
     elif k == "ENTER":
         v = edit_level(self, st, sel)
     if v is not None:
-        st[sel] = v
+        st[edit_IX[sel]] = v
         self.dirty = True
 
 
@@ -50,12 +55,13 @@ def edit_value(self, st, sel):
         return v
     if sel == 1:
         return self.ask_number("STAGE", "Months for '{}'?".format(st[0]), "", st[1], 1, 120)
-    return self.ask_number("STAGE", "Money each month in '{}'?".format(st[0]),
-                           "Spending negative, income positive.", st[2], -9999999, 9999999)
+    q = ["One-time spend to start '{}'?", "Extra costs each month in '{}'?",
+         "Income each month in '{}'?"][sel - 2]
+    return self.ask_number("STAGE", q.format(st[0]), "", st[edit_IX[sel]], 0, 9999999)
 
 
 def edit_level(self, st, sel):
-    if sel == 3:
+    if sel == 5:
         v = self.ask_choice("STAGE", "How sure are you?",
                             ["sure", "rough idea", "a guess"], st[3] - 1)
     else:

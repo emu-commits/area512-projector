@@ -43,6 +43,10 @@ def newidea_money(self, idea, T):
     if c is None:
         c = 0
     idea.f["cash"] = str(c)
+    f = self.ask_number(T, "Fixed costs every month, whatever the stage?",
+                        "Rent, phone, insurance ... 0 if none.", 0, 0, 9999999)
+    if f is not None:
+        idea.f["fixed"] = str(f)
 
 
 def newidea_stages(self, idea, T):

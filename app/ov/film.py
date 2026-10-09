@@ -173,31 +173,41 @@ def film_chart(self, y, m):
     sp = hi - lo
     if sp < 1:
         sp = 1
-    z = y + 40 - ((0 - lo) * 40) // sp
+    z = film_y(0, (y, lo, sp))
     self.sp.line(6, z, self.W - 7, z, self.c_dim)
     film_line(self, self.pw, y, m, lo, sp, self.c_dim, 0)
     film_line(self, self.pl, y, m, lo, sp, self.c_em, 1)
 
 
 def film_line(self, p, y, m, lo, sp, c, thick):
-    # within a stage the balance is a straight line: one segment per stage
-    w = self.W - 12
     tot = self.pl.months
     j = 0
     while j < len(p.starts) and p.starts[j] < m and p.starts[j] < tot:
-        a = p.starts[j]
         b = p.ends[j]
         if b > m:
             b = m
         if b > tot:
             b = tot
-        y0 = y + 40 - ((p.bal(a) - lo) * 40) // sp
-        y1 = y + 40 - ((p.bal(b) - lo) * 40) // sp
-        x0 = 6 + (a * w) // tot
-        x1 = 6 + (b * w) // tot
-        self.sp.line(x0, y0, x1, y1, c)
-        self.sp.line(x0, y0 + thick, x1, y1 + thick, c)
+        film_seg(self, p, j, b, (y, lo, sp, c, thick))
         j = j + 1
+
+
+def film_seg(self, p, j, b, g):
+    # one stage: a drop for its one-time spend, then a straight line
+    w = self.W - 12
+    a = p.starts[j]
+    x0 = 6 + (a * w) // self.pl.months
+    x1 = 6 + (b * w) // self.pl.months
+    y0 = film_y(p.bal(a), g)
+    y1 = film_y(p.sbal[j], g)
+    y2 = film_y(p.sbal[j] + (b - a) * p.nets[j], g)
+    self.sp.line(x0, y0, x0, y1, g[3])
+    self.sp.line(x0, y1, x1, y2, g[3])
+    self.sp.line(x0, y1 + g[4], x1, y2 + g[4], g[3])
+
+
+def film_y(v, g):
+    return g[0] + 40 - ((v - g[1]) * 40) // g[2]
 
 
 def film_head(self, i, m):

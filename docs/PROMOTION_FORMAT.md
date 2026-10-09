@@ -91,10 +91,14 @@ and refuse a higher major version.
 
     PROJECTOR-IDEA 1
     title / status / touched / wish / picture / why / window / cash / obstacle / ifthen /
-    note / fruit / feel / effort / worth / task / done / minutes      (key: value)
-    S|name|months|net per month|conf 1-3|diff 1-3                     stage
+    note / fruit / feel / effort / worth / task / done / minutes /
+    runs / fixed (cost a month, every stage)                          (key: value)
+    S|name|months|costs a month|conf 1-3|diff 1-3|one-time|income a month   stage (v0.4+)
+    S|name|months|net per month|conf 1-3|diff 1-3                     stage (v0.3 and older:
+                                                                      net < 0 = costs, > 0 = income)
     A|0 or 1 (checked)|text                                          assumption
     F|crack key|response                                             a faced crack
+    F|crack key|=source; why                                         an accepted cost
 
 `touched` is a session number, not a date (`meta.txt` counts launches).
 A file longer than 900 bytes continues in `<file>.1`, `<file>.2`, ...: read the parts in order
