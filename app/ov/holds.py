@@ -16,11 +16,25 @@ def holds_main(self):
 
 def holds_picture(self):
     idea = self.idea
-    self.show("IT HOLDS", "month {}".format(self.pl.months), [
-        (idea.get("picture"), self.c_em), ("", self.c_text),
-        ("Because: " + idea.get("why"), self.c_text), ("", self.c_text),
-        ("You faced {} crack(s) to get here.".format(len(idea.faced)), self.c_dim)],
-        [("any", "key")])
+    body = [(idea.get("picture"), self.c_em), ("", self.c_text)]
+    holds_cost(self, body)
+    body.append(("Because: " + idea.get("why"), self.c_text))
+    body.append(("You answered {} crack(s) to get here.".format(len(idea.faced)), self.c_dim))
+    self.show("IT HOLDS", "month {}".format(self.pl.months), body, [("any", "key")])
+
+
+def holds_cost(self, body):
+    # an accepted cost is said plainly next to the picture: a win that names its price
+    pl = self.pl
+    for k in ["out_base", "out_worst", "endbelow"]:
+        t = self.idea.faced.get(k, "")
+        if len(t) > 0 and t[0] == "=":
+            s = "It costs you {}.".format(money(pl.start - pl.end))
+            if pl.low < 0:
+                s = "You need {} more by month {}.".format(money(0 - pl.low), pl.low_m)
+            body.append((s, self.c_text))
+            body.append((fnote(t), self.c_text))
+            return
 
 
 def holds_anim(self, f, frames):

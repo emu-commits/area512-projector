@@ -103,6 +103,27 @@ def big_script():
 
 
 SCENARIOS["big"] = big_script()
+
+
+# The film: WAITs let an animation run to its end (in the sim each WAIT is one empty poll; on
+# the firmware ~0.25 s), so these reach the freeze frame; the other scenarios press keys
+# mid-animation, which skips it.
+W = "WAIT " * 16
+SCENARIOS["film_accept"] = (NEW_IDEA + "p " + W + "SHOT:f_card0 l " + W + "SHOT:f_freeze % SHOT:f_freeze_mem "
+    "a T:my_savings ENTER T:a_place_of_my_own_is_worth_it ENTER SHOT:f_accepted "
+    "l " + W + "SHOT:f_open l " + W + "l " + W + "SHOT:f_end ENTER SHOT:f_cracks ESC "
+    "c SHOT:f_list ESC q n q")
+SCENARIOS["film_edit"] = (NEW_IDEA + "p " + W + "l " + W + "SHOT:fe_freeze e SHOT:fe_edit "
+    "DOWN DOWN ENTER T:-500 ENTER SHOT:fe_edited ESC % SHOT:fe_back "
+    "l " + W + "SHOT:fe_freeze2 f T:take_contract_work ENTER SHOT:fe_faced q q n q")
+# accept the likely cash-out instead of facing it: HOLDS names the cost
+SCENARIOS["accept_arc"] = SCENARIOS["full_arc"].replace(
+    "c ENTER 2 T:cut_hours_and_sell_beans_online ENTER",
+    "c ENTER 3 T:my_savings ENTER T:a_place_of_my_own_is_worth_it ENTER").replace(
+    "p l l l l ENTER SHOT:holds", "p l l l l ENTER " + "WAIT " * 12 + "SHOT:holds")
+# the largest idea, with free memory measured while the film is loaded
+SCENARIOS["big_film"] = SCENARIOS["big"].replace(
+    "p l l l l l l l ENTER", "p WAIT WAIT WAIT WAIT % SHOT:bf_play l l l l l l l " + W + "% SHOT:bf_end ENTER")
 SCENARIOS["arc_mem"] = SCENARIOS["full_arc"].replace(
     "SHOT:holdstrip $", "SHOT:holdstrip % SHOT:mem_strip $").replace(
     "p l l l l ENTER SHOT:holds", "p l l l l % SHOT:mem_end ENTER SHOT:holds").replace(
@@ -128,7 +149,7 @@ def run(name, script, target):
         (work / "start.py").write_bytes((ROOT / "build/start.py").read_bytes())
         files = ["seed.py", "core.py", "start.py"]
     heap = HEAP_KB
-    if name == "big" and heap < 400:
+    if name.startswith("big") and heap < 400:
         heap = 400          # its 3,500-key script is held in the sim's heap, not the app's
     r = subprocess.run([str(SIM), str(PRELUDE), ".keys", str(heap)] + files,
                        cwd=work, capture_output=True, text=True, timeout=300)

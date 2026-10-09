@@ -9,7 +9,8 @@ Sources: `Harness_Conceptual_Contract.md` v0.1 (rules), `Projector_Spec_v0.1.md`
 A pocket **mental simulator** for an idea. You describe the idea in a few one-line answers, lay it
 out as 1–7 stages, and **play it forward**. The app does the arithmetic and points out the
 **cracks**: where the money runs out, where the hard stretches pile up, what you are only assuming.
-You fix each crack, either by changing the plan or by **facing** it with an If-Then. When nothing
+You fix each crack, either by changing the plan or by **facing** it with an If-Then; a money
+crack can also be **accepted** as a cost you choose to pay. When nothing
 is left unanswered, **the projection holds**: the app replays the idea through to your own picture
 of success and your own *why*.
 
@@ -24,9 +25,10 @@ stages) instead of being five forms of equal weight.
 
 | Mechanism | In Projector |
 |---|---|
-| Episodic future thinking | **Play**: one screen per stage, "Month 4–12: BUILD", with cash in the likely and worst cases |
+| Episodic future thinking | **Play** is a film: each stage runs month by month on a chart (likely + worst as a ghost line), and an open money or window crack **freezes** it at its month: you meet the crack at a moment, not on a list |
 | Premortem (prospective hindsight) | "Jump to month 36. It didn't work out. What inside you got in the way?" → the WOOP Obstacle |
 | Mental contrasting + If-Then (WOOP) | Every crack can be **faced** with "If it happens, I will…"; the charter's If-Then is required |
+| Values over money | A money crack in the plan as entered isn't a risk that *might* happen, so it can be **accepted**: where the money comes from (cash-out only) and why it's worth it. HOLDS then names the cost next to your picture of success (user, 2026-10-09: "cash isn't everything") |
 | Generation effect / autonomy | The user writes every word and number; the app only asks and calculates. No suggestions |
 | Explicit uncertainty | Each stage has a confidence key (sure / rough / guess) that widens the best/worst cases |
 | Planning fallacy | Hard stages overrun by a further 25% in the worst case |
@@ -37,21 +39,22 @@ stages) instead of being five forms of equal weight.
 
 ## Cracks (deterministic, in severity order)
 
-| Key | Crack | Fix it | Or face it |
+| Key | Crack | Fix it | Or face / accept it |
 |---|---|---|---|
-| `out_base` | Cash runs out in the likely case | stage money / start cash | If-Then |
-| `out_worst` | Cash runs out if it goes badly | same | If-Then |
+| `out_base` | Cash runs out in the likely case | stage money / start cash | If-Then, or accept |
+| `out_worst` | Cash runs out if it goes badly | same | If-Then, or accept |
 | `horizon` | Takes longer than the window you chose | stage months / window | If-Then |
 | `hardrun:<stage>` | Two hard stages back to back | difficulty / order | If-Then |
 | `wildhard:<stage>` | A hard stage whose numbers are a guess | confidence | If-Then |
 | `assume:<text>` | An assumption you haven't checked | mark it checked | If-Then |
-| `endbelow` | Ends with less money than it starts | stage money | If-Then |
+| `endbelow` | Ends with less money than it starts | stage money | If-Then, or accept |
 | `vague` | Success picture has no number in it | rewrite it | If-Then |
 | `premortem` | No obstacle named | premortem | — (must fix) |
 | `ifthen` | No plan for when the obstacle shows up | write one | — (must fix) |
 | `nostage` | No stages | add one | — (must fix) |
 
-**Holds** = at least one stage and every crack either fixed or faced.
+**Holds** = at least one stage and every crack fixed, faced or accepted. An accepted crack is stored
+as a faced one whose text starts with `=` (`F|out_base|=savings; worth it because ...`).
 
 ## Projection math (integer, monthly)
 
@@ -93,8 +96,13 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
   `h/l` stage, `p` play, `c` cracks, `e` edit stage, `n` new stage, `x` delete stage,
   `v` vision, `a` assumptions, `$` money, `o` obstacle (premortem), `s` save,
   `?` keys, `q` back.
-- **Play**: `l/Enter` next, `h` back, `e` edit this stage, `f` face a crack here, `q` stop.
-- **Cracks**: `Enter` → change the plan / face it.
+- **Play** (overlay `film`): each stage animates (~23 fps on a real Cardputer; any key skips and
+  counts as that key). Freeze frame: `f` face, `a` accept (money cracks), `e` fix, `l` play on.
+  Stage card: `l/Enter` next, `h` back, `e` edit, `f` face, `q` stop. The header counts runs
+  (`runs` field). The film never loads another overlay itself: it returns what to open
+  (edit / accept / holds / cracks) and `App.play` opens it once the film is unloaded, then
+  plays on from that stage. With the largest idea there isn't room for both at once.
+- **Cracks**: `Enter` → change the plan / face it / accept the cost (money cracks) / open it again.
 - **Money**: best / likely / worst table and the balance line; `s` switches scenario.
 - **Holds**: replay to the finish, your proof and why, then the judgment (fruitful, feel, effort, worth it).
 

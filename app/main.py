@@ -19,7 +19,7 @@ SCEN = ["best", "likely", "worst"]
 TAG = {"incubating": "new", "simulating": "sim", "ready": "HOLDS", "archived": "arch"}
 FIELDS = ["title", "status", "touched", "wish", "picture", "why", "window",
           "cash", "obstacle", "ifthen", "note", "fruit", "feel", "effort", "worth",
-          "task", "done", "minutes"]
+          "task", "done", "minutes", "runs"]
 MAX_STAGES = 7
 TEXT_MAX = 80
 MAX_ASSUME = 6
@@ -424,6 +424,17 @@ def find_cracks(idea, pl, pw):
 
 def is_open(idea, c):
     return c[2] or not (c[0] in idea.faced)
+
+
+def can_accept(key):
+    # money cracks can also be accepted as a cost worth paying (overlay "accept")
+    return key == "out_base" or key == "out_worst" or key == "endbelow"
+
+
+def fnote(t):
+    if len(t) > 0 and t[0] == "=":
+        return "Accepted: " + cut(t, 1, len(t))
+    return "Faced: " + t
 
 
 # ---------------------------------------------------------------- app
@@ -1053,88 +1064,36 @@ class App:
             self.sp.pixel(x + px, py - 1, c)
             px = px + 1
 
-    # ---- play forward
+    # ---- play forward: the film (overlay "film")
 
     def play(self):
-        idea = self.idea
-        n = len(idea.stages)
-        if n == 0:
-            self.msg = "Add a stage first (n)"
-            return
+        # The film hands back what to open next, so the film and that overlay are never
+        # in memory together; then it plays on from the same stage.
         i = 0
+        first = True
         while True:
-            self.refresh()
-            if i > n:
-                i = n
-            if i < n:
-                self.paint(self.r_play, (i,))
-            else:
-                self.paint(self.r_play_end, ())
-            k = self.nav(self.key())
-            if k == "q" or k == "ESC":
+            try:
+                r = self.ov("film", "film_main", i, first)
+            except MemoryError:
+                # App.ov has already unloaded the film; back to the strip, work kept
+                collect()
+                self.msg = "Out of memory in play: s saves"
                 return
-            if (k == "RIGHT" or k == "ENTER" or k == " ") and i < n:
-                i = i + 1
-            elif k == "LEFT" and i > 0:
-                i = i - 1
-            elif (k == "ENTER" or k == "RIGHT") and i == n:
-                if self.n_open == 0:
-                    self.ov("holds", "holds_main")
-                    return
+            first = False
+            if r is None:
+                return
+            if r[0] == "holds":
+                self.ov("holds", "holds_main")
+                return
+            if r[0] == "cracks":
                 self.crack_list()
                 return
-            elif k == "e" and i < n:
+            i = r[1]
+            if r[0] == "edit":
+                self.sel = i
                 self.ov("edit", "edit_main", i)
-            elif k == "f" and i < n:
-                for c in self.cr:
-                    if c[3] == i and is_open(idea, c) and not c[2]:
-                        self.face(c)
-                        break
-
-    def r_play(self, i):
-        st = self.idea.stages[i]
-        pl = self.pl
-        pw = self.pw
-        self.frame("PLAY", "{}/{}".format(i + 1, len(self.idea.stages)))
-        y = self.top + 3
-        self.t(6, y, "Month {} to {}".format(pl.starts[i] + 1, pl.ends[i]), self.c_dim)
-        y = y + self.lh
-        Widget.big_text(self.sp, 6, y, Widget.clip(self.sp, st[0].upper(), (self.W - 12) // 2))
-        y = y + 22
-        self.t(6, y, "{}, {}.  {} a month".format(DIFF[st[4]], CONF[st[3]], smoney(st[2])),
-               self.c_text)
-        y = y + self.lh
-        self.t(6, y, "Cash after: {} likely, {} worst".format(
-            money(pl.bal(pl.ends[i])), money(pw.bal(pw.ends[i]))), self.c_text)
-        y = y + self.lh + 2
-        shown = 0
-        for c in self.cr:
-            if c[3] == i and shown < 2:
-                if is_open(self.idea, c):
-                    self.t(6, y, Widget.clip(self.sp, "! " + c[1], self.W - 12), self.c_sel)
-                else:
-                    self.t(6, y, Widget.clip(self.sp, "faced: " + self.idea.faced[c[0]],
-                                             self.W - 12), self.c_em)
-                y = y + self.lh
-                shown = shown + 1
-        self.foot([("l", "next"), ("h", "back"), ("e", "edit"), ("f", "face")])
-
-    def r_play_end(self):
-        idea = self.idea
-        self.frame("PLAY", "month {}".format(self.pl.months))
-        y = self.top + 3
-        pic = idea.get("picture")
-        if pic == "":
-            pic = idea.get("wish")
-        self.t(6, y, "Month {}. You're there:".format(self.pl.months), self.c_dim)
-        y = self.lines(6, y + self.lh, pic, self.cols, 3, self.c_em) + 4
-        if self.n_open == 0:
-            self.t(6, y, "Nothing left unanswered.", self.c_text)
-            self.t(6, y + self.lh, "ENTER: watch it hold", self.c_sel)
-        else:
-            self.t(6, y, "But {} crack(s) on the way.".format(self.n_open), self.c_sel)
-            self.t(6, y + self.lh, "ENTER: look at them", self.c_text)
-        self.foot([("ENT", "go on"), ("h", "back"), ("q", "stop")])
+            else:
+                self.ov("accept", "accept_main", r[2])
 
     # ---- cracks
 
@@ -1179,7 +1138,7 @@ class App:
         if c[2]:
             tail = "This one has to be fixed."
         elif not is_open(self.idea, c):
-            tail = "Faced: " + self.idea.faced[c[0]]
+            tail = fnote(self.idea.faced[c[0]])
         self.t(6, self.bot - self.lh, Widget.clip(self.sp, tail, self.W - 12), self.c_dim)
         self.foot([("ENT", "deal with it"), ("ESC", "back")])
 
@@ -1187,14 +1146,18 @@ class App:
         opts = ["Change the plan"]
         if not c[2]:
             opts.append("Face it: write an If-Then")
+            if can_accept(c[0]):
+                opts.append("Accept the cost")
             if c[0] in self.idea.faced:
-                opts.append("Un-face it")
+                opts.append("Open it again")
         r = self.ask_choice("CRACK", c[1], opts, 0)
         if r == 0:
             self.goto_fix(c)
         elif r == 1:
             self.face(c)
-        elif r == 2:
+        elif r is not None and opts[r] == "Accept the cost":
+            self.ov("accept", "accept_main", c[0])
+        elif r is not None:
             self.idea.faced.pop(c[0])
             self.dirty = True
 
@@ -1215,9 +1178,11 @@ class App:
             self.ov("stage", "stage_add", 0, "Name the first stage.")
 
     def face(self, c):
+        v = self.idea.faced.get(c[0], "I will ")
+        if len(v) > 0 and v[0] == "=":
+            v = "I will "
         v = self.ask_text("FACE IT", "Say it happens: " + c[1] + ". What will you do?",
-                          "If it happens, I will ...", self.idea.faced.get(c[0], "I will "),
-                          TEXT_MAX)
+                          "If it happens, I will ...", v, TEXT_MAX)
         if v is not None and v != "" and v != "I will":
             self.idea.faced[c[0]] = v
             self.dirty = True
