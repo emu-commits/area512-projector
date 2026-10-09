@@ -6,7 +6,7 @@ def edit_main(self, i):
     sel = 0
     while True:
         self.paint(self.r_form, ("STAGE {}".format(i + 1), edit_labels(st), sel,
-                                 [("ENT", "edit"), ("1-3", "set"), ("ESC", "done")]))
+                                 [("ENT", "edit")] + edit_hint(sel) + [("ESC", "done")]))
         k = self.nav(self.key())
         if k == "ESC" or k == "q":
             return
@@ -16,6 +16,12 @@ def edit_main(self, i):
             sel = sel - 1
         else:
             edit_key(self, st, sel, k)
+
+
+def edit_hint(sel):
+    if sel >= 3:
+        return [("1-3", "set")]
+    return []
 
 
 def edit_labels(st):
