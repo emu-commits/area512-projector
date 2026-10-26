@@ -31,6 +31,10 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 - **[docs/PROMOTION_FORMAT.md](docs/PROMOTION_FORMAT.md)**: Projector's idea file, and the designed (not yet
   wired) Projector → Harness file format (the contract's open question §11).
 - **[app/README.md](app/README.md)**: the short help that ships on the card.
+- **[docs/LIFECYCLE_SHELL.md](docs/LIFECYCLE_SHELL.md)**: feedback on an AREA512 shell built
+  around the capture → shape → do → review lifecycle (not built).
+- **[docs/TERM512.md](docs/TERM512.md)**: why Projector runs in a 240×135 window on TERM512, and
+  the firmware change that would let it go full screen.
 
 ## Build and test
 
