@@ -48,14 +48,13 @@ Detection is then automatic, with no setting:
     self.W = Display.width()
     self.H = Display.height()
 
-Two things would still need checking against the firmware source when that change is made:
+`Widget.body_top()/body_bottom()` already follow `area512_gfx_height()`
+(`picoruby-area512-widget/src/core/metrics.c`), so Widget layouts would follow too. One thing is
+still open: whether the filer's window-close animation expects the app to have drawn inside the
+window.
 
-- whether `Widget.body_top()/body_bottom()` follow the window or the panel (they should follow
-  `area512_gfx_height()`), and
-- whether the filer's window-close animation expects the app to have drawn inside the window.
-
-This is a request for the AREA512 repo (engneer-hamachan/area512), not this one. A short issue
-there, with the API above, is the next step. Whether to open it is your call.
+This is a request for the AREA512 repo (engneer-hamachan/area512), not this one. The issue text,
+ready to paste, is in [upstream/AREA512_ISSUES.md](upstream/AREA512_ISSUES.md) (issue A).
 
 ## Is Projector ready for 320×240?
 
