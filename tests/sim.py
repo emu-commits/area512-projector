@@ -111,6 +111,16 @@ def big_script():
 SCENARIOS["big"] = big_script()
 
 
+# The menu bar (Tab) on every screen with a key table, the 1.0 keys (n new, x delete, m money)
+# and the bare ; . , / arrows; "TAB" is the Tab key
+SCENARIOS["menu"] = ("TAB SHOT:mn_lib DOWN DOWN DOWN ENTER SHOT:mn_lib_help ENTER TAB ESC "
+    + NEW_IDEA.replace("a T:Corner_cafe", "n T:Corner_cafe", 1) +
+    "TAB SHOT:mn_idea RIGHT SHOT:mn_plan ENTER c c TAB SHOT:mn_money ESC ESC "
+    "TAB LEFT DOWN ENTER T:Extra ENTER T:2 ENTER ENTER ENTER ENTER 1 1 SHOT:mn_added "
+    "TAB x y , , / SHOT:mn_arrows TAB TAB m ESC ? SHOT:mn_help ENTER "
+    "c . ; ESC a n T:test_it ENTER TAB DOWN DOWN DOWN ENTER y ESC "
+    "q n TAB ESC x n q")
+
 # An idea saved by v0.3 (one net figure a month per stage) opens with its money split:
 # a cost stage keeps its spending as costs, an earning stage its net as income.
 LEGACY = ("PROJECTOR-IDEA 1\ntitle: Old cafe\nstatus: simulating\ntouched: 1\nwindow: 36\n"

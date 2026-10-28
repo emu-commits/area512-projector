@@ -344,7 +344,9 @@ done) and a heap measurement on the TERM512.
 - 0.2 Check on the device: `run_next` from MicroPython and from Ruby, and `default=app:`.
   *Python → Projector works, and `default=app:` boots into the app. The Ruby probe failed with
   "uninitialized constant Display": it lacked `require 'area512-sprite'` (a probe bug; Ruby
-  apps must require it for `Display`). Fixed probe to retest.*
+  apps must require it for `Display`). With that fixed: Python → Ruby → Python works, and the
+  Ruby probe draws at 320×240 too. Done, apart from one look at the Filer after quitting a
+  full-screen app.*
 - 0.3 What `Fn`+arrow sends to Calc and Scheduler.
   *Answered from the source: Ruby's `STDIN.getch` returns one byte, so `Fn`+arrow arrives as three
   keys, `\e` `[` `A`. Writer reads the two bytes after `\e` itself. Calc shows its help line three
@@ -365,16 +367,28 @@ done) and a heap measurement on the TERM512.
   (header 17, body 20 to height − 16), so screen layout still needs fwrun or the device.*
 
 **1. Grammar on paper**
-- 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home.
-- 1.2 `formats/APPS.md`: registry, place, recent files, open request.
-- 1.3 Draw the icons (Projector, Writer, Calc, Agenda, Slide, Extras) as `.a5d` files.
+- 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home. *Done, written
+  with Projector's menu (2.1–2.3) so it describes code that runs.*
+- 1.2 `docs/APPS_FORMAT.md` (beside PROMOTION_FORMAT.md): registry, place, recent files, open
+  request. *Done.*
+- 1.3 Draw the icons (Projector, Writer, Calc, Agenda, Slide, Extras) as `.a5d` files. *Done:
+  `tools/icons.py` writes `home/icons/*.a5d` and a preview. A `.a5d` holds its own palette, so
+  icons can't follow the theme colours; they use the dot editor's default palette, so they can
+  be redrawn on the device.*
 
 **2. Projector 1.0** (MicroPython; the grammar's first user)
 - 2.1 Key table per screen; hint bar and help generated from it. `Esc` backs out everywhere.
   One letter per verb (library `a` new → `n`, `a` kept as an alias; `d` archive → `x`).
-- 2.2 Menu bar as an overlay.
+  *Done for the library, strip, cracks, assumptions (`n` new, `x` delete) and money (`c` case,
+  `s` now saves). The hint bar fits as many items as the width allows (3 at 240 px, 4–5 at
+  320). Questions, the one-action forms (edit, vision) and the film keep a plain hint bar.*
+- 2.2 Menu bar as an overlay. *Done: `ovl/menu`, 3 KB, loaded only while open. Help is in it.
+  `ovl/help` is gone.*
 - 2.3 Bare `; . , /` as arrows outside text entry. No chords left (decision 7): `$` money → `m`,
-  `?` help → `Tab` › Help (`$` and `?` kept as aliases).
+  `?` help → `Tab` › Help (`$` and `?` kept as aliases). *Done. New sim scenario `menu` drives
+  every menu, the new keys and the bare arrows; all 14 scenarios pass at both sizes. The
+  menu's memory on the Cardputer (the strip, or assumptions, with the menu open) still needs
+  a `%` reading on a device.*
 - 2.4 320×240 layouts: strip with the money line and cracks on one screen, the library with a
   preview pane, a taller film.
 - 2.5 Save-on-switch, place and `recent.txt`. Update the help, app/README.md and PLAN.md

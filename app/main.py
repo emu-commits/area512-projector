@@ -24,6 +24,15 @@ MAX_STAGES = 7
 TEXT_MAX = 80
 MAX_ASSUME = 6
 
+# One key table per screen (docs/UI.md): menus split by ";", each "Title|item|item", an item
+# is "<key> <label>". A digit in front puts it on the hint bar, in that order; the bar always
+# ends with Tab menu. The menu bar (overlay "menu") and Tab > Help are drawn from the same
+# table, so the three can't disagree.
+LIB_KEYS = "Idea|1n new|2ENT open|3x archive"
+STRIP_KEYS = ("Idea|1p play|2c cracks|s save;Plan|5m money|v vision|a assume|o obstacle;"
+              "Stage|3e edit|4n new|x delete")
+CRACK_KEYS = "Crack|1ENT deal with it"
+
 
 # ---------------------------------------------------------------- helpers
 
@@ -108,6 +117,19 @@ def pct(n, p):
     if n < 0:
         return 0 - r
     return r
+
+
+def arrow(k):
+    # the bare ; . , / keys have the arrows printed on them: one key, not Fn+key (docs/UI.md)
+    if k == ";":
+        return "UP"
+    if k == ".":
+        return "DOWN"
+    if k == ",":
+        return "LEFT"
+    if k == "/":
+        return "RIGHT"
+    return k
 
 
 def heap_total():
@@ -478,6 +500,8 @@ class App:
         self.dirty = False
         self.msg = ""
         self.sel = 0
+        self.hl_spec = None
+        self.hl = []
         # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
         try:
             if Display.screen_width() > Display.width():
@@ -522,7 +546,20 @@ class App:
             return "LEFT"
         if k == "l":
             return "RIGHT"
-        return k
+        return arrow(k)
+
+    def cmd(self, spec, fn, args):
+        # one key on a screen with a key table: Tab opens the menu bar, which hands back the
+        # key of the item picked, so the screen has one code path for both
+        while True:
+            self.paint(fn, args)
+            self.msg = ""
+            k = self.nav(self.key())
+            if k != "\t":
+                return k
+            k = self.ov("menu", "menu_main", spec, fn, args)
+            if k is not None:
+                return k
 
     def ov(self, name, fn, *args):
         # Run fn from overlay ovl/<name>.*: compile it into the globals, call, then delete
@@ -608,8 +645,32 @@ class App:
     def foot(self, hints):
         if self.msg != "":
             Widget.footer(self.sp, self.msg)
-        else:
-            Widget.hints(self.sp, hints)
+            return
+        if isinstance(hints, str):
+            if not (self.hl_spec is hints):
+                self.hl = self.hint_list(hints)
+                self.hl_spec = hints
+            hints = self.hl
+        Widget.hints(self.sp, hints)
+
+    def hint_list(self, spec):
+        # the table's numbered items, in order, while they fit beside "[Tab] menu"
+        # (Widget.hints draws "[key] label " with no clipping)
+        found = []
+        for it in spec.replace(";", "|").split("|"):
+            if it[0] >= "1" and it[0] <= "9":
+                found.append(it)
+        found.sort()
+        room = self.W // self.cw - 10
+        out = []
+        for it in found:
+            sp = it.find(" ")
+            room = room - len(it) - 2
+            if room < 0:
+                break
+            out.append((cut(it, 1, sp), cut(it, sp + 1, len(it))))
+        out.append(("Tab", "menu"))
+        return out
 
     def row(self, y, text, selected):
         if selected:
@@ -842,16 +903,14 @@ class App:
     def library(self):
         sel = 0
         while True:
-            self.paint(self.r_library, (sel,))
-            self.msg = ""
-            k = self.nav(self.key())
+            k = self.cmd(LIB_KEYS, self.r_library, (sel,))
             if k == "q" or k == "ESC":
                 return
             if k == "DOWN" and sel < len(self.lib) - 1:
                 sel = sel + 1
             elif k == "UP" and sel > 0:
                 sel = sel - 1
-            elif k == "a":
+            elif k == "n" or k == "a":
                 if self.ov("newidea", "newidea_main"):
                     sel = 0
                     self.work()
@@ -866,14 +925,14 @@ class App:
                     self.dirty = False
                     self.work()
                     self.idea = None
-            elif k == "d" and len(self.lib) > 0:
+            elif (k == "x" or k == "d") and len(self.lib) > 0:
                 self.archive(sel)
 
     def r_library(self, sel):
         self.frame("PROJECTOR", "LIBRARY")
         if len(self.lib) == 0:
             Widget.center_lines(self.sp, [("No ideas yet.", self.c_em),
-                                          ("Press a to start one.", self.c_text)])
+                                          ("Press n to start one.", self.c_text)])
         rows = self.visible_rows()
         top = self.list_top(sel, len(self.lib), rows)
         y = self.top + 3
@@ -884,7 +943,7 @@ class App:
             Widget.text_right(self.sp, self.W - 6, y, TAG.get(e[1], "?"), self.c_em)
             y = y + self.lh
             i = i + 1
-        self.foot([("a", "new"), ("ENT", "open"), ("d", "archive"), ("q", "quit")])
+        self.foot(LIB_KEYS)
 
     def archive(self, sel):
         e = self.lib[sel]
@@ -948,9 +1007,7 @@ class App:
                 self.sel = len(idea.stages) - 1
             if self.sel < 0:
                 self.sel = 0
-            self.paint(self.r_strip, ())
-            self.msg = ""
-            k = self.nav(self.key())
+            k = self.cmd(STRIP_KEYS, self.r_strip, ())
             if k == "q" or k == "ESC":
                 if self.leave():
                     return
@@ -962,10 +1019,10 @@ class App:
                 self.play()
             elif k == "c":
                 self.crack_list()
-            elif k == "$":
+            elif k == "m" or k == "$":
                 self.ov("money", "money_main")
             elif k == "?":
-                self.ov("help", "help_main")
+                self.ov("menu", "menu_help", STRIP_KEYS)
             elif k == "s":
                 self.save()
             elif k == "e" and len(idea.stages) > 0:
@@ -1048,7 +1105,7 @@ class App:
             self.t(6, y, Widget.clip(self.sp, "! " + first_open[1], self.W - 12), self.c_sel)
         elif n > 0:
             self.t(6, y, "The projection holds.", self.c_em)
-        self.foot([("p", "play"), ("c", "cracks"), ("e", "edit"), ("n", "new")])
+        self.foot(STRIP_KEYS)
 
     def stage_flag(self, i):
         for c in self.cr:
@@ -1143,9 +1200,7 @@ class App:
                 return
             if sel >= len(cr):
                 sel = len(cr) - 1
-            self.paint(self.r_cracks, (sel,))
-            self.msg = ""
-            k = self.nav(self.key())
+            k = self.cmd(CRACK_KEYS, self.r_cracks, (sel,))
             if k == "q" or k == "ESC":
                 return
             if k == "DOWN" and sel < len(cr) - 1:
@@ -1176,7 +1231,7 @@ class App:
         elif not is_open(self.idea, c):
             tail = fnote(self.idea.faced[c[0]])
         self.t(6, self.bot - self.lh, Widget.clip(self.sp, tail, self.W - 12), self.c_dim)
-        self.foot([("ENT", "deal with it"), ("ESC", "back")])
+        self.foot(CRACK_KEYS)
 
     def crack_action(self, c):
         opts = ["Change the plan"]

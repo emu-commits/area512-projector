@@ -2,12 +2,13 @@
 # unloaded on exit (App.ov). Every global name here starts with "assume_"; every def stays
 # small because the device compiles one def at a time (tools/ovl.py enforces it).
 
+assume_KEYS = "Assumption|1n new|2ENT check|3f face|x delete"
+
+
 def assume_main(self):
     sel = 0
     while True:
-        self.paint(assume_r, (self, sel))
-        self.msg = ""
-        k = self.nav(self.key())
+        k = self.cmd(assume_KEYS, assume_r, (self, sel))
         n = len(self.idea.assume)
         if k == "q" or k == "ESC":
             return
@@ -20,7 +21,7 @@ def assume_main(self):
 
 
 def assume_act(self, k, sel, n):
-    if k == "a":
+    if k == "n" or k == "a":
         return assume_add(self, sel, n)
     if n == 0:
         return sel
@@ -28,7 +29,7 @@ def assume_act(self, k, sel, n):
     if k == "ENTER" or k == " ":
         a[0] = 1 - a[0]
         self.dirty = True
-    elif k == "d":
+    elif k == "x" or k == "d":
         return assume_del(self, sel)
     elif k == "f" and not a[0]:
         self.face([akey(a[1]), "Unchecked: " + a[1], False, "assume"])
@@ -62,9 +63,9 @@ def assume_r(self, sel):
     self.frame("ASSUMPTIONS", "{}".format(len(idea.assume)))
     if len(idea.assume) == 0:
         Widget.center_lines(self.sp, [("What must be true?", self.c_em),
-                                      ("a adds one.", self.c_text)])
+                                      ("n adds one.", self.c_text)])
     assume_rows(self, sel)
-    self.foot([("a", "add"), ("ENT", "checked"), ("f", "face"), ("d", "del")])
+    self.foot(assume_KEYS)
 
 
 def assume_rows(self, sel):

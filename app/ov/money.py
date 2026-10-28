@@ -1,15 +1,18 @@
 # Projector overlay "money": compiled from the SD card when entered, unloaded on exit
 # (App.ov). Every global name here starts with "money_".
 
+money_KEYS = "Money|1c case|2e start $|3f fixed $|s save"
+
 def money_main(self):
     sc = 1
     while True:
         self.refresh()
-        self.paint(money_r, (self, sc,))
-        k = self.nav(self.key())
+        k = self.cmd(money_KEYS, money_r, (self, sc))
         if k == "q" or k == "ESC":
             return
-        if k == "s" or k == "RIGHT":
+        if k == "s":
+            self.save()
+        elif k == "c" or k == "RIGHT":
             sc = (sc + 1) % 3
         elif k == "LEFT":
             sc = (sc + 2) % 3
@@ -34,7 +37,7 @@ def money_r(self, sc):
     y = self.top + 16 + 14 * 3 + 3
     self.t(6, y, "{}: {} months".format(SCEN[sc], ps[sc].months), self.c_dim)
     money_chart(self, ps[sc], y + self.lh)
-    self.foot([("s", "case"), ("e", "start $"), ("f", "fixed")])
+    self.foot(money_KEYS)
 
 
 def money_table(self, ps, sc):

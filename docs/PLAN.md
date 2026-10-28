@@ -102,14 +102,18 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
 
 ## Screens and keys
 
-- **Library**: `j/k` move, `Enter` open, `a` new idea, `d` archive, `q` quit.
+Every screen with a key table (library, strip, cracks, assumptions, money) has a `Tab` menu bar
+and `Tab` › Help, and the bare `; . , /` move ([UI.md](UI.md)). Old keys still work: `a` new idea,
+`d` archive or delete, `$` money, `?` keys.
+
+- **Library**: `j/k` move, `Enter` open, `n` new idea, `x` archive, `q` quit.
 - **New idea** (one question per screen): name → wish → success picture → why → window →
   starting money → fixed costs a month → stages (name, months, one-time, costs a month,
   income a month, sure?, hard?, "another?").
 - **Strip** (main): stages as cells, cash line, crack count / HOLDS.
   `h/l` stage, `p` play, `c` cracks, `e` edit stage, `n` new stage, `x` delete stage,
-  `v` vision, `a` assumptions, `$` money, `o` obstacle (premortem), `s` save,
-  `?` keys, `q` back.
+  `v` vision, `a` assumptions, `m` money, `o` obstacle (premortem), `s` save,
+  `Tab` menu, `q` back.
 - **Play** (overlay `film`): each stage animates (~23 fps on a real Cardputer; any key skips and
   counts as that key). Freeze frame: `f` face, `a` accept (money cracks), `e` fix, `l` play on.
   Stage card: `l/Enter` next, `h` back, `e` edit, `f` face, `q` stop. The header counts runs
@@ -117,8 +121,8 @@ below zero, ending balance, total months. That's all: no solver, no Monte Carlo 
   (edit / accept / holds / cracks) and `App.play` opens it once the film is unloaded, then
   plays on from that stage. With the largest idea there isn't room for both at once.
 - **Cracks**: `Enter` → change the plan / face it / accept the cost (money cracks) / open it again.
-- **Money**: best / likely / worst table and the balance line; `s` switches scenario,
-  `e` starting money, `f` fixed costs a month.
+- **Money**: best / likely / worst table and the balance line; `c` (or ←/→) switches scenario,
+  `e` starting money, `f` fixed costs a month, `s` save.
 - **Holds**: replay to the finish, your proof and why, then the judgment (fruitful, feel, effort, worth it).
 
 ## Build order
