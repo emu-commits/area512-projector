@@ -1,0 +1,6 @@
+A1	Rent
+B1	500
+A2	Food
+B2	320.5
+A3	Total
+B3	=SUM(B1:B2)

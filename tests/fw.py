@@ -4,7 +4,8 @@
   tests/fw.py NAME [--out DIR]     -> DIR/*.png, DIR/data/... (the card's files after)
                                    home* scenarios install Home and Projector, start Home, and
                                    seed tests/seeds/home (fake bundled apps, one idea);
-                                   agenda* install Agenda alone, on tests/seeds/agenda
+                                   agenda*, writer*, calc* install that fork alone, on
+                                   tests/seeds/<fork>; home* installs every fork built
   tests/fw.py NAME --term512       on the TERM512 build: shots are the 320x240 lid screen
                                    (firmware: $FW_TERM512, default <factory>/vendor/Area512TFT7789.bin)
   tests/fw.py --keys "SCRIPT" ...  a script of your own instead of a scenario

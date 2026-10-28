@@ -9,8 +9,9 @@
 ## What changed
 
 Built by `build.sh` into `dist/writer/` with AREA512's own `picorbc`, with
-[`lib/ruby/ui.rb`](../../lib/ruby/ui.rb) (the suite's Ruby UI, `class SuiteApp`) first in
-`main.manifest`. The `.mrb` files aren't kept here.
+[`lib/ruby/ui.rb`](../../lib/ruby/ui.rb) (the suite's Ruby UI, `class SuiteApp`) and
+[`lib/ruby/docs.rb`](../../lib/ruby/docs.rb) (the list of documents, recent.txt, Home's requests
+and switching, cut out of Writer for Calc in step 4.3) first in `main.manifest`. The `.mrb` files aren't kept here.
 
 | Writer | This fork | Why |
 |---|---|---|
@@ -31,4 +32,5 @@ Built by `build.sh` into `dist/writer/` with AREA512's own `picorbc`, with
 
 `document.rb` keeps Writer's model (one String per line, the panel, the scrollbar, the line
 height), now with a byte offset for the column and the wrapping; `edit.rb` keeps its editing,
-with the moves added; `render.rb` draws the wrapped rows; `files.rb` and `actions.rb` are new.
+with the moves added; `render.rb` draws the wrapped rows; `files.rb` (opening, saving, place)
+and `actions.rb` (the keys) are new.

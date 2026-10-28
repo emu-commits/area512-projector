@@ -1,7 +1,7 @@
 # Projector 1.0 and the AREA512 suite: plan
 
 Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 3 are built, and
-Agenda and Writer of step 4; each step's status is under *Order*, in italics.
+Agenda, Writer and Calc of step 4; each step's status is under *Order*, in italics.
 
 ## Decisions
 
@@ -483,6 +483,34 @@ screen.
   out while it's read. The `%` key reads the heap in the Ruby apps too, but the sandbox VM has
   no `PicoRubyVM` on either firmware, so it says "not known" there: the filer's ARN figure is
   the measure (60% used after a Writer session with small documents).*
+- 4.3 Calc. *Done: `forks/calc/` (Calc at upstream fc9f6f9, then every change listed in its
+  UPSTREAM.md). Items 1 to 5 of the list above (6 is step 5.2): `Fn`+arrow read as one key;
+  typing on the grid, with the cell's whole text in a bar above it (a digit, `=` `-` `+` `(`
+  starts an entry over the cell, Enter types on the end of it; Enter puts it in and goes
+  down, `Fn`+arrow goes that way, Esc cancels); a list of sheets in `/data/calc/` (`n` `r` `x`,
+  deleted ones kept in `deleted/`), every way out saving first, so nothing replaces a sheet
+  unasked; copy and paste with references that move (`$` keeps them), fill down and right,
+  column widths saved in the file, and, not in the list, undo/redo of the last change, find,
+  go to, 99 rows instead of 26; 320×240 with 5 columns and 12 rows and a two-line bar. Also
+  fixed: `=7/2` was 3 (integers, 32 bits on the device), chains of formulas more than six
+  deep stayed `#ERR`, and an empty cell in a formula was `#ERR`. Writer's list of documents,
+  recent.txt, Home's requests and switching moved to `lib/ruby/docs.rb`, shared by both
+  (Writer's 19 scenarios pass unchanged). 17 `calc_*` scenarios at both sizes, 154 in all.
+  On the firmware: the copy, fill, `$` and undo scenario gives the same file on both builds,
+  and with Home on the TERM512 build: Home → Calc on its sheet → type → `Tab` `1` saves and
+  goes Home → `x` `y` (Calc moves the sheet to `deleted/` and hands back).
+  **Memory**: the TERM512 build (AREA512 `main`) leaves the Ruby apps less of the 120 KB arena
+  than the Cardputer's v2.7: 399 formulas in 8 KB opened on the Cardputer and ran out on
+  TERM512. What it cost, in order of finding: a String for every cell (300 one-digit
+  numbers ran out); one Hash for the sheet, which mruby/c grows 6 slots at a time, each a
+  copy (it fragments the arena); a Hash per row (two headers a row cost more than they
+  saved). So a row is one String, its cells between tabs, with one Array of values made at
+  its length; the grid is laid out once a frame into two flat Arrays; and the file's text
+  is let go before the first frame. Reading a file needs it whole (AREA512's `File#read`
+  and `SD.read` read all of it). With that, on both builds, 250 formulas in 6 KB and 6 KB of
+  60-character text open, take copy, paste, fill, undo, find and a width, and save. So a
+  sheet stops at **250 cells and 6 KB**, and a change past either says "Full". Writer's
+  12 KB was measured on the Cardputer build only: see its re-check below.*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.

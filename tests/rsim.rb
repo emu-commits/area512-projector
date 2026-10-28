@@ -22,7 +22,7 @@ $sim = { pos: 0, frames: 0, cur: [], last: [], fs: {}, pend: [] }
 SEED.each { |k, v| $sim[:fs][k] = v.nil? ? nil : v.b }
 
 def sim_txt(s)
-  $sim[:cur] << s.to_s if $sim[:cur].length < 40
+  $sim[:cur] << s.to_s if $sim[:cur].length < 400
 end
 
 def sim_frame

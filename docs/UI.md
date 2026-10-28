@@ -9,7 +9,9 @@ Projector 1.0 is the first app built on it, and Home the second. The code they s
 `lib/py/`: `base.py` (class `UI`: `cmd`, `foot`, `hint_list`, `ask_yn`; `arrow`, the registry,
 files in parts) and `menu.py` (the menu bar and Help: an overlay in Projector, compiled in
 with Home). The PicoRuby forks share `lib/ruby/ui.rb` (`class SuiteApp`), the same screens
-and rules in Ruby. Where this page says "as in Projector", that's the code.
+and rules in Ruby, and the forks that keep documents in a folder (Writer, Calc) share
+`lib/ruby/docs.rb`: the list of documents with `n` `r` `x`, recent.txt, Home's requests, and
+switching. Where this page says "as in Projector", that's the code.
 
 ## One key at a time
 
@@ -46,6 +48,13 @@ column and word count. In Type the bar is only `[Tab] menu` (the table's keys ca
 bare there); in Move it's the table's numbered items as on any screen, and the cursor is a block
 instead of a bar. Writer's one table (`DOC_KEYS`) is both: the menu in Type, and in Move the bare
 keys and their menu.
+
+Calc's grid is the other way round: its letters are commands (`c` copy, `d` fill, `x` clear),
+and typing into a cell starts on a key that can't be one: a digit, `=` `-` `+` `(`, or Space
+for an empty start; Enter types on the end of the cell's text. While a cell is being typed,
+the hint bar is `ENT ok  ESC cancel`, Esc leaves the cell as it was, and `Tab` puts the entry
+in and opens the menu as anywhere. A word needs Enter or Space first, since its letters would
+be commands; `u` undoes the last change if one slips through.
 
 ## The key table
 
@@ -181,6 +190,6 @@ An app with no icon gets a box with its initial.
 
 ![Home icons](../apps/home/icons/preview.png)
 
-Home, Agenda and Writer on the TERM512 firmware (in the emulator):
+Home, Agenda, Writer and Calc on the TERM512 firmware (in the emulator):
 
-![Home](home.png) ![Agenda](agenda.png) ![Writer](writer.png)
+![Home](home.png) ![Agenda](agenda.png) ![Writer](writer.png) ![Calc](calc.png)

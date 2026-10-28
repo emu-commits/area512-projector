@@ -212,7 +212,7 @@ def _sim_stats():
 EXPECT = {}
 
 
-FORKS = ("agenda", "writer")       # PicoRuby: run by tests/rsim.rb under CRuby
+FORKS = ("agenda", "writer", "calc")       # PicoRuby: run by tests/rsim.rb under CRuby
 
 
 def app_of(name):
@@ -447,6 +447,89 @@ EXPECT["writer_huge"] = ["@@SCREEN huge is 13 KB: too big (12 KB most)"]
 SCENARIOS["writer_empty"] = "SHOT:w_none ENTER x r DOWN UP ESC"
 EXPECT["writer_empty"] = ["!/data/writer/recent.txt \"", "!@@RUN_NEXT"]
 
+
+
+# Calc (forks/calc, PicoRuby): sheets in /data/calc, typing on the grid, formulas, copy and fill
+CA_SHEET = "A1\tRent\nB1\t500\nA2\tFood\nB2\t320.5\nA3\tTotal\nB3\t=SUM(B1:B2)\n"
+CA_SEED = {"/data": None, "/data/calc": None, "/data/calc/budget.txt": CA_SHEET,
+           "/data/calc/recent.txt": "budget|budget.txt\n"}
+CA_APPS = "1|Home|/home/ai/home\n2|Projector|/home/ai/projector\n4|Calc|/home/ai/calc\n"
+CA_REG = dict(CA_SEED, **{"/data/area512": None, "/data/area512/apps.txt": CA_APPS})
+# the one sheet from before the fork becomes "sheet", and the old file stays
+SEEDS["calc_import"] = {"/data": None, "/data/sheet.txt": "A1\t1\nA2\t=A1*2\n"}
+SCENARIOS["calc_import"] = "SHOT:c_files ENTER SHOT:c_grid"
+EXPECT["calc_import"] = [rfs("/data/calc/sheet.txt", "A1\t1\nA2\t=A1*2\n"), rfs("/data/sheet.txt", "A1\t1\nA2\t=A1*2\n"),
+                         rfs("/data/calc/recent.txt", "sheet|sheet.txt\n"), "@@SCREEN 2"]
+# typing on the grid: digits and = start an entry, Enter goes down, Fn+right across
+SCENARIOS["calc_type"] = ("n T:Cash ENTER 1 2 ENTER 3 . 5 ENTER = T:A1/A2 ENTER SHOT:c_typed UP UP UP RIGHT "
+                          "SPACE T:Twelve RIGHT T:=a1*$A$2 ENTER DOWN DOWN s")
+EXPECT["calc_type"] = [rfs("/data/calc/Cash.txt", "A1\t12\nB1\tTwelve\nC1\t=a1*$A$2\nA2\t3.5\nA3\t=A1/A2\n"),
+                       "3.428571"]
+# a formula's value: chains in any order, an empty cell is 0, text and loops are #ERR
+SEEDS["calc_eval"] = {"/data": None, "/data/calc": None, "/data/calc/e.txt":
+    "A1\t=A2+1\nA2\t=A3*2\nA3\t4\nB1\t=B4+1\nB2\t=AVG(A1:A3)\nB3\t=A1/0\nC1\t=C2\nC2\t=C1\nC3\t=COUNT(A1:B1)\n"
+    "D1\tword\nD2\t=D1+1\nD3\t=7/2\n"}
+SCENARIOS["calc_eval"] = "ENTER SHOT:c_eval"
+EXPECT["calc_eval"] = ["@@SCREEN 9\n@@SCREEN 1\n@@SCREEN #ERR\n@@SCREEN word\n@@SCREEN 2\n@@SCREEN 8\n@@SCREEN 7\n"
+                       "@@SCREEN #ERR\n@@SCREEN #ERR\n@@SCREEN 3\n@@SCREEN 4\n@@SCREEN #ERR\n@@SCREEN 2\n@@SCREEN 3.5\n"]
+# copy and paste moves the references; $ stays; d fills down, r right; u undoes
+SEEDS["calc_copy"] = CA_SEED
+SCENARIOS["calc_copy"] = ("ENTER . . / / = T:B3*2 ENTER UP c / v d d u SHOT:c_copy ; ; ; ; = T:B$1+1 ENTER UP r s")
+EXPECT["calc_copy"] = [rfs("/data/calc/budget.txt", "A1\tRent\nB1\t500\nD1\t=B$1+1\nE1\t=C$1+1\nA2\tFood\nB2\t320.5\n"
+                                                    "A3\tTotal\nB3\t=SUM(B1:B2)\nC3\t=B3*2\nD3\t=C3*2\nD4\t=C4*2\n")]
+# off the sheet: a paste whose reference would go before A
+SEEDS["calc_edge"] = CA_SEED
+SCENARIOS["calc_edge"] = "ENTER . . / c ; ; v SHOT:c_off x u ] SHOT:c_end [ g T:z99 ENTER d SHOT:c_z99"
+EXPECT["calc_edge"] = ["@@SCREEN That's the edge of the sheet", "@@SCREEN Z99", rfs("/data/calc/budget.txt", CA_SHEET)]
+# Esc cancels typing; BS deletes; x clears; w widens, saved as WIDTH lines
+SEEDS["calc_edit"] = CA_SEED
+SCENARIOS["calc_edit"] = "ENTER / ENTER BS BS BS T:1 ESC ENTER BS T:9 ENTER x SHOT:c_cleared ; w w SHOT:c_wide s ESC ESC"
+EXPECT["calc_edit"] = [rfs("/data/calc/budget.txt", "A1\tRent\nB1\t509\nA2\tFood\nA3\tTotal\nB3\t=SUM(B1:B2)\nWIDTH\tB\t20\n")]
+# find: text in a cell, round from the top, case not minded
+SEEDS["calc_find"] = CA_SEED
+SCENARIOS["calc_find"] = "ENTER f T:FOO ENTER SHOT:c_found f ENTER SPACE T:x ENTER ESC ESC"
+EXPECT["calc_find"] = ['A1\\tRent\\nB1\\t500\\nA2\\tx\\n']
+# Tab, then a digit: saves, leaves a place, hands off; back on the same cell
+SEEDS["calc_switch"] = CA_REG
+SCENARIOS["calc_switch"] = "ENTER . / 7 TAB SHOT:c_apps 2"
+EXPECT["calc_switch"] = ["@@RUN_NEXT /home/ai/projector", "B2\\t7\\n",
+                         rfs("/data/calc/place.txt", "screen: doc\nsel: 0\nfile: budget.txt\ncell: B2\n")]
+SEEDS["calc_place"] = dict(CA_SEED, **{"/data/calc/place.txt": "screen: doc\nsel: 0\nfile: budget.txt\ncell: B2\n"})
+SCENARIOS["calc_place"] = "SHOT:c_back 1 ENTER ESC ESC"
+EXPECT["calc_place"] = ["B2\\t1\\n", "!/data/calc/place.txt"]
+# Home's requests: open, new (with a name), delete into deleted/
+SEEDS["calc_open"] = dict(CA_REG, **{"/data/area512/open.txt": "calc|open|budget.txt\n"})
+SCENARIOS["calc_open"] = "4 ENTER ESC ESC"
+EXPECT["calc_open"] = ["A1\\t4\\n", "@@RUN_NEXT /home/ai/home", "!/data/area512/open.txt"]
+SEEDS["calc_new_req"] = dict(CA_REG, **{"/data/area512/open.txt": "calc|new|Cafe money\n"})
+SCENARIOS["calc_new_req"] = "5 ENTER ESC ESC"
+EXPECT["calc_new_req"] = [rfs("/data/calc/Cafe money.txt", "A1\t5\n")]
+SEEDS["calc_del_req"] = dict(CA_REG, **{"/data/area512/open.txt": "calc|delete|budget.txt\n"})
+SCENARIOS["calc_del_req"] = ""
+EXPECT["calc_del_req"] = ["@@RUN_NEXT /home/ai/home", rfs("/data/calc/deleted/budget.txt", CA_SHEET),
+                          rfs("/data/calc/recent.txt", "")]
+# the menu bar and Help; a menu item runs as its key
+SEEDS["calc_menu"] = CA_REG
+SCENARIOS["calc_menu"] = "ENTER TAB SHOT:c_menu RIGHT SHOT:c_menu2 DOWN ENTER TAB ? SHOT:c_help ENTER TAB LEFT LEFT RIGHT ENTER"
+EXPECT["calc_menu"] = ["@@RUN_NEXT /home/ai/home"]
+# a big sheet stops at CELL_MAX
+SEEDS["calc_full"] = {"/data": None, "/data/calc": None, "/data/calc/big.txt":
+    "".join("%s%d\t%d\n" % (chr(65 + i % 5), i // 5 + 1, i) for i in range(249))}
+SCENARIOS["calc_full"] = "ENTER ] / 1 ENTER 2 ENTER SHOT:c_full"
+EXPECT["calc_full"] = ["@@SCREEN Full: 250 cells or 6 KB is the most. Start another sheet."]
+# 8 KB: a bigger file isn't opened, and typing stops at the limit
+# rows 1-48 of A and B, 59 bytes each: about 6,100 of the 6,144 (texts, tabs and 4 a cell)
+SEEDS["calc_bytes"] = {"/data": None, "/data/calc": None,
+    "/data/calc/huge.txt": "".join("A%d\t%s\n" % (i, "x" * 90) for i in range(1, 99)),
+    "/data/calc/edge.txt": "".join("A%d\t%s\nB%d\t%s\n" % (i, "y" * 59, i, "z" * 59) for i in range(1, 49))}
+SCENARIOS["calc_bytes"] = "ENTER SHOT:c_edge / / ENTER T:abcdefghijklmnopqrstuvwxyz ENTER ENTER T:abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefgh ENTER SHOT:c_bfull"
+EXPECT["calc_bytes"] = ["@@SCREEN Full: 250 cells or 6 KB is the most. Start another sheet.", "@@SCREEN C2"]
+SEEDS["calc_huge"] = SEEDS["calc_bytes"]
+SCENARIOS["calc_huge"] = "DOWN ENTER SHOT:c_huge"
+EXPECT["calc_huge"] = ["@@SCREEN huge is 10 KB: too big (6 KB most)"]
+# nothing on the card: every key on the empty list is harmless
+SCENARIOS["calc_empty"] = "SHOT:c_none ENTER x r DOWN UP ESC"
+EXPECT["calc_empty"] = ["!@@RUN_NEXT"]
 
 def run_fork(name, app, script, screen):
     # the fork's sources, in main.manifest's order, from forks/<app>/ and lib/ruby/

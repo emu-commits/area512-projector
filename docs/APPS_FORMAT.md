@@ -43,7 +43,7 @@ One line, written by the app that switches, just before `run_next`:
 
     <app>|<verb>|<arg>
 
-    calc|open|cafe.sheet
+    calc|open|Cafe money.txt
     writer|new|Corner cafe notes
 
 - `app` is the target's name in `apps.txt`, in lower case. A target reads the file at start and
@@ -103,6 +103,10 @@ Writer's `place.txt` adds `row:`, `col:` (a byte offset in the line) and `mode:`
 `move`) to `screen: doc`, so a switch comes back to the same character. Its `new` with a name
 opens that document if there is one: Projector's notes for an idea (step 5.2) are one document,
 asked for by name each time.
+
+Calc's are its sheets, the same way (`Cafe money|Cafe money.txt`), and so are its requests:
+`new` with a name opens that sheet if there is one, for Projector's money as a sheet (step 5.2).
+Its `place.txt` adds `cell:` (`B12`) to `screen: doc`.
 
 The app rewrites it whenever it saves. Home reads it to list files under the app's icon, and
 opens one by writing `open.txt` (`<app>|open|<file>`) and calling `run_next`. An archived

@@ -3,14 +3,13 @@ class Writer
     ui_init
     init_doc
     @wrap_w = @w - PAGE_PAD * 2 - SCROLLBAR_W - 3
-    @name = nil       # the open document; nil on the list
-    @screen = :files
-    @sel = 0
-    @docs = []
-    @recent = []
+    docs_init
+    @dir = DATA_DIR
+    @title = "Writer"
+    @kind = "document"
+    @old = OLD_FILE
+    @docs_keys = FILES_KEYS
     @find = ""
-    @pv = nil         # TERM512's preview: [name, lines]
-    @quit = false
   end
 
   def run

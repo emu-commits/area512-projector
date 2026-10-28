@@ -10,31 +10,6 @@ class Writer
     end
   end
 
-  # ---- the documents
-
-  def files_key(k)
-    name = @docs[@sel]
-    if k.length > 1 && k[0, 1] == "@"
-      switch_to(k[1, k.length])
-    elsif k == "UP"
-      @sel -= 1 if @sel > 0
-    elsif k == "DOWN"
-      @sel += 1 if @sel < @docs.length - 1
-    elsif k == "ENTER" || k == "RIGHT"
-      open_doc(name) if name
-    elsif k == "n"
-      new_doc("")
-    elsif k == "x" || k == "d"
-      if name && ask_yn("DELETE", "Delete " + name + "?")
-        delete_doc(name)
-      end
-    elsif k == "r"
-      rename_doc(name) if name
-    elsif k == "ESC" || k == "q"
-      leave
-    end
-  end
-
   # ---- the document: letters type; Tab is the menu; Esc goes back a level
 
   def doc_step
@@ -138,48 +113,5 @@ class Writer
       return false
     end
     true
-  end
-
-  # ---- leaving and switching (docs/APPS_FORMAT.md)
-
-  # Esc from the list, or ^Q: saves first, goes to Home
-  def leave
-    return if @dirty && !save_doc
-    h = home_path
-    run_next(h) if h && h != @app_dir
-    @quit = true
-  end
-
-  # Tab, then a digit: save, leave a place, hand off. A switch never loses work.
-  def switch_to(path)
-    return if @dirty && !save_doc
-    write_place
-    @quit = true if run_next(path)
-  end
-
-  # Home's request (open.txt), else where you were (place.txt). Both are read once and
-  # deleted, so neither is left to act on later.
-  def start
-    reg_read.each { |p| @app_dir = p[2] if p[1] == "Writer" }
-    req = take_request("writer")
-    place = take_place(PLACE_FILE)
-    if req.nil?
-      read_place(place) if place
-      return
-    end
-    verb = req[0]
-    arg = req[1]
-    name = arg.length > 4 && arg[arg.length - 4, 4] == ".txt" ? arg[0, arg.length - 4] : arg
-    if verb == "new"
-      new_doc(arg)
-    elsif verb == "open"
-      @sel = @docs.index(name) || 0
-      open_doc(name)
-    elsif verb == "delete"
-      # Home asked first: delete it without asking again, and go back
-      delete_doc(name) if @docs.include?(name)
-      h = home_path
-      @quit = true if h && run_next(h)
-    end
   end
 end

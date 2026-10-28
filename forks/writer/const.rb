@@ -5,7 +5,8 @@ require 'area512-sprite'
 require 'area512-sdfat'
 
 # Writer: AREA512's Writer, forked (UPSTREAM.md) onto the suite's grammar (docs/UI.md).
-# SuiteApp is lib/ruby/ui.rb, first in main.manifest.
+# SuiteApp is lib/ruby/ui.rb, first in main.manifest, and lib/ruby/docs.rb (the list of
+# documents, recent.txt, Home's requests, switching), second.
 #
 # Constants live under the app class so they never collide with other apps in the shared
 # sandbox VM (each run keeps a global const table), guarded for re-runs of this same app.
@@ -13,12 +14,6 @@ class Writer < SuiteApp
   DATA_DIR = "/data/writer" unless const_defined?(:DATA_DIR)
   # Writer's one document before the fork: copied once, the first time, as "writer"
   OLD_FILE = "/data/writer.txt" unless const_defined?(:OLD_FILE)
-  PLACE_FILE = "/data/writer/place.txt" unless const_defined?(:PLACE_FILE)
-  RECENT_FILE = "/data/writer/recent.txt" unless const_defined?(:RECENT_FILE)
-  # deleted documents are moved here, not erased (a delete from Home is one key away)
-  BIN_DIR = "/data/writer/deleted" unless const_defined?(:BIN_DIR)
-  # a document is /data/writer/<name>.txt: the card's long names stop at 32 bytes
-  NAME_MAX = 24 unless const_defined?(:NAME_MAX)
   # The biggest document, in bytes. It's held twice while it opens and saves, in the VM's
   # 120 KB with the app's own code, and running out restarts the device. On the Cardputer
   # firmware 16 KB opened, took an edit and saved, and 20 KB ran out opening (PLAN_V1 4.2).

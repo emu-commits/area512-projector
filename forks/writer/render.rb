@@ -73,50 +73,10 @@ class Writer
     Widget.text_right(@sp, @w - 3, @h - 13, st, @c_em)
   end
 
-  # ---- the documents
-
-  def render_files
-    n = @docs.length
-    frame("WRITER", n == 1 ? "1 document" : n.to_s + " documents")
-    lw = @wide ? 132 : @w
-    y = @top + 3
-    if n == 0
-      t(8, y, "No documents yet.", @c_text)
-      t(8, y + @lh, "n starts one.", @c_em)
-    else
-      rows = (@bot - y - 2) / @lh
-      first = @sel - rows + 1
-      first = 0 if first < 0
-      i = first
-      while i < n && i < first + rows
-        row(2, y, lw - 4, @docs[i], i == @sel)
-        y += @lh
-        i += 1
-      end
-      preview if @wide
-    end
-    foot(FILES_KEYS)
-  end
-
-  # TERM512: the selected document's first lines beside the list
-  def preview
-    name = @docs[@sel]
-    if @pv.nil? || @pv[0] != name
-      text = read_file(path_of(name))
-      text = "(too big to open)" if text && text.length > DOC_MAX
-      @pv = [name, text ? text.split("\n") : []]
-    end
-    x = 138
-    y = @top + 2
-    h = @bot - y - 2
-    @sp.rect(x, y, @w - x - 2, h, @c_border)
-    cols = (@w - x - 10) / @cw
-    yy = y + 4
-    i = 0
-    while i < @pv[1].length && yy <= y + h - @lh
-      t(x + 5, yy, clip(@pv[1][i], (cols) * @cw), @c_dim)
-      yy += @lh
-      i += 1
-    end
+  # TERM512's list: the selected document's first lines
+  def doc_preview(name)
+    text = read_file(path_of(name))
+    return ["(too big to open)"] if text && text.length > DOC_MAX
+    text ? text.split("\n") : []
   end
 end

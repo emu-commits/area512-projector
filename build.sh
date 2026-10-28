@@ -6,8 +6,9 @@
 #                    ovl/<name>.<n>: overlays from apps/projector/ov/ and lib/py/menu.py, one
 #                    file per def (see tools/ovl.py and App.ov)
 #   dist/home/       core.mpy = lib/py/base.py + lib/py/menu.py + apps/home/main.py, icons/
-#   dist/agenda/     forks/agenda/*.rb and lib/ruby/ui.rb, compiled with AREA512's picorbc;
-#   dist/writer/     main.manifest (ui.mrb first) from the fork. tools/rbcheck.py first.
+#   dist/agenda/     forks/<fork>/*.rb and lib/ruby/*.rb, compiled with AREA512's picorbc;
+#   dist/writer/     main.manifest from the fork (ui.mrb first, then docs.mrb for Writer and
+#   dist/calc/       Calc). tools/rbcheck.py first.
 #
 # Why two files: launched as main.mpy, the firmware holds the whole .mpy in RAM for the entire
 # run AND sizes the Python heap after reading it. Through main.manifest the heap is sized first
@@ -65,6 +66,7 @@ rb_fork() {
 
 rb_fork agenda
 rb_fork writer
+rb_fork calc
 
 for d in dist/*; do echo "$d: $(ls "$d" | tr '\n' ' ')"; done
 echo "projector overlays: $(ls dist/projector/ovl | wc -l) files"
