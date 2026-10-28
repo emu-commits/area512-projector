@@ -91,6 +91,10 @@ The app's documents, newest first, at most 8 lines:
     Corner cafe|7
     Night classes|3
 
+Agenda's are its next 8 events from the last date used, named by date and index in that day:
+
+    3 Nov Dentist 09:00|2026-11-03#0
+
 The app rewrites it whenever it saves. Home reads it to list files under the app's icon, and
 opens one by writing `open.txt` (`<app>|open|<file>`) and calling `run_next`. An archived
 document isn't listed.

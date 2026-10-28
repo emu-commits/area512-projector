@@ -3,7 +3,8 @@
 
   tests/fw.py NAME [--out DIR]     -> DIR/*.png, DIR/data/... (the card's files after)
                                    home* scenarios install Home and Projector, start Home, and
-                                   seed tests/seeds/home (fake bundled apps, one idea)
+                                   seed tests/seeds/home (fake bundled apps, one idea);
+                                   agenda* install Agenda alone, on tests/seeds/agenda
   tests/fw.py NAME --term512       on the TERM512 build: shots are the 320x240 lid screen
                                    (firmware: $FW_TERM512, default <factory>/vendor/Area512TFT7789.bin)
   tests/fw.py --keys "SCRIPT" ...  a script of your own instead of a scenario
@@ -34,13 +35,20 @@ def main():
             opts[k] = args[args.index(k) + 1]
     name = [a for a in args if not a.startswith("-") and a not in opts.values()]
     script = opts.get("--keys") or sim.SCENARIOS[name[0]]
-    # ./build.sh output, copied to /home/ai/<app>; the filer opens home/, then ai/, then runs
-    # the app's folder (entries: .., home, projector)
+    # ./build.sh output, copied to /home/ai/<app>
     apps = [sim.ROOT / "dist/projector"]
-    start = "j ENTER j R "
+    first = "projector"
     if name and sim.app_of(name[0]) == "home":
-        apps = [sim.ROOT / "dist/home", sim.ROOT / "dist/projector"]
+        # the whole suite that's built, started from Home
+        apps = [sim.ROOT / "dist" / a for a in ("home", "projector") + sim.FORKS]
+        first = "home"
         opts.setdefault("--seed", "home")
+    elif name and sim.app_of(name[0]) in sim.FORKS:
+        first = sim.app_of(name[0])
+        apps = [sim.ROOT / "dist" / first]       # a fork alone, on its seed
+        opts.setdefault("--seed", first)
+    # the filer opens home/, then ai/ (entries "..", then the apps in order), and runs it
+    start = "j ENTER " + "j " * (sorted(a.name for a in apps).index(first) + 1) + "R "
     shutil.rmtree(out / "data", ignore_errors=True)
     keys = start + "WAIT " * 8 + "SHOT:start " + fw_script(script) + \
         " WAIT WAIT WAIT WAIT SHOT:end"

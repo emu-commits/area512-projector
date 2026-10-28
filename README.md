@@ -24,6 +24,11 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 `R`. Copy the whole folder: the `ovl/` subfolder is part of the app. Data lives in
 `/Area512_data/data/projector/`.
 
+**Agenda** (`dist/agenda/`) is AREA512's Scheduler, forked onto the same keys: arrows everywhere
+(`Fn`+arrow no longer jumps a month), events you can edit, a time field, an agenda list, and
+the month beside the day on TERM512. Copy it to `/Area512_data/home/ai/agenda/`; it copies
+Scheduler's events the first time. See [forks/agenda/UPSTREAM.md](forks/agenda/UPSTREAM.md).
+
 **Home** (`dist/home/`, new for 1.0) is the suite's first screen: a row of app icons with each
 app's files under its icon, after the Psion Series 3. Copy it to `/Area512_data/home/ai/home/`
 and add `default=app:/home/ai/home` to `/Area512_data/etc/ui` to start on it. It finds the apps
@@ -51,13 +56,16 @@ AREA512 newer than v2.7 (`Area512.run_next`).
 
 ## Build and test
 
+The Ruby forks need an [AREA512](https://github.com/engneer-hamachan/area512) checkout with its
+host `picorbc` built, at `~/area512` (or set `AREA512`), and `ruby` for `tests/rsim.rb`.
 You need [area512-factory](https://github.com/emu-commits/area512-factory) checked out at
 `~/area512-factory` (or set `AREA512_FACTORY`), with its `./setup.sh` run (`tests/fw.py` needs its `emu/fwrun.mjs` with `--dump`).
 
     ./build.sh               # lib/py/ + apps/<app>/ -> dist/projector/, dist/home/ (manifest, .mpy, ovl/, icons/)
     tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks);
                              # home_* run Home, and check the files it writes and the app it hands off to
-    tests/sim.py --both      # the same on a Cardputer and on TERM512 (full screen, 320x240)
+    tests/sim.py --both      # the same on a Cardputer and on TERM512 (full screen, 320x240);
+                             # agenda_* run the Ruby fork under CRuby (tests/rsim.rb)
     tests/fw.py full_arc     # the same scenario on the OFFICIAL firmware, headless, with screenshots
                              # and the card's files copied back to tests/.fw/data/
     tests/fw.py home_open --term512   # Home and Projector on the TERM512 build (which has run_next)

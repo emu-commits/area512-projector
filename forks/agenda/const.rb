@@ -4,17 +4,22 @@ require 'io/console'
 require 'area512-sprite'
 require 'area512-sdfat'
 
-class Scheduler
-  W = 240 unless const_defined?(:W)
-  H = 135 unless const_defined?(:H)
-  SAVE_FILE = "/data/scheduler.txt" unless const_defined?(:SAVE_FILE)
+# Agenda: AREA512's Scheduler, forked (UPSTREAM.md) onto the suite's grammar (docs/UI.md).
+# SuiteApp is lib/ruby/ui.rb, first in main.manifest.
+class Agenda < SuiteApp
+  DATA_DIR = "/data/agenda" unless const_defined?(:DATA_DIR)
+  SAVE_FILE = "/data/agenda/agenda.txt" unless const_defined?(:SAVE_FILE)
+  # Scheduler's file: read once, when Agenda has none of its own yet
+  OLD_FILE = "/data/scheduler.txt" unless const_defined?(:OLD_FILE)
+  PLACE_FILE = "/data/agenda/place.txt" unless const_defined?(:PLACE_FILE)
+  RECENT_FILE = "/data/agenda/recent.txt" unless const_defined?(:RECENT_FILE)
+  TEXT_MAX = 60 unless const_defined?(:TEXT_MAX)
 
-  C_BACKGROUND = Widget.theme_background unless const_defined?(:C_BACKGROUND)
-  C_BORDER = Widget.theme_border unless const_defined?(:C_BORDER)
-  C_TEXT = Widget.theme_text unless const_defined?(:C_TEXT)
-  C_SELECTED = Widget.theme_selected unless const_defined?(:C_SELECTED)
-  C_BOX = Widget.theme_box unless const_defined?(:C_BOX)
-  C_EMPHASIS = Widget.theme_emphasis unless const_defined?(:C_EMPHASIS)
+  # One key table per screen (docs/UI.md): menus split by ";", each "Title|item|item", an
+  # item "<key> <label>", a digit in front puts it on the hint bar
+  MONTH_KEYS = "Day|1ENT day|2n new|3a agenda;Month|[ previous|] next;File|s save" unless const_defined?(:MONTH_KEYS)
+  DAY_KEYS = "Event|1ENT edit|2n new|3x delete;Day|a agenda|c calendar;File|s save" unless const_defined?(:DAY_KEYS)
+  LIST_KEYS = "Event|1ENT open|2n new|3x delete;View|c calendar;File|s save" unless const_defined?(:LIST_KEYS)
 
   MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] unless const_defined?(:MONTHS)

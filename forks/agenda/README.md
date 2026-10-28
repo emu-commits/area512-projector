@@ -1,32 +1,45 @@
-# Scheduler
+# Agenda
 
-Monthly calendar with per-day events for Area512/Cardputer.
-Data is saved as `/data/scheduler.txt` and loaded on start.
+A month calendar, each day's events, and an agenda list of what's coming up. Forked from
+AREA512's Scheduler (see UPSTREAM.md in the repository) onto the suite's keys: the same keys
+mean the same thing in every app, and Tab shows every command.
 
-## Calendar screen
+Events are kept in `/data/agenda/agenda.txt`. The first time Agenda starts, it copies
+Scheduler's events from `/data/scheduler.txt` (which it leaves as it is).
 
-- `h` / `l`: previous / next day
-- `k` / `j`: previous / next week
-- `[` / `]`: previous / next month
-- `space` / Enter: open the day view for the selected date
+## Month
 
-## Day screen
+- `,` `/` (or `h` `l`): previous / next day; `;` `.` (or `k` `j`): previous / next week.
+  Fn+arrow works too.
+- `[` `]`: previous / next month
+- Enter: the day
+- `n`: a new event on the selected day
+- `a`: the agenda: every event from the selected day on
+- Esc: leave (to Home, if it's installed). It asks first if there are unsaved changes.
 
-- `h` / `l`: previous / next day
-- `j` / `k`: select an event
-- `a`: add an event — enter a time as `HH:MM`, then the text
-  (Enter confirms, Esc cancels each entry)
-- `d`: delete the selected event
-- `c` / Esc: back to the calendar
+## Day
 
-## Both screens
+- `,` `/`: previous / next day; `;` `.`: the events
+- Enter: edit the event; `n`: a new one; `x`: delete it (asks first)
+- `a`: the agenda; Esc or `c`: back to the month
 
-- `s`: save to `/data/scheduler.txt`
-- `q`: quit
+## Agenda
 
-## Notes
+- `;` `.`: the events; Enter: that day, on that event
+- `n` new, `x` delete; Esc or `c`: back to the month
 
-- Saving needs a microSD card; it is mounted while the app runs.
-- The device has no clock, so the selected date is stored in the save
-  file and restored on the next start.
-- Quitting does not save automatically — press `s` first.
+## Everywhere
+
+- Tab: the menu bar, with every command and its key; Tab › Help lists them.
+  Tab then a digit switches app, saving first (with Home installed).
+- `s`: save
+
+## Times
+
+Up and down step 15 minutes. Or type the digits: `9` is 09:00, `930` is 09:30, `1415` is
+14:15. Enter OK, Esc cancels.
+
+## No clock
+
+The device has no clock, so "today" is the last date you used: it's saved with the events,
+and Agenda opens on it.

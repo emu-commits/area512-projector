@@ -1,4 +1,4 @@
-class Scheduler
+class Agenda
   def leap?(year)
     (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
   end
@@ -42,7 +42,8 @@ class Scheduler
       move_one_day(step)
       remaining -= 1
     end
-    reset_event_cursor
+    @cur = 0
+    @moved = true
   end
 
   def move_one_day(step)
@@ -75,5 +76,27 @@ class Scheduler
     end
     max = days_in_month(@year, @month)
     @day = max if @day > max
+    @cur = 0
+    @moved = true
+  end
+
+  # "2026-11-03" -> [2026, 11, 3]
+  def parse_key(key)
+    p = key.split("-")
+    [p[0].to_i, p[1].to_i, p[2].to_i]
+  end
+
+  # "TU 3 NOV"
+  def day_title(key)
+    d = parse_key(key)
+    WDAYS[weekday(d[0], d[1], d[2])] + " " + d[2].to_s + " " + MONTHS[d[1] - 1]
+  end
+
+  # the key of the day after
+  def next_key(key)
+    d = parse_key(key)
+    return format_date(d[0], d[1], d[2] + 1) if d[2] < days_in_month(d[0], d[1])
+    return format_date(d[0], d[1] + 1, 1) if d[1] < 12
+    format_date(d[0] + 1, 1, 1)
   end
 end

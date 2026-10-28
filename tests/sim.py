@@ -11,7 +11,7 @@
 Script syntax: tokens separated by spaces; "T:some text" types the text (spaces
 included, use _ for a space inside the token); ENTER ESC BS UP DOWN LEFT RIGHT as is.
 """
-import os, pathlib, re, subprocess, sys
+import json, os, pathlib, re, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FACTORY = pathlib.Path(os.environ.get("AREA512_FACTORY", pathlib.Path.home() / "area512-factory"))
@@ -211,8 +211,14 @@ def _sim_stats():
 EXPECT = {}
 
 
+FORKS = ("agenda",)       # PicoRuby: run by tests/rsim.rb under CRuby
+
+
 def app_of(name):
-    return "home" if name.startswith("home") else "projector"
+    for a in ("home",) + FORKS:
+        if name.startswith(a):
+            return a
+    return "projector"
 
 
 # Home: a card with Projector, four bundled apps and two games. Slide isn't installed, so
@@ -275,7 +281,100 @@ EXPECT["del_req"] = ["@@RUN_NEXT /home/ai/home", "@@FS /data/projector/library.t
                      "@@FS /data/projector/recent.txt ''", "!@@FS /data/area512/open.txt"]
 
 
+# Agenda (forks/agenda, PicoRuby): run by tests/rsim.rb. Its @@FS lines are Ruby's inspect.
+def rfs(path, text):
+    q = text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+    return "@@FS " + path + ' "' + q + '"'
+
+
+AG_DATA = {"/data": None, "/data/agenda": None}
+AG_FILE = ("CURSOR\t2026-11-02\n2026-11-03\t09:00\tDentist\n2026-11-03\t13:00\tLunch with Sam\n"
+           "2026-11-10\t18:30\tChoir\n")
+AG_SEED = dict(AG_DATA, **{"/data/agenda/agenda.txt": AG_FILE})
+AG_APPS = "1|Home|/home/ai/home\n2|Projector|/home/ai/projector\n5|Agenda|/home/ai/agenda\n"
+AG_REG = dict(AG_SEED, **{"/data/area512": None, "/data/area512/apps.txt": AG_APPS})
+# Scheduler's file is copied once, saved as Agenda's, with recent.txt for Home
+SEEDS["agenda_import"] = {"/data": None, "/data/scheduler.txt": AG_FILE}
+SCENARIOS["agenda_import"] = "SHOT:a_month ESC"
+EXPECT["agenda_import"] = [rfs("/data/agenda/agenda.txt", AG_FILE), rfs(
+    "/data/agenda/recent.txt", "3 Nov Dentist 09:00|2026-11-03#0\n3 Nov Lunch with Sam 13:00|2026-11-03#1\n"
+    "10 Nov Choir 18:30|2026-11-10#0\n"), "!@@RUN_NEXT"]
+# n: the time field (down twice is 08:30), then the text; in the day, typed digits
+SCENARIOS["agenda_add"] = ("n DOWN DOWN SHOT:a_time ENTER T:Dentist ENTER ENTER n 1 4 SHOT:a_typed 1 5 ENTER "
+                           "T:Lunch ENTER SHOT:a_day ESC ESC SHOT:a_leave y")
+EXPECT["agenda_add"] = [rfs("/data/agenda/agenda.txt", "CURSOR\t2026-06-21\n2026-06-21\t08:30\tDentist\n"
+                                                       "2026-06-21\t14:15\tLunch\n")]
+# Enter edits (13:00 up twice is 13:30), x asks then deletes, s saves
+SEEDS["agenda_edit"] = AG_SEED
+SCENARIOS["agenda_edit"] = ("/ ENTER DOWN ENTER UP UP ENTER BS BS BS T:Jo ENTER SHOT:a_edited "
+                            "UP x n x y ESC s ESC")
+EXPECT["agenda_edit"] = [rfs("/data/agenda/agenda.txt", "CURSOR\t2026-11-03\n2026-11-03\t13:30\tLunch with Jo\n"
+                                                        "2026-11-10\t18:30\tChoir\n")]
+# the agenda list from the selected day; Enter opens that day on the event
+SEEDS["agenda_list"] = AG_SEED
+SCENARIOS["agenda_list"] = "a SHOT:a_list DOWN DOWN ENTER SHOT:a_list_day c ] [ , / ; . ESC"
+EXPECT["agenda_list"] = ['"CURSOR\\t2026-11-10\\n']
+# Fn+arrow comes as one key (Widget.read_key): it moves the day, never the month
+SEEDS["agenda_fn"] = AG_SEED
+SCENARIOS["agenda_fn"] = "UP DOWN LEFT RIGHT RIGHT ESC"         # a day on: 3 Nov, still November
+EXPECT["agenda_fn"] = ['"CURSOR\\t2026-11-03\\n']
+# Tab, then a digit: saves, leaves a place, hands off
+SEEDS["agenda_switch"] = AG_REG
+SCENARIOS["agenda_switch"] = "/ n ENTER T:Gym ENTER TAB SHOT:a_menu 2"
+EXPECT["agenda_switch"] = ["@@RUN_NEXT /home/ai/projector",
+                           rfs("/data/agenda/place.txt", "screen: month\nsel: 0\nfile: 2026-11-03\n"),
+                           "2026-11-03\\t09:00\\tGym\\n"]
+# the menu bar: Apps first, its own digit does nothing; Help; Esc from the month goes Home
+SEEDS["agenda_menu"] = AG_REG
+SCENARIOS["agenda_menu"] = ("TAB LEFT SHOT:a_apps RIGHT RIGHT DOWN ENTER TAB a TAB ? SHOT:a_help ENTER "
+                            "TAB 5 c TAB RIGHT RIGHT ENTER ESC")       # Apps, Day, Month, File: File > save
+EXPECT["agenda_menu"] = ["@@RUN_NEXT /home/ai/home", '"CURSOR\\t2026-12-02\\n']
+# Home's requests: open on an event, new, delete (no question, then back to Home)
+SEEDS["agenda_open"] = dict(AG_REG, **{"/data/area512/open.txt": "agenda|open|2026-11-03#1\n"})
+SCENARIOS["agenda_open"] = "SHOT:a_opened ENTER ENTER ENTER x y ESC ESC y"
+EXPECT["agenda_open"] = [rfs("/data/agenda/agenda.txt", "CURSOR\t2026-11-03\n2026-11-03\t09:00\tDentist\n"
+                                                        "2026-11-10\t18:30\tChoir\n"), "!/data/area512/open.txt"]
+SEEDS["agenda_new_req"] = dict(AG_REG, **{"/data/area512/open.txt": "agenda|new|\n"})
+SCENARIOS["agenda_new_req"] = "ENTER T:Call_mum ENTER ESC y"
+EXPECT["agenda_new_req"] = ["2026-11-02\\t09:00\\tCall mum\\n"]
+SEEDS["agenda_del_req"] = dict(AG_REG, **{"/data/area512/open.txt": "agenda|delete|2026-11-03#0\n",
+                                         "/data/agenda/place.txt": "screen: day\nsel: 1\nfile: 2026-11-03\n"})
+SCENARIOS["agenda_del_req"] = ""
+EXPECT["agenda_del_req"] = ["@@RUN_NEXT /home/ai/home", "!Dentist", "!/data/area512/open.txt",
+                            "!/data/agenda/place.txt"]     # a request uses up the place too
+# back from another app: place.txt puts you on the list, on the event you left
+SEEDS["agenda_place"] = dict(AG_SEED, **{"/data/agenda/place.txt": "screen: list\nsel: 1\nfile: 2026-11-03\n"})
+SCENARIOS["agenda_place"] = "ENTER x y ESC ESC y"
+EXPECT["agenda_place"] = ["!Lunch", "!/data/agenda/place.txt", "Choir"]
+# the time field: 25 and 93 aren't times; 0 is midnight; down from midnight is 23:45
+SCENARIOS["agenda_time"] = ("n 2 5 ENTER SHOT:a_bad 9 3 ENTER 9 3 0 ENTER T:x ENTER n 0 ENTER T:Midnight ENTER "
+                            "n DOWN ENTER T:Late ENTER n ESC n ENTER ESC ESC y")
+EXPECT["agenda_time"] = [rfs("/data/agenda/agenda.txt", "CURSOR\t2026-06-21\n2026-06-21\t00:00\tMidnight\n"
+                                                        "2026-06-21\t09:30\tx\n2026-06-21\t23:45\tLate\n")]
+# nothing on the card: every screen says so; leaving without a change writes nothing
+SCENARIOS["agenda_empty"] = "SHOT:a_empty ENTER SHOT:a_empty_day a SHOT:a_empty_list ESC ESC"
+EXPECT["agenda_empty"] = ["!/data/agenda/agenda.txt", "!@@RUN_NEXT"]
+
+
+def run_fork(name, app, script, screen):
+    # the fork's sources, in main.manifest's order, from forks/<app>/ and lib/ruby/
+    work = ROOT / "tests/.work" / name
+    work.mkdir(parents=True, exist_ok=True)
+    (work / ".keys").write_text(expand(script))
+    (work / "seed.json").write_text(json.dumps(SEEDS.get(name, {})))
+    files = []
+    for e in (ROOT / "forks" / app / "main.manifest").read_text().split():
+        rb = e.replace(".mrb", ".rb")
+        src = ROOT / "forks" / app / rb
+        files.append(str(src if src.exists() else ROOT / "lib/ruby" / rb))
+    r = subprocess.run(["ruby", str(ROOT / "tests/rsim.rb"), str(work / ".keys"), str(work / "seed.json"),
+                        screen] + files, capture_output=True, text=True, timeout=300)
+    return r.stdout + r.stderr
+
+
 def run(name, script, target, screen="cardputer"):
+    if app_of(name) in FORKS:
+        return run_fork(name, app_of(name), script, screen)
     # Like the device: the app's folder on the card, then main.manifest's entries in order.
     work = ROOT / "tests/.work" / name
     work.mkdir(parents=True, exist_ok=True)
@@ -313,9 +412,9 @@ def verdict(out, name=""):
     for want in EXPECT.get(name, []):
         if want[0] == "!":
             if want[1:] in out:
-                return "UNWANTED " + want[1:].split()[1]
+                return "UNWANTED " + want[1:].replace("@@FS ", "")[:40]
         elif want not in out:
-            return "MISSING " + (want + " ").split()[1]
+            return "MISSING " + want.replace("@@FS ", "")[:40]
     if "@@COMPILE_ERROR" in out:
         return "COMPILE_ERROR"
     if "@@RUNTIME_ERROR" in out:

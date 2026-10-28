@@ -1,25 +1,20 @@
-class Scheduler
-  def draw_day
-    draw_header("DAILY", date_key)
+class Agenda
+  def render_day
+    frame("AGENDA", day_title(date_key) + " " + @year.to_s)
     list = day_events
     if list.empty?
-      @sp.text(8, 38, "No schedule", C_TEXT)
-      @sp.text(8, 54, "Press a to add", C_EMPHASIS)
-      return
-    end
-    row = 0
-    while row < 6 && @event_top + row < list.length
-      index = @event_top + row
-      event = list[index]
-      y = 22 + row * 16
-      if index == @event_cursor
-        @sp.fill_rect(3, y - 2, W - 6, 15, C_BOX)
-        @sp.rect(3, y - 2, W - 6, 15, C_SELECTED)
+      nothing(@top + 8, "Nothing on this day.")
+    else
+      rows = (@bot - @top - 6) / @lh
+      top = first_row(@cur, rows)
+      i = top
+      y = @top + 4
+      while i < list.length && i < top + rows
+        event_row(2, y, @w - 4, list[i], i == @cur)
+        y += @lh
+        i += 1
       end
-      color = index == @event_cursor ? C_SELECTED : C_TEXT
-      @sp.text(7, y, event[0], C_EMPHASIS)
-      @sp.text(45, y, clip_text(event[1], 188), color)
-      row += 1
     end
+    foot(DAY_KEYS)
   end
 end

@@ -8,7 +8,8 @@ key beside it, and the screen always shows what you can press next.
 Projector 1.0 is the first app built on it, and Home the second. The code they share is in
 `lib/py/`: `base.py` (class `UI`: `cmd`, `foot`, `hint_list`, `ask_yn`; `arrow`, the registry,
 files in parts) and `menu.py` (the menu bar and Help: an overlay in Projector, compiled in
-with Home). Where this page says "as in Projector", that's the code.
+with Home). The PicoRuby forks share `lib/ruby/ui.rb` (`class SuiteApp`), the same screens
+and rules in Ruby. Where this page says "as in Projector", that's the code.
 
 ## One key at a time
 
@@ -172,3 +173,7 @@ dot editor's default palette, so they can be redrawn on the device with AREA512'
 An app with no icon gets a box with its initial.
 
 ![Home icons](../apps/home/icons/preview.png)
+
+Home and Agenda on the TERM512 firmware (in the emulator):
+
+![Home](home.png) ![Agenda](agenda.png)

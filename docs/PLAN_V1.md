@@ -439,6 +439,26 @@ done) and a heap measurement on the TERM512.
 **4. Forks**, one at a time: Agenda (Scheduler), Writer, Calc, Slide (decision 5). For each: fork with `UPSTREAM.md`,
 then arrows and the grammar, save-on-switch and place, then the app's own list above, then full
 screen.
+- 4.1 Agenda. *Done: `forks/agenda/` (Scheduler at upstream fc9f6f9, then every change listed in
+  its UPSTREAM.md), on `lib/ruby/ui.rb`, the Ruby half of step 3.2 (`class SuiteApp`: key loop,
+  hint bar, menu bar, Help, question screens, registry, open requests, place). All five items
+  of the list above: `Fn`+arrow read as one key (`Widget.read_key`), bare arrows on every
+  screen, Enter edits an event; the time field (↑/↓ 15 minutes, digits type it); the agenda
+  list (`a`); 320×240 with the selected day beside the month and what's coming up below;
+  "today" is still the last date used. Its data moved to `/data/agenda/agenda.txt`, the same
+  format, with Scheduler's file copied the first time. Esc asks before losing changes; `Tab`
+  then a digit saves and switches; `recent.txt` lists the next 8 events for Home.
+  `build.sh` compiles it with AREA512's own `picorbc` (which rebuilds the bundled `.mrb` files
+  byte for byte). Ruby has no a512sim, so `tests/rsim.rb` runs the fork under CRuby with mocks
+  of the API, in the same output format: 13 `agenda_*` scenarios at both sizes. CRuby runs
+  more than mruby/c does, so the firmware has the last word: on both firmware builds in the
+  emulator the fork runs, draws every screen, adds an event with the time field, and
+  `Fn`+up moves a week, not a month. With Home, Projector and Agenda installed together on the
+  TERM512 firmware: Home lists Agenda's next events under its icon (the bundled Scheduler
+  moves to Extras) → Enter opens Agenda on the event → Help, edit the time → `Tab` `1` saves
+  and goes back to Home on the same row → `x`, `y` on Home: Agenda deletes it and hands back.
+  That run found one bug, fixed: a request left Agenda's own `place.txt` behind. Not
+  measured yet: the Ruby VM's heap.*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.
