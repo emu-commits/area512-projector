@@ -340,13 +340,12 @@ done) and a heap measurement on the TERM512.
   in 1 KB blocks. Opened straight from boot via `default=app:`: 104 KB free (115). The sim's
   "No memory" was the sim, not the device. Memory isn't the limit at 320×240, and the
   `BandedSprite(12)` argument can stay. The probe (a small app) sees 128 KB, 125 KB free with
-  the full-screen sprite. Still to check: the Filer redraw after the close animation.*
+  the full-screen sprite. The Filer redraws cleanly after the close animation (emulator, TERM512 build: "Returned: projector").*
 - 0.2 Check on the device: `run_next` from MicroPython and from Ruby, and `default=app:`.
   *Python → Projector works, and `default=app:` boots into the app. The Ruby probe failed with
   "uninitialized constant Display": it lacked `require 'area512-sprite'` (a probe bug; Ruby
   apps must require it for `Display`). With that fixed: Python → Ruby → Python works, and the
-  Ruby probe draws at 320×240 too. Done, apart from one look at the Filer after quitting a
-  full-screen app.*
+  Ruby probe draws at 320×240 too. Done.*
 - 0.3 What `Fn`+arrow sends to Calc and Scheduler.
   *Answered from the source: Ruby's `STDIN.getch` returns one byte, so `Fn`+arrow arrives as three
   keys, `\e` `[` `A`. Writer reads the two bytes after `\e` itself. Calc shows its help line three
@@ -402,7 +401,10 @@ done) and a heap measurement on the TERM512.
   menu), and `Tab` then a digit saves, writes `place.txt`, and calls `run_next`. On start,
   `open.txt` (for Projector) or `place.txt` reopens the idea on its stage. Every save rewrites
   `recent.txt`. Esc from the library goes to Home if the registry has one. Sim scenarios
-  `switch`, `resume`, `open_req`; all 17 pass at both sizes.*
+  `switch`, `resume`, `open_req`; all 17 pass at both sizes. On the TERM512 firmware in the
+  emulator: `Tab` `3` saved, wrote `place.txt` and `recent.txt`, and handed off (the filer said
+  "Cannot run writer": not installed); running Projector again reopened the idea on Stage 3
+  and deleted `place.txt`.*
 
 **3. Switching and Home**
 - 3.1 Repo move to `apps/`, `forks/`, `lib/` (LIFECYCLE_SHELL.md layout), tests green before and after.
