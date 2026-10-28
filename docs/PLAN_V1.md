@@ -15,6 +15,7 @@ full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run
 | 6 | **TERM512 is the main device** | Layouts are designed at 320×240 first and checked at 240×135. The emulators get a 320×240 mode (step 0.7) so tests cover the main device |
 | 7 | **One key at a time.** Holding two keys at once is hard on the Cardputer keyboard, so no command or movement needs a chord | Bare `; . , /` move; `Fn`+arrow still works but is never needed. Commands are one key, or a sequence like `Tab` then `s`. Shifted keys (`$` `?`) become plain letters or menu items. `Shift` is only for typing. No `Opt`/`Ctrl` commands (step 0.5 dropped) |
 | 8 | **Never change the stock apps upstream: fork them** into this repo for full control | Steps 0.5 and 0.6 dropped. Every fix to Calc, Scheduler, Writer or Slide (the `Fn`+arrow bug included) is made in our fork |
+| 9 | **Writer's Move mode is `Tab` › Move**; `Esc` keeps one meaning, back | In Move, `Esc` goes back to typing |
 
 Sources: [PLAN.md](PLAN.md) (Projector today), [TERM512.md](TERM512.md),
 [LIFECYCLE_SHELL.md](LIFECYCLE_SHELL.md) (decisions 1–5), [upstream/AREA512_ISSUES.md](upstream/AREA512_ISSUES.md),
@@ -296,9 +297,11 @@ brings up. One document, `/data/writer.txt`, and quitting doesn't save.
 
 1. Commands in the Tab menu: `Tab` then `s` saves, `Tab` then `o` opens, and so on. The `Ctrl`
    keys keep working, but nothing needs them.
-2. **Move mode** (proposal, open question 1): `Esc` switches between Type and Move. In Move, the
-   bare `; . , /` move the cursor, `h`/`l` a word, `j`/`k` a page, `a`/`e` to line start and end,
-   and `Enter` or `Esc` goes back to typing. The status line always says TYPE or MOVE.
+2. **Move mode** (decision 9): `Tab` › Move (`Tab`, then `m`) switches from Type to Move. In Move,
+   the bare `; . , /` move the cursor, `h`/`l` a word, `j`/`k` a page, `a`/`e` to line start and
+   end. `Esc` goes back to typing, one level back as everywhere, and `Enter` does too. In Type,
+   `Esc` means back as in every app: out of the document, saving first (decision 1). The status
+   line always says TYPE or MOVE.
 3. Several documents through a file list. A word and line count on the status line. Find in the
    menu.
 4. Full screen: more lines and columns.
@@ -391,6 +394,5 @@ screen.
 
 ## Open questions
 
-1. **Writer's Move mode.** Is `Esc` toggling Type/Move right, given `Esc` means "back" elsewhere?
-   The alternative is `Tab` › Move. That's two keys each time, but `Esc` keeps one meaning. The
-   heap at 320×240 (step 0.1) will raise more questions about how much each layout can show.
+None right now. The heap at 320×240 (step 0.1) will raise some about how much each layout can
+show.
