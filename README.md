@@ -35,6 +35,8 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
   around the capture → shape → do → review lifecycle (not built).
 - **[docs/TERM512.md](docs/TERM512.md)**: why Projector runs in a 240×135 window on TERM512, and
   the firmware change that would let it go full screen.
+- **[docs/PLAN_V1.md](docs/PLAN_V1.md)**: the plan for the next major version: full screen, app
+  switching, a Psion Series 3 style UI grammar, and forks of the bundled productivity apps.
 - **[docs/upstream/AREA512_ISSUES.md](docs/upstream/AREA512_ISSUES.md)**: issues to file on AREA512
   (full screen on TERM512, app hand-off, uptime), ready to paste.
 
