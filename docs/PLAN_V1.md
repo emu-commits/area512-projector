@@ -1,7 +1,7 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28, round 3 (all questions answered, below). Nothing here is built yet, apart from the
-full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run).
+Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 3 are built; each
+step's status is under *Order*, in italics.
 
 ## Decisions
 
@@ -184,7 +184,7 @@ Scheduler only on their save key, so quitting loses work. From 1.0, switching ap
 menu, or `Esc` back to Home) saves the open document and its place first, then hands off. `s`
 still saves without leaving. Leaving with unsaved changes any other way asks "Save changes?". If
 the save fails (out of memory or no card), the switch stops and says so: a switch never loses work.
-Projector's help, app/README.md and PLAN.md changed with step 2.5.
+Projector's help, apps/projector/README.md and PLAN.md changed with step 2.5.
 
 ## Home
 
@@ -371,7 +371,7 @@ done) and a heap measurement on the TERM512.
 - 1.2 `docs/APPS_FORMAT.md` (beside PROMOTION_FORMAT.md): registry, place, recent files, open
   request. *Done.*
 - 1.3 Draw the icons (Projector, Writer, Calc, Agenda, Slide, Extras) as `.a5d` files. *Done:
-  `tools/icons.py` writes `home/icons/*.a5d` and a preview. A `.a5d` holds its own palette, so
+  `tools/icons.py` writes `apps/home/icons/*.a5d` and a preview. A `.a5d` holds its own palette, so
   icons can't follow the theme colours; they use the dot editor's default palette, so they can
   be redrawn on the device.*
 
@@ -395,7 +395,7 @@ done) and a heap measurement on the TERM512.
   open cracks and the faced ones. Library: the list, and the selected idea's wish, size,
   money and cracks beside it. Film: the chart is 140 px tall (40 on the Cardputer). Heap
   with the largest idea after the film: 92 KB free of 149.*
-- 2.5 Save-on-switch, place and `recent.txt`. Update the help, app/README.md and PLAN.md
+- 2.5 Save-on-switch, place and `recent.txt`. Update the help, apps/projector/README.md and PLAN.md
   ("never automatic" goes). *Done, with 3.4's Apps menu and Esc to Home (overlay `apps`).
   With a registry, `Tab` shows an Apps menu first in the bar (it opens on the screen's own
   menu), and `Tab` then a digit saves, writes `place.txt`, and calls `run_next`. On start,
@@ -408,9 +408,32 @@ done) and a heap measurement on the TERM512.
 
 **3. Switching and Home**
 - 3.1 Repo move to `apps/`, `forks/`, `lib/` (LIFECYCLE_SHELL.md layout), tests green before and after.
+  *Done: `apps/projector/` (was `app/`), `apps/home/` (was `home/`), `lib/py/`. `build.sh` builds
+  every app into `dist/<app>/`; `tests/sim.py` runs `home*` scenarios against Home.*
 - 3.2 `lib/`: menu, hints, dialogs, registry, place, written in MicroPython and in Ruby (`lib/ruby/`).
+  *MicroPython half done: `lib/py/base.py` (class `UI`: screen setup, key loop with the menu
+  hook, hint bar, yes/no and message screens; helpers, files in parts, the registry) and
+  `lib/py/menu.py` (menu bar and Help), cut out of Projector unchanged and put in front of each
+  app's `main.py` by `build.sh`. Projector's 17 scenarios pass at both sizes before and after.
+  One fix on the way: the hint bar's fit ignored its 3 px margin, so a line that filled the
+  width exactly lost its last word. The Ruby half comes with the first fork (step 4).*
 - 3.3 Home: the icon row and file lists at both sizes, the app scan and registry, Extras, and
   `default=app:`. Measure the heap with the icons loaded.
+  *Done. `apps/home/main.py`, about 11 KB of source. It scans `/home/*/*` for a `main.manifest`,
+  places the suite in order (a fork in `/home/ai` over a bundled app: Agenda is the bundled
+  Scheduler until the fork is installed), puts the rest under Extras with Files last, and
+  rewrites `apps.txt` when it changed. Files come from each app's `recent.txt`. `Enter`, `n` and
+  `x` hand off through `open.txt` (`open`, `new`, and a new verb, `delete`: Home asks, the app
+  does what its own `x` does and hands back). `place.txt` brings you back to the icon and file
+  you left from. On TERM512 each icon has its files in its own column, with wider slots when
+  there are fewer than six icons. 11 sim scenarios (`home_*`, and `del_req` for Projector's
+  side) check the registry, requests, place and hand-offs at both sizes.
+  On the TERM512 firmware in the emulator: Home → Projector on the idea picked → Esc, Esc →
+  back on Home on the same icon and file. Heap with the icons loaded: **111 KB free of 149**
+  (118 in 1 KB blocks); Projector after the hand-off: 91 KB. The Cardputer firmware in the
+  emulator (v2.7) draws Home and writes the registry, but has no `run_next`, so a switch
+  shows "Can't switch: needs AREA512 after v2.7". `default=app:/home/ai/home` is documented
+  in Home's README; booting into an app that way was checked in step 0.2.*
 - 3.4 Apps menu and `Esc` to Home in Projector. *Done with 2.5.*
 
 **4. Forks**, one at a time: Agenda (Scheduler), Writer, Calc, Slide (decision 5). For each: fork with `UPSTREAM.md`,

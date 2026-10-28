@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""app/ov/<name>.py -> dist/projector/ovl/<name>.<n>, one file per top-level def (the source
+"""<src>/<name>.py -> dist/projector/ovl/<name>.<n>, one file per top-level def (the source
 the device compiles on entry); the whole minified overlay also goes to build/ovl/<name>.py.
 
 - every top-level def must start with "<name>_" (App.ov deletes what an overlay added, and
   two overlays can be loaded at once, so names must not collide)
-- "# needs: other" bundles app/ov/other.py into this overlay (no reload per call)
+- "# needs: other" bundles <src>/other.py into this overlay (no reload per call)
 - full-line comments and blank lines are dropped and indentation becomes 1 space per level:
   less to read from SD and less for the on-device compiler to hold.
 """

@@ -1,6 +1,6 @@
 build/
 dist/
-app/main.mpy
+apps/*/main.mpy
 tests/.work/
 tests/.fw*/
 tests/.fw*.log

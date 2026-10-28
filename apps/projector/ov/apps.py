@@ -39,8 +39,8 @@ def apps_home(self):
 
 
 def apps_start(self):
-    # [library index, stage] to open, ["new"], or None. Sets self.lsel. Both files are read
-    # once and deleted, so a bad one can't trap you.
+    # [library index, stage] to open, ["new"], ["delete", library index], or None. Sets
+    # self.lsel. Both files are read once and deleted, so a bad one can't trap you.
     r = apps_request(self)
     if not File.exist(apps_PLACE):
         return r
@@ -69,8 +69,12 @@ def apps_request(self):
     if p[1] == "new":
         return ["new"]
     i = apps_find(self, toint(p[2], -1))
-    if p[1] == "open" and i >= 0:
-        self.lsel = i
+    if i < 0:
+        return None
+    self.lsel = i
+    if p[1] == "delete":
+        return ["delete", i]
+    if p[1] == "open":
         return [i, 0]
     return None
 

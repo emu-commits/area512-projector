@@ -8,7 +8,6 @@ IDEAS = "/data/projector/ideas"
 INDEX = "/data/projector/library.txt"
 META = "/data/projector/meta.txt"
 RECENT = "/data/projector/recent.txt"     # for Home (docs/APPS_FORMAT.md)
-REG = "/data/area512/apps.txt"
 
 CONF = ["", "sure", "rough", "guess"]
 SPREAD = [0, 10, 30, 60]          # % a stage's numbers can be off, by confidence
@@ -38,23 +37,6 @@ CRACK_KEYS = "Crack|1ENT deal with it"
 
 # ---------------------------------------------------------------- helpers
 
-def toint(s, d):
-    try:
-        return int(s)
-    except ValueError:
-        return d
-
-
-def cut(s, a, b):
-    out = ""
-    if b > len(s):
-        b = len(s)
-    i = a
-    while i < b:
-        out = out + s[i]
-        i = i + 1
-    return out
-
 
 def akey(text):
     # crack key for an assumption: short, so the text isn't stored twice
@@ -66,32 +48,6 @@ def has_digit(s):
         if ch >= "0" and ch <= "9":
             return True
     return False
-
-
-def clean(s):
-    return s.replace("|", "/").replace("\n", " ").strip()
-
-
-def wrap(text, cols):
-    lines = []
-    cur = ""
-    for word in text.split(" "):
-        while len(word) > cols:
-            if cur != "":
-                lines.append(cur)
-                cur = ""
-            lines.append(cut(word, 0, cols))
-            word = cut(word, cols, len(word))
-        if cur == "":
-            cur = word
-        elif len(cur) + 1 + len(word) <= cols:
-            cur = cur + " " + word
-        else:
-            lines.append(cur)
-            cur = word
-    if cur != "" or len(lines) == 0:
-        lines.append(cur)
-    return lines
 
 
 def money(n):
@@ -121,68 +77,6 @@ def pct(n, p):
     return r
 
 
-def arrow(k):
-    # the bare ; . , / keys have the arrows printed on them: one key, not Fn+key (docs/UI.md)
-    if k == ";":
-        return "UP"
-    if k == ".":
-        return "DOWN"
-    if k == ",":
-        return "LEFT"
-    if k == "/":
-        return "RIGHT"
-    return k
-
-
-def reg_read():
-    # the app registry Home writes: [[digit, name, path], ...]; none without Home
-    out = []
-    if File.exist(REG):
-        for line in read_lines(REG):
-            p = line.split("|")
-            if len(p) == 3 and len(p[0]) == 1 and p[2] != "":
-                out.append(p)
-    return out
-
-
-class Switch(Exception):
-    # raised once Area512.run_next is set: every loop unwinds and the app returns
-    pass
-
-
-def heap_total():
-    if GC is None:
-        return 0
-    return GC.mem_free() + GC.mem_alloc()
-
-
-def free_kb():
-    # diagnostic: how many 1 KB blocks can still be allocated (hidden key %)
-    keep = []
-    try:
-        base = "x"
-        while len(base) < 1000:
-            base = base + base
-        while True:
-            keep.append(base + str(len(keep)))
-    except MemoryError:
-        pass
-    n = len(keep)
-    keep = None
-    return n
-
-
-try:
-    GC = __import__("gc")     # the import statement is off at MINIMUM; __import__ works
-except Exception:
-    GC = None
-
-
-def collect():
-    if GC is not None:
-        GC.collect()
-
-
 def find_home():
     # the app folder holds the .ovl overlays; Filer can launch it from anywhere
     for d in ["/home/ai/projector", "/home/tool/projector", "/home/projector", "/projector"]:
@@ -207,83 +101,6 @@ def find_home():
     except Exception:
         pass
     return ""
-
-
-# Files are written in parts of at most PART_MAX bytes (<path>, <path>.1, <path>.2, ...):
-# the SD API has no append, so a part is one string and needs one contiguous run of heap,
-# which a fragmented heap may not have for a 3 KB idea. A 1 KB block, taken while the
-# heap is clean, is dropped just before each part is read or written.
-PART_MAX = 900
-SPARE = [None]
-
-
-def spare_take():
-    if SPARE[0] is not None:
-        return
-    try:
-        b = "x"
-        while len(b) < 1024:
-            b = b + b
-        SPARE[0] = b
-    except MemoryError:
-        SPARE[0] = None
-
-
-def spare_free():
-    SPARE[0] = None
-
-
-def part_path(path, k):
-    if k == 0:
-        return path
-    return path + "." + str(k)
-
-
-def write_part(path, buf):
-    buf.append("")
-    spare_free()
-    try:
-        SD.write(path, "\n".join(buf))
-    finally:
-        spare_take()
-
-
-def write_lines(path, out):
-    buf = []
-    size = 0
-    k = 0
-    for line in out:
-        if size + len(line) + 1 > PART_MAX and len(buf) > 0:
-            write_part(part_path(path, k), buf)
-            k = k + 1
-            buf = []
-            size = 0
-        buf.append(line)
-        size = size + len(line) + 1
-    write_part(part_path(path, k), buf)
-    out.clear()
-    k = k + 1
-    while File.exist(part_path(path, k)):      # a shorter file than last time
-        File.unlink(part_path(path, k))
-        k = k + 1
-
-
-def read_lines(path):
-    lines = []
-    k = 0
-    while File.exist(part_path(path, k)):
-        spare_free()
-        try:
-            lines.extend(SD.read(part_path(path, k)).split("\n"))
-        finally:
-            spare_take()
-        k = k + 1
-    return lines
-
-
-def ensure_dir(path):
-    if not Dir.exist(path):
-        Dir.mkdir(path)
 
 
 # ---------------------------------------------------------------- model
@@ -506,89 +323,29 @@ def fnote(t):
 
 # ---------------------------------------------------------------- app
 
-class App:
+class App(UI):
     def __init__(self):
-        self.console = IO()
-        self.sp = None
+        UI.__init__(self)
         self.lib = []          # [id, status, touched, title]
         self.session = 1
         self.next_id = 1
         self.idea = None
-        self.home = ""
         self.dirty = False
-        self.msg = ""
         self.sel = 0
-        self.hl_spec = None
-        self.hl = []
         self.lsel = 0          # the library's selection, for place.txt
         self.wide = False      # TERM512 layouts loaded (overlay "wide", App.run)
         self.pv = None         # wide library: the selected idea's preview
-        # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
-        try:
-            if Display.screen_width() > Display.width():
-                Display.full_screen()
-        except Exception:
-            pass
-        self.W = Display.width()
-        self.H = Display.height()
-        self.top = Widget.body_top()
-        self.bot = Widget.body_bottom()
-        self.cw = Widget.char_width()
-        self.lh = 13
-        self.cols = (self.W - 12) // self.cw
-        self.c_text = Widget.theme_text()
-        self.c_em = Widget.theme_emphasis()
-        self.c_sel = Widget.theme_selected()
-        self.c_box = Widget.theme_box()
-        self.c_bg = Widget.theme_background()
-        self.c_dim = Widget.dim()
         self.ch = 40           # the film's chart height
         if self.H >= 200:
             self.ch = self.bot - self.top - 64
 
-    # ---- plumbing
+    # ---- plumbing (the rest is UI's, lib/py/base.py)
 
-    def key(self):
-        self.console.raw()
-        try:
-            return Widget.read_key()
-        finally:
-            self.console._restore_termios()
+    def menu(self, spec, fn, args):
+        return self.ov("menu", "menu_main", spec, fn, args)
 
-    def nav(self, k):
-        if k == "%":
-            collect()
-            g = 0
-            if GC is not None:
-                g = GC.mem_free() // 1024
-            self.msg = "{} KB free ({} in 1 KB blocks) of {}".format(g, free_kb(), heap_total() // 1024)
-        if k == "j":
-            return "DOWN"
-        if k == "k":
-            return "UP"
-        if k == "h":
-            return "LEFT"
-        if k == "l":
-            return "RIGHT"
-        return arrow(k)
-
-    def cmd(self, spec, fn, args):
-        # one key on a screen with a key table: Tab opens the menu bar, which hands back the
-        # key of the item picked, so the screen has one code path for both
-        while True:
-            self.paint(fn, args)
-            self.msg = ""
-            k = self.nav(self.key())
-            if k != "\t":
-                return k
-            k = self.ov("menu", "menu_main", spec, fn, args)
-            if k is not None and k[0] == "@":
-                # Apps menu: save, leave a place.txt, hand off to that app
-                if self.ov("apps", "apps_switch", cut(k, 1, len(k))):
-                    raise Switch()
-                k = None
-            if k is not None:
-                return k
+    def switch(self, path):
+        return self.ov("apps", "apps_switch", path)
 
     def ov(self, name, fn, *args):
         # Run fn from overlay ovl/<name>.*: compile it into the globals, call, then delete
@@ -659,76 +416,6 @@ class App:
         collect()
         spare_take()
         return loaded
-
-    def paint(self, fn, args):
-        # BandedSprite: fn redraws the WHOLE screen once per band
-        while self.sp.draw():
-            fn(*args)
-
-    def t(self, x, y, s, c):
-        self.sp.text(x, y, s, c)
-
-    def lines(self, x, y, text, cols, maxn, c):
-        n = 0
-        for ln in wrap(text, cols):
-            if n >= maxn:
-                break
-            self.t(x, y, ln, c)
-            y = y + self.lh
-            n = n + 1
-        return y
-
-    def frame(self, title, right):
-        self.sp.fill(self.c_bg)
-        Widget.header(self.sp, title, right)
-
-    def foot(self, hints):
-        if self.msg != "":
-            Widget.footer(self.sp, self.msg)
-            return
-        if isinstance(hints, str):
-            if not (self.hl_spec is hints):
-                self.hl = self.hint_list(hints)
-                self.hl_spec = hints
-            hints = self.hl
-        Widget.hints(self.sp, hints)
-
-    def hint_list(self, spec):
-        # the table's numbered items, in order, while they fit beside "[Tab] menu"
-        # (Widget.hints draws "[key] label " with no clipping)
-        found = []
-        for it in spec.replace(";", "|").split("|"):
-            if it[0] >= "1" and it[0] <= "9":
-                found.append(it)
-        found.sort()
-        room = self.W // self.cw - 10
-        out = []
-        for it in found:
-            sp = it.find(" ")
-            room = room - len(it) - 2
-            if room < 0:
-                break
-            out.append((cut(it, 1, sp), cut(it, sp + 1, len(it))))
-        out.append(("Tab", "menu"))
-        return out
-
-    def row(self, y, text, selected, w=0):
-        if w == 0:
-            w = self.W
-        if selected:
-            self.sp.fill_rect(2, y - 1, w - 4, self.lh, self.c_box)
-            self.t(6, y, Widget.clip(self.sp, text, w - 12), self.c_sel)
-        else:
-            self.t(6, y, Widget.clip(self.sp, text, w - 12), self.c_text)
-
-    def visible_rows(self):
-        return (self.bot - self.top - 4) // self.lh
-
-    def list_top(self, sel, count, rows):
-        top = sel - rows + 1
-        if top < 0:
-            top = 0
-        return top
 
     # ---- question screens (own: Widget.input blanks the screen to one line)
 
@@ -829,39 +516,6 @@ class App:
             i = i + 1
         Widget.hints(self.sp, [("1-{}".format(len(options)), "pick"), ("ESC", "back")])
 
-    def ask_yn(self, title, q, body):
-        while True:
-            self.paint(self.r_yn, (title, q, body))
-            k = self.key()
-            if k == "y" or k == "Y":
-                return True
-            if k == "n" or k == "N":
-                return False
-            if k == "ESC":
-                return None
-
-    def r_yn(self, title, q, body):
-        self.frame(title, "")
-        y = self.top + 3
-        for b in body:
-            y = self.lines(6, y, b, self.cols, 3, self.c_text) + 2
-        self.lines(6, y + 2, q, self.cols, 2, self.c_em)
-        Widget.hints(self.sp, [("y", "yes"), ("n", "no"), ("ESC", "back")])
-
-    def show(self, title, right, body, hints):
-        # body: list of (text, colour); waits for a key and returns it
-        self.paint(self.r_show, (title, right, body, hints))
-        return self.key()
-
-    def r_show(self, title, right, body, hints):
-        self.frame(title, right)
-        y = self.top + 3
-        for b in body:
-            if y > self.bot - self.lh:
-                break
-            y = self.lines(6, y, b[0], self.cols, (self.bot - y) // self.lh, b[1])
-        Widget.hints(self.sp, hints)
-
     # ---- storage
 
     def load_lib(self):
@@ -961,6 +615,11 @@ class App:
         # where you were last time (place.txt), or what another app asked for (open.txt)
         r = self.ov("apps", "apps_start")
         sel = self.lsel
+        if r is not None and r[0] == "delete":
+            # Home asked first: archive it (Projector's delete), and go back
+            self.set_archived(r[1], True)
+            self.ov("apps", "apps_home")
+            return
         if r is not None and r[0] == "new":
             if self.ov("newidea", "newidea_main"):
                 self.work(0)
@@ -1031,12 +690,16 @@ class App:
         if back:
             q = "Bring '{}' back?".format(e[3])
         if self.ask_yn("ARCHIVE", q, []):
-            self.idea = load_idea(e[0])
-            self.idea.f["status"] = "archived"
-            if back:
-                self.idea.f["status"] = "incubating"
-            self.save()
-            self.msg = ""
+            self.set_archived(sel, not back)
+
+    def set_archived(self, sel, yes):
+        self.idea = load_idea(self.lib[sel][0])
+        self.idea.f["status"] = "archived"
+        if not yes:
+            self.idea.f["status"] = "incubating"
+        self.save()
+        self.msg = ""
+        self.idea = None
 
     # ---- stages
 

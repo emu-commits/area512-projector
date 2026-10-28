@@ -24,13 +24,22 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 `R`. Copy the whole folder: the `ovl/` subfolder is part of the app. Data lives in
 `/Area512_data/data/projector/`.
 
+**Home** (`dist/home/`, new for 1.0) is the suite's first screen: a row of app icons with each
+app's files under its icon, after the Psion Series 3. Copy it to `/Area512_data/home/ai/home/`
+and add `default=app:/home/ai/home` to `/Area512_data/etc/ui` to start on it. It finds the apps
+on the card and writes the list every app's `Tab` › Apps menu reads. Switching apps needs
+AREA512 newer than v2.7 (`Area512.run_next`).
+
 ## How it works
 
 - **[docs/PLAN.md](docs/PLAN.md)**: the design. Psychology → mechanism, the crack rules, the
   projection maths, screens and keys, and what was cut and why.
 - **[docs/PROMOTION_FORMAT.md](docs/PROMOTION_FORMAT.md)**: Projector's idea file, and the designed (not yet
   wired) Projector → Harness file format (the contract's open question §11).
-- **[app/README.md](app/README.md)**: the short help that ships on the card.
+- **[apps/projector/README.md](apps/projector/README.md)** and
+  **[apps/home/README.md](apps/home/README.md)**: the short help that ships on the card.
+- **[docs/UI.md](docs/UI.md)** and **[docs/APPS_FORMAT.md](docs/APPS_FORMAT.md)**: the keys every
+  app shares, and the files the apps switch through.
 - **[docs/LIFECYCLE_SHELL.md](docs/LIFECYCLE_SHELL.md)**: feedback on an AREA512 shell built
   around the capture → shape → do → review lifecycle (not built).
 - **[docs/TERM512.md](docs/TERM512.md)**: why Projector runs in a 240×135 window on TERM512, and
@@ -45,11 +54,17 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 You need [area512-factory](https://github.com/emu-commits/area512-factory) checked out at
 `~/area512-factory` (or set `AREA512_FACTORY`), with its `./setup.sh` run (`tests/fw.py` needs its `emu/fwrun.mjs` with `--dump`).
 
-    ./build.sh               # app/main.py + app/ov/*.py -> dist/projector/ (manifest, .mpy, ovl/)
-    tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks)
+    ./build.sh               # lib/py/ + apps/<app>/ -> dist/projector/, dist/home/ (manifest, .mpy, ovl/, icons/)
+    tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks);
+                             # home_* run Home, and check the files it writes and the app it hands off to
     tests/sim.py --both      # the same on a Cardputer and on TERM512 (full screen, 320x240)
     tests/fw.py full_arc     # the same scenario on the OFFICIAL firmware, headless, with screenshots
                              # and the card's files copied back to tests/.fw/data/
+    tests/fw.py home_open --term512   # Home and Projector on the TERM512 build (which has run_next)
+
+Layout: `apps/<app>/` (MicroPython apps: `main.py`, overlays in `ov/`), `lib/py/` (shared by
+them: MINIMUM has no `import`, so `build.sh` puts these files in front of each app's
+`main.py`), `forks/` (the PicoRuby forks of the bundled apps), `tools/`, `tests/`, `docs/`.
 
 ### Memory (the hard part)
 

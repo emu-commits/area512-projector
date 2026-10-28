@@ -26,11 +26,16 @@ One line per app, in Home's order:
     5|Agenda|/home/ai/agenda
     6|Slide|/home/ai/slide
 
-- `digit` is the key in the Apps menu (`Tab` then the digit). `1` to `9`, each used once.
+- `digit` is the key in the Apps menu (`Tab` then the digit). `1` to `9`, each used once. Home
+  is `1`, then the suite's apps Home found, in its order, with no gaps. Extras (games, Theme,
+  Paint) aren't in the registry: they're one icon on Home.
 - `name` is what the menu, the app row and Home show. At most 9 characters.
 - `path` is what `run_next` gets: the app's folder (the filer runs its `main.manifest`), or a file.
-- **Home writes it**, every time it starts, from where it finds the apps installed. Every other
-  app only reads it. No file means no Apps menu: the app works on its own as before.
+- **Home writes it**, every time it starts (only when it changed), from where it finds the apps
+  installed: every `/home/<group>/<app>/` with a `main.manifest`. A fork in `/home/ai/` wins
+  over a bundled app of the same kind, so until the Agenda fork is installed, Agenda is the
+  bundled Scheduler (`/home/tool/scheduler`). Every other app only reads it. No file means no
+  Apps menu: the app works on its own as before.
 
 ### `open.txt`: an open request
 
@@ -43,10 +48,15 @@ One line, written by the app that switches, just before `run_next`:
 
 - `app` is the target's name in `apps.txt`, in lower case. A target reads the file at start and
   acts only if `app` is its own name.
-- `verb`: `open` (the file named in `arg`, in the target's own data folder) or `new` (a new
-  document, `arg` its title).
+- `verb`:
+  - `open`: the file named in `arg`, as the target's `recent.txt` names it.
+  - `new`: a new document. `arg` is its title, or empty: the app asks, as its own `n` does.
+  - `delete`: the file named in `arg`. Home has already asked, so the app doesn't ask again: it
+    does what its own `x` does (Projector archives the idea), rewrites `recent.txt`, and hands
+    straight back to Home.
 - The target deletes the file once read, whatever it says, like `run_next` itself: a request is
-  used once.
+  used once. Home deletes any request still there when it starts: one no app took (a bundled
+  app, which doesn't read it) is stale by then.
 
 ## Per app: in the app's own data folder
 
@@ -67,6 +77,10 @@ can't trap you there.
 - Other `key: value` lines are the app's own. An app ignores keys it doesn't know.
 
 If the file named in `file` is gone, the app starts on its top screen.
+
+Home's own is `/data/home/place.txt`, written whenever it hands off: `app:` the selected icon,
+by name in lower case (`projector`, `extras`), and `file:` the row under it (`-1`: the icon
+itself). So Esc from an app lands on the icon and file you left from.
 
 ### `recent.txt`: recent files, for Home
 

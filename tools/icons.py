@@ -2,7 +2,7 @@
 """Draw Home's app icons as AREA512 dot images: icons/<name>.a5d, 32x32 (the size the device's
 own dot editor, Dot.edit, works on, so they can be redrawn there), plus icons/preview.png.
 
-  tools/icons.py [out_dir]          default: home/icons
+  tools/icons.py [out_dir]          default: apps/home/icons
 
 .a5d (picoruby-area512-dot, dot_image.c): "A5DI", version 1, width, height, colour count,
 the palette as RGB565 little-endian, then 4-bit pixels, two to a byte, high nibble first.
@@ -164,7 +164,7 @@ def preview(icons, path, scale=3, bg=(0x18, 0x18, 0x18)):
 
 
 def main():
-    out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "home/icons")
+    out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "apps/home/icons")
     out.mkdir(parents=True, exist_ok=True)
     drawn = []
     for name, fn in ICONS.items():

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run Projector in a512sim (AREA512's MicroPython + API mocks) along key scripts.
+"""Run the suite's apps in a512sim (AREA512's MicroPython + API mocks) along key scripts.
 
-  tests/sim.py                 every scenario in SCENARIOS, against dist/projector (./build.sh)
+  tests/sim.py                 every scenario in SCENARIOS, against dist/<app> (./build.sh);
+                               scenarios named home* run Home, the rest Projector
   tests/sim.py -v NAME         one scenario, print the last screen + SD files
   tests/sim.py --py            run build/core.py instead (line numbers in errors)
   tests/sim.py --term512       on TERM512: a 240x135 window on a 320x240 display (full_screen)
@@ -171,25 +172,134 @@ SCENARIOS["arc_mem"] = SCENARIOS["full_arc"].replace(
     "s SHOT:saved q", "% SHOT:mem_judged s SHOT:saved q")
 
 
+# The sim's Dir lists nothing: list the sim's card instead (Home scans /home for apps).
+# MINIMUM has no slicing, hence the loop.
+DIR_MOCK = """
+def _sd_init(self, p):
+    self._p = p + '/'
+    self._l = None
+def _sd_read(self):
+    if self._l is None:
+        self._l = []
+        n = len(self._p)
+        for k in _sim_fs:
+            if k.find(self._p) == 0 and k.find('/', n) < 0:
+                s = ''
+                i = n
+                while i < len(k):
+                    s = s + k[i]
+                    i = i + 1
+                self._l.append(s)
+        self._l.sort()
+    if len(self._l) == 0:
+        return None
+    return self._l.pop(0)
+Dir.__init__ = _sd_init
+Dir.read = _sd_read
+"""
+# Printed when the run ends, with the stats: the card's /data files. EXPECT checks against
+# them and the @@RUN_NEXT line. (Not a file of its own after start.mpy: the sim compiles every
+# file first and keeps them where the GC doesn't look, so a later one can be collected.)
+DUMP = """
+_sim_stats0 = _sim_stats
+def _sim_stats():
+    _sim_stats0()
+    for k in sorted(_sim_fs):
+        if k.find('/data/') == 0 and _sim_fs[k] is not None:
+            print('@@FS ' + k + ' ' + repr(_sim_fs[k]))
+"""
+EXPECT = {}
+
+
+def app_of(name):
+    return "home" if name.startswith("home") else "projector"
+
+
+# Home: a card with Projector, four bundled apps and two games. Slide isn't installed, so
+# Agenda is the bundled Scheduler, and Extras lists Bomb, Paint, Space lander, Theme, Files.
+def app_dir(path):
+    return {path: None, path + "/main.manifest": "main.mrb\n"}
+
+
+HOME_CARD = {"/home/tool": None, "/home/game": None, "/data": None, "/data/projector": None,
+             "/data/projector/recent.txt": "Corner cafe|7\nNight classes|3\n"}
+for d in ("/home/ai/projector", "/home/tool/writer", "/home/tool/calc", "/home/tool/scheduler",
+          "/home/tool/paint", "/home/tool/theme", "/home/game/bomb", "/home/game/space_lander"):
+    HOME_CARD.update(app_dir(d))
+REG_WRITTEN = ("@@FS /data/area512/apps.txt '1|Home|/home/ai/home\\n2|Projector|/home/ai/projector\\n"
+               "3|Writer|/home/tool/writer\\n4|Calc|/home/tool/calc\\n5|Agenda|/home/tool/scheduler\\n'")
+for n in ("home_reg", "home_open", "home_nav", "home_extras", "home_files", "home_new", "home_delete",
+          "home_menu", "home_place"):
+    SEEDS[n] = dict(HOME_CARD)
+# Esc leaves to the filer; the registry is written, and a request no app took is dropped
+SEEDS["home_reg"]["/data/area512"] = None
+SEEDS["home_reg"]["/data/area512/open.txt"] = "writer|open|x\n"
+SCENARIOS["home_reg"] = "SHOT:h_start % SHOT:h_mem ESC"
+EXPECT["home_reg"] = [REG_WRITTEN, "!@@FS /data/area512/open.txt", "!@@RUN_NEXT"]
+# the second file under Projector's icon: an open request, then Projector
+SCENARIOS["home_open"] = "DOWN SHOT:h_file1 DOWN SHOT:h_file2 ENTER"
+EXPECT["home_open"] = ["@@RUN_NEXT /home/ai/projector", "@@FS /data/area512/open.txt 'projector|open|3\\n'",
+                       "@@FS /data/home/place.txt 'app: projector\\nfile: 1\\n'"]
+# icons with the bare arrows, h/l and digits; the app itself (no file) has no request
+SCENARIOS["home_nav"] = ("/ / SHOT:h_calc l , h 5 SHOT:h_agenda DOWN UP 9 ; . "
+                         "2 / / / / / / / , SHOT:h_left ENTER")      # 7 rights stop at Extras
+EXPECT["home_nav"] = ["@@RUN_NEXT /home/tool/scheduler", "!@@FS /data/area512/open.txt"]
+# Extras lists the other apps like files: Enter goes into the list, then runs one
+SCENARIOS["home_extras"] = "6 SHOT:h_extras ENTER DOWN SHOT:h_paint n x ENTER"
+EXPECT["home_extras"] = ["@@RUN_NEXT /home/tool/paint", "@@FS /data/home/place.txt 'app: extras\\nfile: 1\\n'"]
+SCENARIOS["home_files"] = "6 ENTER DOWN DOWN DOWN DOWN SHOT:h_files ENTER"
+EXPECT["home_files"] = ["!@@RUN_NEXT"]
+SCENARIOS["home_new"] = "n"
+EXPECT["home_new"] = ["@@RUN_NEXT /home/ai/projector", "@@FS /data/area512/open.txt 'projector|new|\\n'"]
+# x asks first: n keeps it, then y hands the delete to Projector
+SCENARIOS["home_delete"] = "x DOWN x SHOT:h_delete n x ESC x y"
+EXPECT["home_delete"] = ["@@RUN_NEXT /home/ai/projector",
+                         "@@FS /data/area512/open.txt 'projector|delete|7\\n'"]
+# the menu bar: Apps first (from the registry Home has just written), Help from the key table
+SCENARIOS["home_menu"] = ("TAB SHOT:h_menu LEFT SHOT:h_apps RIGHT DOWN DOWN DOWN ENTER SHOT:h_help ENTER "
+                          "TAB 1 TAB ESC TAB 3")
+EXPECT["home_menu"] = ["@@RUN_NEXT /home/tool/writer"]
+# back from an app: on the icon and file you left from, and place.txt is used once
+SEEDS["home_place"].update({"/data/home": None, "/data/home/place.txt": "app: projector\nfile: 1\n"})
+SCENARIOS["home_place"] = "SHOT:h_back ENTER"
+EXPECT["home_place"] = ["@@FS /data/area512/open.txt 'projector|open|3\\n'"]
+# nothing installed but Home: Extras alone, with Files
+SCENARIOS["home_empty"] = "SHOT:h_empty ENTER ENTER"
+EXPECT["home_empty"] = ["@@FS /data/area512/apps.txt '1|Home|/home/ai/home\\n'", "!@@RUN_NEXT"]
+
+# Projector, asked by Home to delete an idea: it archives it and goes back to Home
+SEEDS["del_req"] = dict(SEEDS["legacy"], **{"/data/area512": None, "/data/area512/apps.txt": APPS,
+                                           "/data/area512/open.txt": "projector|delete|1\n"})
+SCENARIOS["del_req"] = ""
+EXPECT["del_req"] = ["@@RUN_NEXT /home/ai/home", "@@FS /data/projector/library.txt '1|archived|",
+                     "@@FS /data/projector/recent.txt ''", "!@@FS /data/area512/open.txt"]
+
+
 def run(name, script, target, screen="cardputer"):
-    # Like the device: overlays on the card, then main.manifest's entries in order.
+    # Like the device: the app's folder on the card, then main.manifest's entries in order.
     work = ROOT / "tests/.work" / name
     work.mkdir(parents=True, exist_ok=True)
-    dist = ROOT / "dist/projector"
-    seed = ["_sim_fs['/home'] = None", "_sim_fs['/home/ai'] = None",
-            "_sim_fs['/home/ai/projector'] = None", "_sim_fs['/home/ai/projector/ovl'] = None"]
-    for f in sorted((dist / "ovl").iterdir()):
-        seed.append("_sim_fs['/home/ai/projector/ovl/{}'] = {!r}".format(f.name, f.read_text()))
+    app = app_of(name)
+    dist = ROOT / "dist" / app
+    seed = ["_sim_fs['/home'] = None", "_sim_fs['/home/ai'] = None"]
+    for d in sorted(dist.iterdir()):          # ovl/ and icons/: what the app reads from its folder
+        if d.is_dir():
+            here = "/home/ai/{}/{}".format(app, d.name)
+            seed.append("_sim_fs[{!r}] = None".format(here))
+            for f in sorted(d.iterdir()):
+                seed.append("_sim_fs[{!r}] = {!r}".format(here + "/" + f.name, f.read_bytes().decode("latin-1")))
+    seed.append("_sim_fs[{!r}] = None".format("/home/ai/" + app))
+    seed.append("_sim_fs[{!r}] = 'core.mpy\\nstart.mpy\\n'".format("/home/ai/{}/main.manifest".format(app)))
     for path, text in SEEDS.get(name, {}).items():
         seed.append("_sim_fs[{!r}] = {!r}".format(path, text))
-    (work / "seed.py").write_text("\n".join(seed) + "\n")
+    (work / "seed.py").write_text("\n".join(seed) + "\n" + DIR_MOCK + DUMP)
     for f in ("core.mpy", "start.mpy"):
         (work / f).write_bytes((dist / f).read_bytes())
     (work / ".keys").write_text(expand(script))
     files = ["seed.py", "core.mpy", "start.mpy"]
     if target == "py":
-        (work / "core.py").write_bytes((ROOT / "build/core.py").read_bytes())
-        (work / "start.py").write_bytes((ROOT / "build/start.py").read_bytes())
+        (work / "core.py").write_bytes((ROOT / "build" / app / "core.py").read_bytes())
+        (work / "start.py").write_bytes((ROOT / "build" / app / "start.py").read_bytes())
         files = ["seed.py", "core.py", "start.py"]
     heap = HEAP_KB
     if name.startswith("big") and heap < 400:
@@ -199,7 +309,13 @@ def run(name, script, target, screen="cardputer"):
     return r.stdout + r.stderr
 
 
-def verdict(out):
+def verdict(out, name=""):
+    for want in EXPECT.get(name, []):
+        if want[0] == "!":
+            if want[1:] in out:
+                return "UNWANTED " + want[1:].split()[1]
+        elif want not in out:
+            return "MISSING " + (want + " ").split()[1]
     if "@@COMPILE_ERROR" in out:
         return "COMPILE_ERROR"
     if "@@RUNTIME_ERROR" in out:
@@ -227,12 +343,14 @@ def main():
     for screen in screens:
         for n in names:
             out = run(n, SCENARIOS[n], target, screen)
-            v = verdict(out)
+            v = verdict(out, n)
             stats = next((l for l in out.splitlines() if l.startswith("@@STATS")), "")
             label = n if len(screens) == 1 else screen + " " + n
             print("{:30} {:14} {}".format(label, v, stats.replace("@@STATS ", "")))
             if v != "ok" or verbose:
-                keep = [l for l in out.splitlines() if not l.startswith(("@@HEAP",))]
+                keep = [l for l in out.splitlines() if not l.startswith(("@@HEAP", "@@FS"))]
+                if verbose:
+                    keep += [l for l in out.splitlines() if l.startswith("@@FS")]
                 print("\n".join(keep[-60:]))
             bad += v != "ok"
     sys.exit(1 if bad else 0)

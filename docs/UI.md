@@ -5,8 +5,10 @@ follows this page. It comes from [PLAN_V1.md](PLAN_V1.md), decisions 1, 2, 6, 7 
 Psion Series 3: the same keys mean the same thing everywhere, every command is in a menu with its
 key beside it, and the screen always shows what you can press next.
 
-Projector 1.0 is the first app built on it. Where this page says "as in Projector", the code is
-`app/main.py` (`cmd`, `foot`, `hint_list`, `arrow`) and `app/ov/menu.py`.
+Projector 1.0 is the first app built on it, and Home the second. The code they share is in
+`lib/py/`: `base.py` (class `UI`: `cmd`, `foot`, `hint_list`, `ask_yn`; `arrow`, the registry,
+files in parts) and `menu.py` (the menu bar and Help: an overlay in Projector, compiled in
+with Home). Where this page says "as in Projector", that's the code.
 
 ## One key at a time
 
@@ -77,8 +79,9 @@ The bottom line (`Widget.hints`, drawn as `[key] label`, not clipped).
 - Esc isn't on it: it always means back.
 - A message (saved, an error, the `%` reading) replaces the hints until the next key.
 
-At 240 px a line holds 40 characters, which is three short items and `[Tab] menu`. At 320 px
-it's 53, which is four or five. The fit is computed, so the same table works at both sizes.
+At 240 px a line holds 39 characters after the bar's 3 px margin: three short items and
+`[Tab] menu`. At 320 px it's 52, which is four or five. Each item takes its key and label plus
+four (`[`, `]` and two spaces). The fit is computed, so the same table works at both sizes.
 
 ## The menu bar
 
@@ -149,9 +152,23 @@ See [APPS_FORMAT.md](APPS_FORMAT.md) for the files. In short:
 
 ## Home
 
-Home is a Psion-style System screen (decision 4): a row of app icons, and under the selected icon,
-that app's recent files. Icons are 32×32 `.a5d` dot images (`tools/icons.py` draws them into
-`home/icons/`), in the dot editor's default palette, so they can be redrawn on the device with
-AREA512's own editor. Its layout and keys are in [PLAN_V1.md](PLAN_V1.md), *Home*.
+Home (`apps/home/`) is a Psion-style System screen (decision 4): a row of app icons, and under
+the selected icon, that app's recent files. On TERM512 every icon has its files in its own
+column; on the Cardputer, the selected icon's files are listed under the row.
 
-![Home icons](../home/icons/preview.png)
+| Key | On Home |
+|---|---|
+| `,` `/` (and `h` `l`) | previous / next app |
+| `;` `.` (and `j` `k`) | the files under it; up from the first file is the icon itself |
+| `Enter` | open the app, or the file picked. On Extras, into its list, then run the app picked |
+| `n` | a new file in that app (an open request, `new`) |
+| `x` | delete the file picked: Home asks, the app does it and comes back (`delete`) |
+| `1`…`9` | jump to the app with that number in the Apps menu |
+| `Tab` | the menu bar: Apps, App, Help |
+| Esc | the filer |
+
+Icons are 32×32 `.a5d` dot images (`tools/icons.py` draws them into `apps/home/icons/`), in the
+dot editor's default palette, so they can be redrawn on the device with AREA512's own editor.
+An app with no icon gets a box with its initial.
+
+![Home icons](../apps/home/icons/preview.png)
