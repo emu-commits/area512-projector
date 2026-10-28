@@ -1,5 +1,13 @@
 # Issues to file on engneer-hamachan/area512
 
+> **Status 2026-10-28: A and B are done.** Both were sent as pull requests instead and merged into
+> AREA512 `main` on 2026-10-28, not yet in a release (latest v2.7):
+> A as [#32](https://github.com/engneer-hamachan/area512/pull/32) (`Display.screen_width()`,
+> `screen_height()`, `full_screen()`), B as [#33](https://github.com/engneer-hamachan/area512/pull/33).
+> B shipped as a function, `Area512.run_next(path)`, not the `/Area512_data/etc/next` file below;
+> `default=app:<path>` is as proposed. C was never filed, and the v1 plan (../PLAN_V1.md) doesn't
+> need it. The text below is kept as it was written.
+
 Three requests, in priority order. **A** blocks us (full screen on TERM512). **B** is what lets
 an app suite feel like one device. **C** is small and optional. File them as separate issues:
 each one stands alone, and the maintainer can say yes to one without the others. Each section

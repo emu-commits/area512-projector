@@ -1,8 +1,9 @@
 # Projector on TERM512: full screen
 
-Status: investigated 2026-10-26, against engneer-hamachan/area512 `main`. **It can't be done from
-the app alone today.** One small firmware change makes it possible, and with that change detection
-is automatic.
+Status 2026-10-28: **the firmware change is merged** into AREA512 `main` (#32, not yet in a release),
+and Projector opts in at start-up (`App.__init__`). `tests/sim.py --both` runs every scenario on a
+simulated TERM512 too. Still to do on a real TERM512: the heap, and the window close animation
+(PLAN_V1.md, step 0). Below is the investigation from 2026-10-26, as written.
 
 ## What happens now
 

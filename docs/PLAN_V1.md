@@ -257,8 +257,8 @@ What each app does today, and what changes:
 
 ### Calc
 
-Today: 26×26 cells. Moves with `h j k l` and the bare `; . , /`. `Fn`+arrow arrives as
-`"\e[A"` (Writer relies on this), which Calc doesn't match, so it shows the help line instead of
+Today: 26×26 cells. Moves with `h j k l` and the bare `; . , /`. `Fn`+arrow arrives as three
+keys (`\e` `[` `A`, step 0.3), none of which Calc knows, so it shows the help line instead of
 moving. Edits go through the console. One file, `/data/sheet.txt`. `o` replaces the sheet without
 asking, and quitting doesn't save.
 
@@ -273,7 +273,7 @@ asking, and quitting doesn't save.
 ### Scheduler → Agenda
 
 Today: month calendar and a day view. The calendar takes the bare arrow keys, the day view only
-`j/k`. `Fn`+arrow shows a help line in both. Events can be added and deleted, not edited. Times are
+`j/k`. `Fn`+arrow jumps back a month (its `[` is "previous month"; step 0.3). Events can be added and deleted, not edited. Times are
 typed as `HH:MM`. One file, and quitting doesn't save. With no clock, it opens on the last date
 used.
 
@@ -316,21 +316,37 @@ Today: `h/l` page, `j/k` scroll, `Esc` quits. Arrows don't work. One deck folder
 Each step ends with the tests green at both sizes (`tests/sim.py`, `tests/fw.py`, once step 0.7 is
 done) and a heap measurement on the TERM512.
 
-**0. Ground truth** (no new features)
-- 0.1 Build and test `claude/term512-full-screen` with area512-factory (needs `./build.sh`,
-  `tests/sim.py`), then run it on a TERM512 with firmware built from AREA512 `main`. Measure the
-  heap with `%`, and check the window close animation after full screen.
+**0. Ground truth** (no new features). Status 2026-10-28 in *italics*.
+- 0.1 Build and test `claude/term512-full-screen` with area512-factory, then run it on a TERM512
+  with firmware built from AREA512 `main`. Measure the heap with `%`, and check the window close
+  animation after full screen.
+  *Built, and all 13 scenarios pass in the sim at both sizes (`tests/sim.py --both`). One finding:
+  at 320×240 the film overlay didn't load in the sim's 128 KB heap ("No memory"), and `full_arc`
+  passed anyway because its keys happened to work from the strip. The sim heap is now 160 KB.
+  The sim keeps its key script in the app's heap, so this says the margin is thin, not what the
+  device has. **The device run is still to do**, and it's the gate for step 2.4.*
 - 0.2 Check on the device: `run_next` from MicroPython and from Ruby, and `default=app:`.
-- 0.3 Check on the device what `Fn`+arrow sends to Calc and Scheduler (this plan reads it from the
-  source).
-- 0.4 Update AREA512_ISSUES.md (A and B done, as #32 and #33) and TERM512.md (done upstream).
+  *To do on the device. The sim now mocks `run_next` (it prints `@@RUN_NEXT path`).*
+- 0.3 What `Fn`+arrow sends to Calc and Scheduler.
+  *Answered from the source: Ruby's `STDIN.getch` returns one byte, so `Fn`+arrow arrives as three
+  keys, `\e` `[` `A`. Writer reads the two bytes after `\e` itself. Calc shows its help line three
+  times. In Scheduler it's a bug: `[` is "previous month", so **every `Fn`+arrow on the calendar
+  jumps back a month**, and in the day view `\e` goes back to the calendar first. Worth one look on
+  the device.*
+- 0.4 Update AREA512_ISSUES.md and TERM512.md. *Done.*
 - 0.5 Optional upstream issue: `Widget.read_key` returns `Opt`+letter as a named key instead of
-  dropping the letter.
-- 0.6 Optional upstream PRs: `Fn`+arrow in Calc, Scheduler and Slide. A few lines each, and good
-  for every AREA512 user, not only this suite. The forks still happen.
+  dropping the letter. *Not filed: waiting for your go-ahead.*
+- 0.6 Optional upstream PRs: `Fn`+arrow in Calc, Scheduler (now a clear bug) and Slide. A few
+  lines each, and good for every AREA512 user. The forks still happen. *Not sent: waiting for your
+  go-ahead.*
 - 0.7 area512-factory: a 320×240 mode for a512sim and for fwrun (firmware built with
   `AREA512_EXT_DISPLAY`), so `tests/sim.py` and `tests/fw.py` can run each scenario at both sizes
   and take TERM512 screenshots. Done before step 2.4, the first 320×240 layout.
+  *a512sim: done (factory branch `claude/term512-sim`; it also pins AREA512 fc9f6f9 for the new
+  API, and the 50 feature checks still pass). fwrun: not started. It needs the emucard-adv
+  emulator, which this session couldn't add, and a TERM512 firmware build. The sim's Widget
+  metrics are its own assumptions (header 13, body 14 to height − 13), not the firmware's
+  (header 17, body 20 to height − 16), so screen layout still needs fwrun or the device.*
 
 **1. Grammar on paper**
 - 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home.
