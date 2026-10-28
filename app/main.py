@@ -478,6 +478,12 @@ class App:
         self.dirty = False
         self.msg = ""
         self.sel = 0
+        # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
+        try:
+            if Display.screen_width() > Display.width():
+                Display.full_screen()
+        except Exception:
+            pass
         self.W = Display.width()
         self.H = Display.height()
         self.top = Widget.body_top()
