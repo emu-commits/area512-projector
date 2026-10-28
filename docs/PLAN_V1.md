@@ -1,6 +1,6 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28, round 2 (your answers below). Nothing here is built yet, apart from the
+Status: plan, 2026-10-28, round 3 (all questions answered, below). Nothing here is built yet, apart from the
 full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run).
 
 ## Decisions
@@ -11,6 +11,8 @@ full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run
 | 2 | **`Tab` opens the menu bar** in every app | `Tab` then a digit switches app |
 | 3 | **No Paint fork**: it's too hard to use with only the keyboard | Forks are Agenda (Scheduler), Writer, Calc and Slide |
 | 4 | **Home is Psion-style graphical icon navigation** | A System screen with an icon per app and its files under it (below). LIFECYCLE_SHELL.md's phase-organised home doesn't become the home screen |
+| 5 | **Scheduler is the first fork** | Then Writer, Calc, Slide |
+| 6 | **TERM512 is the main device** | Layouts are designed at 320×240 first and checked at 240×135. The emulators get a 320×240 mode (step 0.7) so tests cover the main device |
 
 Sources: [PLAN.md](PLAN.md) (Projector today), [TERM512.md](TERM512.md),
 [LIFECYCLE_SHELL.md](LIFECYCLE_SHELL.md) (decisions 1–5), [upstream/AREA512_ISSUES.md](upstream/AREA512_ISSUES.md),
@@ -152,8 +154,9 @@ and echoes), which goes.
 
 ### Layout at two sizes
 
-**Design for 240×135, add at 320×240.** Every command works at 240×135. The bigger screen adds
-panels (more list rows, a second pane, the app row, two hint lines), never commands. Layouts read
+**Design at 320×240, keep everything working at 240×135** (decision 6). Each screen is designed for
+TERM512 first. At 240×135 it drops panels (fewer list rows, no second pane, no app row, one hint
+line), never commands: everything stays reachable through the hint bar and the `Tab` menu. Layouts read
 `Display.width()/height()` after the opt-in, as Projector already does.
 
 ## App switching
@@ -240,8 +243,8 @@ that app's files**.
 - **The Ruby forks** have their own VM heap, which hasn't been measured either. Measure each fork
   at 320×240 before and after the changes.
 - **No emulator at 320×240.** a512sim and fwrun are 240×135 only, so TERM512 screenshots need the
-  device. Extending fwrun to 320×240 (area512-factory) would let tests cover both sizes. Worth
-  doing if TERM512 is the main device (open question 2).
+  device. Since TERM512 is the main device (decision 6), step 0.7 extends a512sim and fwrun
+  (area512-factory) to 320×240, so tests and screenshots cover both sizes.
 
 ## The productivity apps
 
@@ -310,7 +313,8 @@ Today: `h/l` page, `j/k` scroll, `Esc` quits. Arrows don't work. One deck folder
 
 ## Order
 
-Each step ends with the tests green (`tests/sim.py`, `tests/fw.py`) and a heap measurement.
+Each step ends with the tests green at both sizes (`tests/sim.py`, `tests/fw.py`, once step 0.7 is
+done) and a heap measurement on the TERM512.
 
 **0. Ground truth** (no new features)
 - 0.1 Build and test `claude/term512-full-screen` with area512-factory (needs `./build.sh`,
@@ -324,6 +328,9 @@ Each step ends with the tests green (`tests/sim.py`, `tests/fw.py`) and a heap m
   dropping the letter.
 - 0.6 Optional upstream PRs: `Fn`+arrow in Calc, Scheduler and Slide. A few lines each, and good
   for every AREA512 user, not only this suite. The forks still happen.
+- 0.7 area512-factory: a 320×240 mode for a512sim and for fwrun (firmware built with
+  `AREA512_EXT_DISPLAY`), so `tests/sim.py` and `tests/fw.py` can run each scenario at both sizes
+  and take TERM512 screenshots. Done before step 2.4, the first 320×240 layout.
 
 **1. Grammar on paper**
 - 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home.
@@ -347,7 +354,7 @@ Each step ends with the tests green (`tests/sim.py`, `tests/fw.py`) and a heap m
   `default=app:`. Measure the heap with the icons loaded.
 - 3.4 Apps menu and `Esc` to Home in Projector.
 
-**4. Forks**, one at a time, most-used first (open question 1). For each: fork with `UPSTREAM.md`,
+**4. Forks**, one at a time: Agenda (Scheduler), Writer, Calc, Slide (decision 5). For each: fork with `UPSTREAM.md`,
 then arrows and the grammar, save-on-switch and place, then the app's own list above, then full
 screen.
 
@@ -361,7 +368,5 @@ screen.
 
 ## Open questions
 
-1. **Fork order?** Proposal: Agenda (Scheduler), Writer, Calc, Slide. The one you'd use most goes
-   first.
-2. **Main device?** If TERM512 is where you'll use the suite most, extending fwrun to 320×240
-   earns its cost. If it's the Cardputer, design and test at 240×135 and check TERM512 by hand.
+None right now. Step 0 will raise new ones (the heap at 320×240 decides how much each layout can
+show).
