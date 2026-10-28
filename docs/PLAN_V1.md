@@ -509,8 +509,10 @@ screen.
   is let go before the first frame. Reading a file needs it whole (AREA512's `File#read`
   and `SD.read` read all of it). With that, on both builds, 250 formulas in 6 KB and 6 KB of
   60-character text open, take copy, paste, fill, undo, find and a width, and save. So a
-  sheet stops at **250 cells and 6 KB**, and a change past either says "Full". Writer's
-  12 KB was measured on the Cardputer build only: see its re-check below.*
+  sheet stops at **250 cells and 6 KB**, and a change past either says "Full".
+  **Writer, re-checked on the TERM512 build**: a 12 KB document (its limit, measured on the
+  Cardputer's v2.7) runs the VM out while opening and restarts the device. Writer's limit
+  needs measuring again on this build and lowering; not done in this step.*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.
