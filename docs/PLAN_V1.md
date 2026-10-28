@@ -13,6 +13,8 @@ full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run
 | 4 | **Home is Psion-style graphical icon navigation** | A System screen with an icon per app and its files under it (below). LIFECYCLE_SHELL.md's phase-organised home doesn't become the home screen |
 | 5 | **Scheduler is the first fork** | Then Writer, Calc, Slide |
 | 6 | **TERM512 is the main device** | Layouts are designed at 320×240 first and checked at 240×135. The emulators get a 320×240 mode (step 0.7) so tests cover the main device |
+| 7 | **One key at a time.** Holding two keys at once is hard on the Cardputer keyboard, so no command or movement needs a chord | Bare `; . , /` move; `Fn`+arrow still works but is never needed. Commands are one key, or a sequence like `Tab` then `s`. Shifted keys (`$` `?`) become plain letters or menu items. `Shift` is only for typing. No `Opt`/`Ctrl` commands (step 0.5 dropped) |
+| 8 | **Never change the stock apps upstream: fork them** into this repo for full control | Steps 0.5 and 0.6 dropped. Every fix to Calc, Scheduler, Writer or Slide (the `Fn`+arrow bug included) is made in our fork |
 
 Sources: [PLAN.md](PLAN.md) (Projector today), [TERM512.md](TERM512.md),
 [LIFECYCLE_SHELL.md](LIFECYCLE_SHELL.md) (decisions 1–5), [upstream/AREA512_ISSUES.md](upstream/AREA512_ISSUES.md),
@@ -84,20 +86,21 @@ One short document, `docs/UI.md`, written first (step 1.1) and followed by every
 
 | Key | Meaning everywhere | Notes |
 |---|---|---|
-| Arrows | move | `Fn` + `;` `.` `,` `/`. Outside text entry the **bare** `;` `.` `,` `/` also move (the arrows are printed on them, and Calc and Scheduler already do this). `h` `j` `k` `l` stay as aliases |
+| Arrows | move | the **bare** `;` `.` `,` `/` (the arrows are printed on them; Calc and Scheduler already do this), and `h` `j` `k` `l`. `Fn`+arrow is read too, never required (decision 7). Where letters type, see Writer's Move mode |
 | `Enter` | open / confirm / next | |
 | `Esc` (`` ` ``) | back / cancel / close menu | `q` is an alias, except in text entry |
 | `Tab` | menu bar | unused by every bundled app except Theme (preview). Writer drops it today (code 9) |
 | `Tab` `1`…`9` | switch app | the Apps menu |
-| `?` | help: generated from the menu table, so it can't drift | |
-| `n` new, `e` edit, `x` delete, `s` save, `f` find | the same letter for the same verb in every app | Writer, where letters type, uses `Ctrl` + the same letter |
-| `%` | memory (hidden), in MicroPython apps | as today |
+| `Tab` › Help | help: generated from the menu table, so it can't drift | `?` is `Shift`+`/`, a chord, so it's only an alias |
+| `n` new, `e` edit, `x` delete, `s` save, `f` find | the same letter for the same verb in every app | Where letters type (Writer, a cell being edited), it's `Tab` then the letter |
+| `%` | memory (hidden), in MicroPython apps | a chord, but a diagnostic, not a command |
 
-Not usable, from the firmware source: `Opt`/`Alt` + a letter arrives as Esc followed by the letter,
-and `Widget.read_key` returns `ESC` and throws the letter away, so it can't be a Psion-style
-command modifier. `Ctrl` + a letter arrives as a control byte (usable), except `Ctrl+H`/`I`/`J`/`M`,
-which are Backspace, Tab, Enter and Enter. `Ctrl+C` is avoided, because it may interrupt MicroPython.
-An optional upstream request (step 0.5) would make `Opt`+letter readable.
+**One key at a time** (decision 7). The single keys are the letters and digits, `; . , /`, `` ` ``
+(Esc), `Tab`, `Enter` and `Backspace`. Anything else is a chord: every symbol on a digit (`$` is
+`Shift`+`4`), `?` (`Shift`+`/`), and anything with `Fn`, `Ctrl`, `Opt` or `Alt`. So Projector's `$`
+money becomes `m`, and its `?` help moves to the menu. Sequences (`Tab`, then `1`) are fine: each
+key is pressed alone. (From the firmware source, `Opt`/`Alt`+letter couldn't even be read: AREA512
+turns it into Esc and drops the letter.)
 
 ### Shortcuts on a small screen
 
@@ -139,7 +142,7 @@ hint bar, menus and help always agree:
     │  ! Cash runs out in month 9, likely case         │
     │  ! Two hard stages back to back: Build, Open     │
     │ ──────────────────────────────────────────────── │
-    │ p play  c cracks  e edit  n new  x del  $ money  │
+    │ p play  c cracks  e edit  n new  x del  m money  │
     │ v vision  a assume  o obstacle  s save  Tab menu │
     │ 1 Home  2 Projector  3 Writer  4 Calc  5 Agenda  │
     └──────────────────────────────────────────────────┘
@@ -147,9 +150,9 @@ hint bar, menus and help always agree:
 ### Dialogs and questions
 
 Projector already draws its own question screens, because `Widget.input` blanks the screen. The
-forks do the same and match them: title, the question, the answer with a cursor that ←/→ moves
-inside the text, `Enter` OK, `Esc` cancel. Choices cycle with ←/→ (as on the Psion) and also take
-`1`…`n`. Calc and Scheduler today read entries through the console (`read_entry` prints the prompt
+forks do the same and match them: title, the question, the answer (typed at the end, `Backspace`
+deletes, as in Projector today: moving a cursor inside a typed answer would need `Fn`), `Enter` OK,
+`Esc` cancel. Choices cycle with the bare ← → (as on the Psion) and also take `1`…`n`. Calc and Scheduler today read entries through the console (`read_entry` prints the prompt
 and echoes), which goes.
 
 ### Layout at two sizes
@@ -248,7 +251,7 @@ that app's files**.
 
 ## The productivity apps
 
-Forks live in `forks/` (decision 1), stay PicoRuby, and each gets an `UPSTREAM.md` with the source
+Forks live in `forks/` (decisions 1 and 8: we fork, and never change the stock apps upstream), stay PicoRuby, and each gets an `UPSTREAM.md` with the source
 commit and what changed. A shared Ruby UI library (menu bar, hint table, dialogs, key reading,
 place, registry) lives in `lib/ruby/` and `build.sh` copies it into each fork, the same way
 `lib/` works for MicroPython (LIFECYCLE_SHELL.md, repo layout).
@@ -262,9 +265,9 @@ keys (`\e` `[` `A`, step 0.3), none of which Calc knows, so it shows the help li
 moving. Edits go through the console. One file, `/data/sheet.txt`. `o` replaces the sheet without
 asking, and quitting doesn't save.
 
-1. Arrow keys, including `Fn`+arrow.
-2. In-cell editor: ←/→ moves the cursor in the cell text, `Enter` commits and moves down, `Esc`
-   cancels.
+1. Bare arrow keys as now, and `Fn`+arrow read as one key instead of three.
+2. In-cell editor on the grid, not the console: the dialog rule (type at the end, `Backspace`),
+   `Enter` commits and moves down, `Esc` cancels. The cell's whole text shows above the grid.
 3. Several sheets through a file list (`Tab` → File → Open), and asking before replacing.
 4. Copy and paste a cell, fill down, column width. References adjust on paste.
 5. Full screen: more columns and rows, the cell's formula always shown in a line above the grid.
@@ -277,7 +280,8 @@ Today: month calendar and a day view. The calendar takes the bare arrow keys, th
 typed as `HH:MM`. One file, and quitting doesn't save. With no clock, it opens on the last date
 used.
 
-1. Arrow keys on both screens. `Enter` on an event edits it.
+1. Fix the `Fn`+arrow bug (read the three bytes as one key). Bare arrow keys on both screens.
+   `Enter` on an event edits it.
 2. Time as a field: ↑/↓ steps 15 minutes, digits type it.
 3. An **Agenda list**: upcoming events from the selected day on, as a scrolling list (the Psion
    Agenda's day/week views, in one list).
@@ -286,13 +290,17 @@ used.
 
 ### Writer
 
-Today: arrows work. Commands are `Ctrl+S` save, `Ctrl+O` open, `Ctrl+Q` quit, `Ctrl+K`/`Ctrl+J`
-page. They're only shown on the help line that `Esc` brings up. One document,
-`/data/writer.txt`, and quitting doesn't save.
+Today: the cursor moves with `Fn`+arrow only, and every command is a chord: `Ctrl+S` save,
+`Ctrl+O` open, `Ctrl+Q` quit, `Ctrl+K`/`Ctrl+J` page. They're only shown on the help line that `Esc`
+brings up. One document, `/data/writer.txt`, and quitting doesn't save.
 
-1. A hint bar with the `Ctrl` keys, and the Tab menu.
-2. Several documents through a file list. A word and line count on the status line.
-3. Line start and end (`Ctrl+A`/`Ctrl+E`), find (`Ctrl+F`), shown in the menu.
+1. Commands in the Tab menu: `Tab` then `s` saves, `Tab` then `o` opens, and so on. The `Ctrl`
+   keys keep working, but nothing needs them.
+2. **Move mode** (proposal, open question 1): `Esc` switches between Type and Move. In Move, the
+   bare `; . , /` move the cursor, `h`/`l` a word, `j`/`k` a page, `a`/`e` to line start and end,
+   and `Enter` or `Esc` goes back to typing. The status line always says TYPE or MOVE.
+3. Several documents through a file list. A word and line count on the status line. Find in the
+   menu.
 4. Full screen: more lines and columns.
 5. Integration: notes for a Projector idea open as a Writer document (step 5.2).
 
@@ -308,8 +316,8 @@ Today: `h/l` page, `j/k` scroll, `Esc` quits. Arrows don't work. One deck folder
 
 - **Paint** (decision 3): drawing with only a keyboard is too hard to make pleasant, and it has no
   save. It stays as it is, under Extras on Home.
-- **Theme and Gallery** are system and demo apps, also under Extras. If upstream accepts the small
-  fixes (step 0.6), they'll get arrows too.
+- **Theme and Gallery** are system and demo apps, also under Extras, as they are. If one ever needs
+  changing, it's forked like the others (decision 8).
 
 ## Order
 
@@ -334,11 +342,9 @@ done) and a heap measurement on the TERM512.
   jumps back a month**, and in the day view `\e` goes back to the calendar first. Worth one look on
   the device.*
 - 0.4 Update AREA512_ISSUES.md and TERM512.md. *Done.*
-- 0.5 Optional upstream issue: `Widget.read_key` returns `Opt`+letter as a named key instead of
-  dropping the letter. *Not filed: waiting for your go-ahead.*
-- 0.6 Optional upstream PRs: `Fn`+arrow in Calc, Scheduler (now a clear bug) and Slide. A few
-  lines each, and good for every AREA512 user. The forks still happen. *Not sent: waiting for your
-  go-ahead.*
+- 0.5 ~~Upstream issue: `Opt`+letter as a key.~~ *Dropped: no chords (decision 7).*
+- 0.6 ~~Upstream PRs: `Fn`+arrow in Calc, Scheduler and Slide.~~ *Dropped: we fix them in our forks
+  (decision 8).*
 - 0.7 area512-factory: a 320×240 mode for a512sim and for fwrun (firmware built with
   `AREA512_EXT_DISPLAY`), so `tests/sim.py` and `tests/fw.py` can run each scenario at both sizes
   and take TERM512 screenshots. Done before step 2.4, the first 320×240 layout.
@@ -357,7 +363,8 @@ done) and a heap measurement on the TERM512.
 - 2.1 Key table per screen; hint bar and help generated from it. `Esc` backs out everywhere.
   One letter per verb (library `a` new → `n`, `a` kept as an alias; `d` archive → `x`).
 - 2.2 Menu bar as an overlay.
-- 2.3 Bare `; . , /` as arrows outside text entry; ←/→ cursor inside text entry.
+- 2.3 Bare `; . , /` as arrows outside text entry. No chords left (decision 7): `$` money → `m`,
+  `?` help → `Tab` › Help (`$` and `?` kept as aliases).
 - 2.4 320×240 layouts: strip with the money line and cracks on one screen, the library with a
   preview pane, a taller film.
 - 2.5 Save-on-switch, place and `recent.txt`. Update the help, app/README.md and PLAN.md
@@ -384,5 +391,6 @@ screen.
 
 ## Open questions
 
-None right now. Step 0 will raise new ones (the heap at 320×240 decides how much each layout can
-show).
+1. **Writer's Move mode.** Is `Esc` toggling Type/Move right, given `Esc` means "back" elsewhere?
+   The alternative is `Tab` › Move. That's two keys each time, but `Esc` keeps one meaning. The
+   heap at 320×240 (step 0.1) will raise more questions about how much each layout can show.
