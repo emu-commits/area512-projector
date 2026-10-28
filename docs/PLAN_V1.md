@@ -238,10 +238,9 @@ that app's files**.
 ## Memory and full screen
 
 - **Measure first.** BandedSprite bands are as wide as the screen, so each band costs a third more
-  at 320 px, and the `EXT_DISPLAY` build's heap hasn't been measured. Before any layout work: run
-  `claude/term512-full-screen` on a TERM512, press `%` on the biggest idea, and play the film.
-  If it's tight, change the `BandedSprite(12)` argument so a band stays the same number of bytes
-  (more passes per frame, same memory).
+  at 320 px. Measured on a TERM512 (step 0.1): 149 KB heap, 100 KB free at worst with the
+  biggest idea, so no change to `BandedSprite(12)` is needed. The Cardputer ADV (~53 KB) is
+  still the tight one: everything must keep fitting there.
 - **The menu is an overlay** in Projector (`ovl/menu`), loaded only while it's open. The hint
   tables are short strings in the core. Same for Home, which also has the icons to fit.
 - **The Ruby forks** have their own VM heap, which hasn't been measured either. Measure each fork
@@ -335,9 +334,17 @@ done) and a heap measurement on the TERM512.
   at 320×240 the film overlay didn't load in the sim's 128 KB heap ("No memory"), and `full_arc`
   passed anyway because its keys happened to work from the strip. The sim heap is now 160 KB.
   The sim keeps its key script in the app's heap, so this says the margin is thin, not what the
-  device has. **The device run is still to do**, and it's the gate for step 2.4.*
+  device has.*
+  *Device run 2026-10-28, TERM512: Projector's heap is **149 KB** (vs ~53 KB on the Cardputer
+  ADV). With the biggest idea, after playing the film and an update: 100 KB free, 99 KB of it
+  in 1 KB blocks. Opened straight from boot via `default=app:`: 104 KB free (115). The sim's
+  "No memory" was the sim, not the device. Memory isn't the limit at 320×240, and the
+  `BandedSprite(12)` argument can stay. The probe (a small app) sees 128 KB, 125 KB free with
+  the full-screen sprite. Still to check: the Filer redraw after the close animation.*
 - 0.2 Check on the device: `run_next` from MicroPython and from Ruby, and `default=app:`.
-  *To do on the device. The sim now mocks `run_next` (it prints `@@RUN_NEXT path`).*
+  *Python → Projector works, and `default=app:` boots into the app. The Ruby probe failed with
+  "uninitialized constant Display": it lacked `require 'area512-sprite'` (a probe bug; Ruby
+  apps must require it for `Display`). Fixed probe to retest.*
 - 0.3 What `Fn`+arrow sends to Calc and Scheduler.
   *Answered from the source: Ruby's `STDIN.getch` returns one byte, so `Fn`+arrow arrives as three
   keys, `\e` `[` `A`. Writer reads the two bytes after `\e` itself. Calc shows its help line three
@@ -394,5 +401,5 @@ screen.
 
 ## Open questions
 
-None right now. The heap at 320×240 (step 0.1) will raise some about how much each layout can
-show.
+None. The heap at 320×240 (step 0.1) came back at 149 KB, so layouts are limited by screen
+space, not memory.
