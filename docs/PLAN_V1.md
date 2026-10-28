@@ -1,7 +1,16 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28. Nothing here is built yet, apart from the full-screen opt-in on
-`claude/term512-full-screen` (pushed, not yet built or run).
+Status: plan, 2026-10-28, round 2 (your answers below). Nothing here is built yet, apart from the
+full-screen opt-in on `claude/term512-full-screen` (pushed, not yet built or run).
+
+## Decisions
+
+| # | Decision (2026-10-28) | Consequence |
+|---|---|---|
+| 1 | **Switching apps saves automatically** | Replaces Projector's "s save, never automatic". `s` stays for saving without leaving. `Esc` out of an app with unsaved changes asks first |
+| 2 | **`Tab` opens the menu bar** in every app | `Tab` then a digit switches app |
+| 3 | **No Paint fork**: it's too hard to use with only the keyboard | Forks are Agenda (Scheduler), Writer, Calc and Slide |
+| 4 | **Home is Psion-style graphical icon navigation** | A System screen with an icon per app and its files under it (below). LIFECYCLE_SHELL.md's phase-organised home doesn't become the home screen |
 
 Sources: [PLAN.md](PLAN.md) (Projector today), [TERM512.md](TERM512.md),
 [LIFECYCLE_SHELL.md](LIFECYCLE_SHELL.md) (decisions 1–5), [upstream/AREA512_ISSUES.md](upstream/AREA512_ISSUES.md),
@@ -34,8 +43,11 @@ One major version, four parts:
 3. **One UI grammar, after the Psion Series 3.** The same keys mean the same thing in every app,
    every command sits in a menu with its shortcut beside it, and the screen always shows what you
    can press next.
-4. **Usable productivity apps.** Forks of Writer, Calc, Scheduler and Slide (Paint optional) on
-   that grammar: arrow keys everywhere, shortcuts on screen, no lost work.
+4. **Usable productivity apps.** Forks of Writer, Calc, Scheduler and Slide on that grammar:
+   arrow keys everywhere, shortcuts on screen, no lost work.
+
+Home ties them together: a Psion-style screen of app icons, the first thing you see when the
+device starts.
 
 Harness, Capture and the lifecycle index from LIFECYCLE_SHELL.md come after this. The switching
 and file conventions here are what they will be built on, so nothing here has to be redone.
@@ -51,15 +63,16 @@ discipline, not screen size:
 | **Menu key** opens a menu bar; every command is listed, with its hotkey on the right | **`Tab` opens the menu bar** in every app. Every command is in it, with its key beside it. That's where shortcuts are learned |
 | **Esc** always backs out one level; Enter always confirms | `Esc` (the `` ` `` key) always backs out or cancels, `Enter` always opens or confirms. `q` stays as an alias for back |
 | Application buttons under the screen: one press from anywhere | The menu bar's first menu is **Apps**, numbered: `Tab` `1`…`9` jumps to an app. On TERM512 the app row is always on screen, like the Series 3 silkscreen |
-| System screen: an icon per app, **your files listed under it** | **Home** (the boot app) lists each app with its recent files, not just its name |
+| System screen: an icon per app, **your files listed under it** | **Home** (the boot app): a row of app icons, ←/→ between apps, ↑/↓ through the selected app's files, `Enter` opens (below) |
 | Apps stay open; switching back finds you where you were | Apps can't stay open (one heap, ~53 KB). Each app **saves its place** on switch and restores it on start, so it feels the same |
 | One dialog style: labelled lines, ←/→ cycles a choice, Enter OK, Esc cancel | One dialog style in every app, in both languages (below) |
 | Diamond key, zoom, status window | Not copied. The status line on TERM512 does the job of the status window |
 
-LIFECYCLE_SHELL.md chose not to build "a Psion icon bar plus a rebuilt PDA suite" and organise by
-lifecycle phase instead. This plan doesn't reverse that. It takes the Psion's **interaction
-grammar** (menus, keys, dialogs, files under apps) for every app now. The lifecycle home replaces
-Home's layout later, once Harness and the items index exist (step 5.4).
+LIFECYCLE_SHELL.md proposed organising the home screen by lifecycle phase instead of a Psion icon
+bar. Decision 4 reverses that for the home screen: Home is Psion-style icons. The rest of that
+design (phases inferred from what you do, the shared items index, Capture, Harness) is unaffected
+and comes in the next major version. When it does, it lives inside the icon Home, for example as
+Harness's own icon and its files, not as a different home screen.
 
 ## The UI grammar
 
@@ -109,7 +122,7 @@ hint bar, menus and help always agree:
     │            │ New stage      n │        │
     │  $ ▁▂▃▅▆▇  │ Delete stage   x │        │
     │            └──────────────────┘        │
-    │ ←→ menu  ↑↓ item  ENT do  ESC close     │
+    │ ←→ menu  ↑↓ item  ENT do  ESC close    │
     └────────────────────────────────────────┘
 
 320×240, the same screen with nothing open:
@@ -118,15 +131,15 @@ hint bar, menus and help always agree:
     │ ┌Find────┐ ┌Build───┐ ┌Open────┐ ┌Grow────┐      │
     │ │ 3 mo   │ │ 6 mo ! │ │ 4 mo   │ │ 12 mo  │      │
     │ └────────┘ └────────┘ └────────┘ └────────┘      │
-    │  cash  ▇▆▅▃▂▁▁▂▃▅▆▇▇                              │
-    │  low $-1.2k in month 9 (likely) ─ worst $-4.0k    │
+    │  cash  ▇▆▅▃▂▁▁▂▃▅▆▇▇                             │
+    │  low $-1.2k in month 9 (likely) ─ worst $-4.0k   │
     │ ──────────────────────────────────────────────── │
-    │  ! Cash runs out in month 9, likely case          │
-    │  ! Two hard stages back to back: Build, Open      │
+    │  ! Cash runs out in month 9, likely case         │
+    │  ! Two hard stages back to back: Build, Open     │
     │ ──────────────────────────────────────────────── │
-    │ p play  c cracks  e edit  n new  x del  $ money   │
-    │ v vision  a assume  o obstacle  s save  Tab menu  │
-    │ 1 Home  2 Projector  3 Writer  4 Calc  5 Agenda   │
+    │ p play  c cracks  e edit  n new  x del  $ money  │
+    │ v vision  a assume  o obstacle  s save  Tab menu │
+    │ 1 Home  2 Projector  3 Writer  4 Calc  5 Agenda  │
     └──────────────────────────────────────────────────┘
 
 ### Dialogs and questions
@@ -153,19 +166,67 @@ runs the target straight away. What every app needs:
 | **App registry** | `/Area512_data/data/area512/apps.txt` | `digit|name|path`, one line per app, e.g. `2|Projector|/home/ai/projector`. Home writes it, finding apps where they're installed. Every app reads it to fill its Apps menu |
 | **Place** | each app's own data folder, `place.txt` | screen, selection, open file. Read on start, then deleted (so a crash doesn't trap you on a bad screen) |
 | **Open request** | `/Area512_data/data/area512/open.txt` | `app|verb|arg`, e.g. `calc|open|cafe.sheet`. Lets one app open another on a given file. The target reads it and deletes it, like `run_next` itself |
+| **Recent files** | each app's own data folder, `recent.txt` | `title|file`, newest first, at most 8 lines. The app rewrites it when it saves. Home reads it to list files under the app's icon |
 | **Back** | the same registry | `Esc` from an app's top screen goes to Home (if installed), not the filer |
 
 Every format follows the existing conventions (PROMOTION_FORMAT.md): plain lines, `|` fields, no
 JSON, files written in 900-byte parts on the MicroPython side.
 
-**Saving on switch.** Projector saves only on `s`, and Writer, Calc and Scheduler only on their save
-key: quitting loses work. Switching would make that far more common. Proposal: **switching saves
-the open document** (and its place), and plain `Esc`/`q` out of the app asks "Save changes?" when
-there are any. That changes a recorded decision ("s save, never automatic"), so it's open question 1.
+**Saving on switch** (decision 1). Today Projector saves only on `s`, and Writer, Calc and
+Scheduler only on their save key, so quitting loses work. From 1.0, switching app (from the Apps
+menu, or `Esc` back to Home) saves the open document and its place first, then hands off. `s`
+still saves without leaving. Leaving with unsaved changes any other way asks "Save changes?". If
+the save fails (out of memory or no card), the switch stops and says so: a switch never loses work.
+Projector's help, app/README.md and PLAN.md change with step 2.5.
 
-**Home** is a small MicroPython app, set as `default=app:` in `/etc/ui`. It's the System screen:
-one row per app, its two or three most recent files under it, `Enter` opens the app (or the file),
-digits jump. On TERM512 it can show more files per app.
+## Home
+
+A small MicroPython app, set as `default=app:` in `/etc/ui`, so it's the first screen at boot. It
+copies the Series 3 System screen (decision 4): **a row of app icons, and under the selected icon,
+that app's files**.
+
+240×135 (five icons a row; more scroll sideways, with ‹ › at the edges):
+
+    ┌ AREA512 ───────────────────────── ▮▮▮▯ ┐
+    │  ┌──┐   ┌──┐   ┌──┐   ┌──┐   ┌──┐      │
+    │  │▞▚│   │≡ │   │▦ │   │▤ │   │▭ │   ›  │
+    │  └──┘   └──┘   └──┘   └──┘   └──┘      │
+    │ [Projct] Writer  Calc  Agenda  Slide   │
+    │ ▸ Corner cafe                          │
+    │   Night classes                        │
+    │   Allotment                            │
+    │ ←→ app  ↑↓ file  ENT open  Tab menu    │
+    └────────────────────────────────────────┘
+
+320×240 (six icons a row, and every icon's files in its own column, as on the Series 3):
+
+    ┌ AREA512 ─────────────────────────────────── ▮▮▮▯ ┐
+    │  ┌──┐    ┌──┐    ┌──┐    ┌──┐    ┌──┐    ┌──┐    │
+    │  │▞▚│    │≡ │    │▦ │    │▤ │    │▭ │    │▣ │    │
+    │  └──┘    └──┘    └──┘    └──┘    └──┘    └──┘    │
+    │ [Projct] Writer  Calc    Agenda  Slide   Extras  │
+    │ ▸Cafe    notes   budget  Nov     talk    Bomb    │
+    │  Classes letter  cafe$   Dec     cafe    Lander  │
+    │  Allotm. list    hours           demo    Theme   │
+    │                                          Files   │
+    │ ←→ app  ↑↓ file  ENT open  n new  x delete       │
+    │ Tab menu  1-6 jump  Esc filer                    │
+    └──────────────────────────────────────────────────┘
+
+- **Keys.** ←/→ (and `h`/`l`) move between icons. ↑/↓ move through the selected app's files.
+  `Enter` opens the app, on the highlighted file if there is one (an open request, then
+  `run_next`). `1`…`9` select an icon. `n` starts a new file in the selected app, `x` deletes the
+  highlighted file after asking. `Esc` leaves to the filer.
+- **Icons** are 32×32 `.a5d` dot images in Home's `icons/` folder, drawn with `Dot.load` and
+  `Dot.push`, in theme colours. They can be redrawn on the device with AREA512's own dot editor
+  (`Dot.edit`). An app with no icon gets a box with its initial. Only the visible icons are
+  loaded, and their memory is measured in step 3.3.
+- **Which apps.** The suite's apps first, in a fixed order. **Extras** is the last icon: every other
+  app Home finds under `/Area512_data/home` (folders with a `main.manifest`: the games, Theme,
+  Gallery), listed like files, plus **Files**, which leaves to the filer. Home writes the registry
+  (`apps.txt`) from the same scan.
+- **Place.** Home remembers the selected icon and file, so `Esc` back from an app lands on the icon
+  you left from.
 
 ## Memory and full screen
 
@@ -175,12 +236,12 @@ digits jump. On TERM512 it can show more files per app.
   If it's tight, change the `BandedSprite(12)` argument so a band stays the same number of bytes
   (more passes per frame, same memory).
 - **The menu is an overlay** in Projector (`ovl/menu`), loaded only while it's open. The hint
-  tables are short strings in the core. Same for Home.
+  tables are short strings in the core. Same for Home, which also has the icons to fit.
 - **The Ruby forks** have their own VM heap, which hasn't been measured either. Measure each fork
   at 320×240 before and after the changes.
 - **No emulator at 320×240.** a512sim and fwrun are 240×135 only, so TERM512 screenshots need the
   device. Extending fwrun to 320×240 (area512-factory) would let tests cover both sizes. Worth
-  doing if TERM512 is the main device (open question 3).
+  doing if TERM512 is the main device (open question 2).
 
 ## The productivity apps
 
@@ -240,15 +301,12 @@ Today: `h/l` page, `j/k` scroll, `Esc` quits. Arrows don't work. One deck folder
 2. Pick a deck from a list. A Writer document can be shown as slides (`---` between pages) (step 5.2).
 3. Full screen: larger text.
 
-### Paint (optional)
-
-Today: `h j k l y u b n`, no arrows, and **no save**: the picture is gone when you quit.
-Arrows, save and open, and the palette with its keys on screen. Only if you use it (open question 2).
-
 ### Not forked
 
-Theme and Gallery are system and demo apps. If upstream accepts the small fixes (step 0.6), they'll
-get arrows too.
+- **Paint** (decision 3): drawing with only a keyboard is too hard to make pleasant, and it has no
+  save. It stays as it is, under Extras on Home.
+- **Theme and Gallery** are system and demo apps, also under Extras. If upstream accepts the small
+  fixes (step 0.6), they'll get arrows too.
 
 ## Order
 
@@ -268,9 +326,9 @@ Each step ends with the tests green (`tests/sim.py`, `tests/fw.py`) and a heap m
   for every AREA512 user, not only this suite. The forks still happen.
 
 **1. Grammar on paper**
-- 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes. Settle the open
-  questions first.
-- 1.2 `formats/APPS.md`: registry, place, open request.
+- 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home.
+- 1.2 `formats/APPS.md`: registry, place, recent files, open request.
+- 1.3 Draw the icons (Projector, Writer, Calc, Agenda, Slide, Extras) as `.a5d` files.
 
 **2. Projector 1.0** (MicroPython; the grammar's first user)
 - 2.1 Key table per screen; hint bar and help generated from it. `Esc` backs out everywhere.
@@ -279,14 +337,17 @@ Each step ends with the tests green (`tests/sim.py`, `tests/fw.py`) and a heap m
 - 2.3 Bare `; . , /` as arrows outside text entry; ←/→ cursor inside text entry.
 - 2.4 320×240 layouts: strip with the money line and cracks on one screen, the library with a
   preview pane, a taller film.
-- 2.5 Save-on-switch and place (after open question 1).
+- 2.5 Save-on-switch, place and `recent.txt`. Update the help, app/README.md and PLAN.md
+  ("never automatic" goes).
 
 **3. Switching and Home**
 - 3.1 Repo move to `apps/`, `forks/`, `lib/` (LIFECYCLE_SHELL.md layout), tests green before and after.
 - 3.2 `lib/`: menu, hints, dialogs, registry, place, written in MicroPython and in Ruby (`lib/ruby/`).
-- 3.3 Home app; `default=app:`; Apps menu in Projector.
+- 3.3 Home: the icon row and file lists at both sizes, the app scan and registry, Extras, and
+  `default=app:`. Measure the heap with the icons loaded.
+- 3.4 Apps menu and `Esc` to Home in Projector.
 
-**4. Forks**, one at a time, most-used first (open question 2). For each: fork with `UPSTREAM.md`,
+**4. Forks**, one at a time, most-used first (open question 1). For each: fork with `UPSTREAM.md`,
 then arrows and the grammar, save-on-switch and place, then the app's own list above, then full
 screen.
 
@@ -295,18 +356,12 @@ screen.
 - 5.2 Open requests between apps: Projector → Calc (money as a sheet), Projector → Writer (notes
   for an idea), Writer → Slide.
 - 5.3 Release: one zip with Home, Projector, the forks, and the `/etc/ui` line, plus an install page.
-- 5.4 Next major: Capture, Harness and the lifecycle home (LIFECYCLE_SHELL.md order, steps 2, 4–7).
+- 5.4 Next major: Capture, Harness and the items index (LIFECYCLE_SHELL.md order, steps 2, 4–7),
+  as icons on Home.
 
 ## Open questions
 
-1. **Save on switch?** Proposal: switching saves the open document; `Esc` out asks if there are
-   changes. This changes "s save, never automatic".
-2. **Which forks, in what order?** Proposal: Agenda (Scheduler), Writer, Calc, Slide. Paint only if
-   you use it.
-3. **Main device?** If TERM512 is where you'll use the suite most, extending fwrun to 320×240
+1. **Fork order?** Proposal: Agenda (Scheduler), Writer, Calc, Slide. The one you'd use most goes
+   first.
+2. **Main device?** If TERM512 is where you'll use the suite most, extending fwrun to 320×240
    earns its cost. If it's the Cardputer, design and test at 240×135 and check TERM512 by hand.
-4. **`Tab` for the menu?** The alternative is `Esc` opening the menu on an app's top screen. That's
-   one less key to learn, but `Esc` would then mean two things.
-5. **Home first or lifecycle first?** This plan puts a Psion System-style Home in front now and the
-   lifecycle home later. Doing the lifecycle home now means building Capture and the items index
-   in this version.

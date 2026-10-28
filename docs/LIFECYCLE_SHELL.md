@@ -33,6 +33,7 @@ items* listed under each icon (not programs), and one menu and dialog grammar ev
 | 3 | File the upstream asks: **full screen is a dealbreaker** | `docs/upstream/AREA512_ISSUES.md`: A full screen, B app hand-off, C uptime counter |
 | 4 | Build on brain-harness; keep **all AREA512 code in this repo** | Folder layout below; brain-harness's engine fixtures become our conformance tests |
 | 5 | **Never ask the date** | Harness is designed clock-free; a clock only adds to it (below) |
+| 6 | (2026-10-28) **Home is Psion-style icon navigation**, not the phase-organised home below | [PLAN_V1.md](PLAN_V1.md), Home. Phases, the items index, Capture and Harness still apply, and arrive as icons on that Home |
 
 ## A lifecycle you don't notice (decision 2)
 
