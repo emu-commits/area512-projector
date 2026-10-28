@@ -1,0 +1,3 @@
+1|Home|/home/ai/home
+2|Projector|/home/ai/projector
+3|Writer|/home/ai/writer

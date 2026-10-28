@@ -184,7 +184,7 @@ Scheduler only on their save key, so quitting loses work. From 1.0, switching ap
 menu, or `Esc` back to Home) saves the open document and its place first, then hands off. `s`
 still saves without leaving. Leaving with unsaved changes any other way asks "Save changes?". If
 the save fails (out of memory or no card), the switch stops and says so: a switch never loses work.
-Projector's help, app/README.md and PLAN.md change with step 2.5.
+Projector's help, app/README.md and PLAN.md changed with step 2.5.
 
 ## Home
 
@@ -360,11 +360,11 @@ done) and a heap measurement on the TERM512.
 - 0.7 area512-factory: a 320×240 mode for a512sim and for fwrun (firmware built with
   `AREA512_EXT_DISPLAY`), so `tests/sim.py` and `tests/fw.py` can run each scenario at both sizes
   and take TERM512 screenshots. Done before step 2.4, the first 320×240 layout.
-  *a512sim: done (factory branch `claude/term512-sim`; it also pins AREA512 fc9f6f9 for the new
-  API, and the 50 feature checks still pass). fwrun: not started. It needs the emucard-adv
-  emulator, which this session couldn't add, and a TERM512 firmware build. The sim's Widget
-  metrics are its own assumptions (header 13, body 14 to height − 13), not the firmware's
-  (header 17, body 20 to height − 16), so screen layout still needs fwrun or the device.*
+  *Done. a512sim: factory branch `claude/term512-sim` (it also pins AREA512 fc9f6f9 for the new
+  API; `tests/sim.py --both`). fwrun: emucard-adv draws the TERM512 lid screen, so
+  `tests/fw.py --term512` boots our TERM512 build and every shot is 320×240; `--seed` puts
+  data on the card first (`tests/seeds/big` is the largest idea). A long run needs Node's heap
+  raised to 6 GB (fw.py does it): the emulator keeps thousands of compiled blocks alive.*
 
 **1. Grammar on paper**
 - 1.1 `docs/UI.md`: keys, hint table, menu bar, dialogs, two layout sizes, Home. *Done, written
@@ -390,16 +390,26 @@ done) and a heap measurement on the TERM512.
   menu's memory on the Cardputer (the strip, or assumptions, with the menu open) still needs
   a `%` reading on a device.*
 - 2.4 320×240 layouts: strip with the money line and cracks on one screen, the library with a
-  preview pane, a taller film.
+  preview pane, a taller film. *Done, checked on the TERM512 firmware in the emulator. The
+  layouts are in `ovl/wide`, loaded once at start only when the screen is 320×240, so the
+  Cardputer never holds them. Strip: a 40 px cash chart, the likely and worst lines, then the
+  open cracks and the faced ones. Library: the list, and the selected idea's wish, size,
+  money and cracks beside it. Film: the chart is 140 px tall (40 on the Cardputer). Heap
+  with the largest idea after the film: 92 KB free of 149.*
 - 2.5 Save-on-switch, place and `recent.txt`. Update the help, app/README.md and PLAN.md
-  ("never automatic" goes).
+  ("never automatic" goes). *Done, with 3.4's Apps menu and Esc to Home (overlay `apps`).
+  With a registry, `Tab` shows an Apps menu first in the bar (it opens on the screen's own
+  menu), and `Tab` then a digit saves, writes `place.txt`, and calls `run_next`. On start,
+  `open.txt` (for Projector) or `place.txt` reopens the idea on its stage. Every save rewrites
+  `recent.txt`. Esc from the library goes to Home if the registry has one. Sim scenarios
+  `switch`, `resume`, `open_req`; all 17 pass at both sizes.*
 
 **3. Switching and Home**
 - 3.1 Repo move to `apps/`, `forks/`, `lib/` (LIFECYCLE_SHELL.md layout), tests green before and after.
 - 3.2 `lib/`: menu, hints, dialogs, registry, place, written in MicroPython and in Ruby (`lib/ruby/`).
 - 3.3 Home: the icon row and file lists at both sizes, the app scan and registry, Extras, and
   `default=app:`. Measure the heap with the icons loaded.
-- 3.4 Apps menu and `Esc` to Home in Projector.
+- 3.4 Apps menu and `Esc` to Home in Projector. *Done with 2.5.*
 
 **4. Forks**, one at a time: Agenda (Scheduler), Writer, Calc, Slide (decision 5). For each: fork with `UPSTREAM.md`,
 then arrows and the grammar, save-on-switch and place, then the app's own list above, then full

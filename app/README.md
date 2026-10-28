@@ -20,7 +20,11 @@ Keys on the strip
   , / or h/l stage   p play   c cracks   m money
   e edit     n new       x delete  v vision
   a assumptions          o obstacle
-  s save (never automatic)    Tab menu    Esc back
+  s save    Tab menu    Esc back
+
+Switching apps (Tab, then the app's digit) saves first
+and comes back to the same idea and stage. Leaving with
+Esc asks before it saves.
 
 Numbers: 5k = 5000. Each stage: one-time spend,
 costs a month, income a month. Fixed costs

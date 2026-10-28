@@ -106,6 +106,11 @@ Every screen with a key table (library, strip, cracks, assumptions, money) has a
 and `Tab` › Help, and the bare `; . , /` move ([UI.md](UI.md)). Old keys still work: `a` new idea,
 `d` archive or delete, `$` money, `?` keys.
 
+With Home's registry (`/data/area512/apps.txt`), the bar starts with an Apps menu: `Tab` then a
+digit saves, notes the place, and switches app; starting again reopens the same idea and stage.
+Esc from the library goes to Home ([APPS_FORMAT.md](APPS_FORMAT.md)). On a 320×240 screen the
+library, strip and film show more (overlay `wide`).
+
 - **Library**: `j/k` move, `Enter` open, `n` new idea, `x` archive, `q` quit.
 - **New idea** (one question per screen): name → wish → success picture → why → window →
   starting money → fixed costs a month → stages (name, months, one-time, costs a month,

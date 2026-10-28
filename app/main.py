@@ -7,6 +7,8 @@ APPDIR = "/data/projector"
 IDEAS = "/data/projector/ideas"
 INDEX = "/data/projector/library.txt"
 META = "/data/projector/meta.txt"
+RECENT = "/data/projector/recent.txt"     # for Home (docs/APPS_FORMAT.md)
+REG = "/data/area512/apps.txt"
 
 CONF = ["", "sure", "rough", "guess"]
 SPREAD = [0, 10, 30, 60]          # % a stage's numbers can be off, by confidence
@@ -130,6 +132,22 @@ def arrow(k):
     if k == "/":
         return "RIGHT"
     return k
+
+
+def reg_read():
+    # the app registry Home writes: [[digit, name, path], ...]; none without Home
+    out = []
+    if File.exist(REG):
+        for line in read_lines(REG):
+            p = line.split("|")
+            if len(p) == 3 and len(p[0]) == 1 and p[2] != "":
+                out.append(p)
+    return out
+
+
+class Switch(Exception):
+    # raised once Area512.run_next is set: every loop unwinds and the app returns
+    pass
 
 
 def heap_total():
@@ -502,6 +520,9 @@ class App:
         self.sel = 0
         self.hl_spec = None
         self.hl = []
+        self.lsel = 0          # the library's selection, for place.txt
+        self.wide = False      # TERM512 layouts loaded (overlay "wide", App.run)
+        self.pv = None         # wide library: the selected idea's preview
         # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
         try:
             if Display.screen_width() > Display.width():
@@ -521,6 +542,9 @@ class App:
         self.c_box = Widget.theme_box()
         self.c_bg = Widget.theme_background()
         self.c_dim = Widget.dim()
+        self.ch = 40           # the film's chart height
+        if self.H >= 200:
+            self.ch = self.bot - self.top - 64
 
     # ---- plumbing
 
@@ -558,6 +582,11 @@ class App:
             if k != "\t":
                 return k
             k = self.ov("menu", "menu_main", spec, fn, args)
+            if k is not None and k[0] == "@":
+                # Apps menu: save, leave a place.txt, hand off to that app
+                if self.ov("apps", "apps_switch", cut(k, 1, len(k))):
+                    raise Switch()
+                k = None
             if k is not None:
                 return k
 
@@ -567,51 +596,9 @@ class App:
         G = globals()
         loaded = []
         if not (fn in G):
-            if self.home == "":
-                self.home = find_home()
-            if self.home == "":
-                self.msg = "Missing ovl/ folder: reinstall"
+            loaded = self.ovl_load(name, fn)
+            if loaded is None:
                 return None
-            before = {}
-            for k in G:
-                before[k] = 1
-            spare_free()
-            collect()
-            ok = False
-            i = 0
-            n_parts = 0
-            try:
-                # One file per top-level def (tools/ovl.py), read and compiled one at a
-                # time: the compiler's working memory grows with what it compiles at once,
-                # and no step needs a big contiguous block (a fragmented heap has none).
-                base = self.home + "/ovl/" + name + "."
-                while File.exist(base + str(i)):
-                    exec(SD.read(base + str(i)), G)
-                    i = i + 1
-                n_parts = i
-                ok = True
-            except MemoryError:
-                collect()
-                g = 0
-                if GC is not None:
-                    g = GC.mem_free() // 1024
-                self.msg = "No memory: {} {}/{} {}KB {}b".format(name, i, n_parts, g, free_kb())
-            except Exception as e:
-                self.msg = "Overlay {}: {}".format(name, e)
-            for k in G:
-                if not (k in before):
-                    loaded.append(k)
-            before = None
-            if not ok or not (fn in G):
-                for k in loaded:
-                    del G[k]
-                collect()
-                spare_take()
-                return None
-            # take the spare back now, before the overlay runs: a save it makes needs
-            # that contiguous block
-            collect()
-            spare_take()
         try:
             return G[fn](self, *args)
         finally:
@@ -619,6 +606,59 @@ class App:
                 del G[k]
             if len(loaded) > 0:
                 collect()
+
+    def ovl_load(self, name, fn):
+        # compile ovl/<name>.* into the globals; the names it added, or None if it failed or
+        # has no fn. Nothing unloads them but the caller (App.ov), so the TERM512 layouts
+        # (overlay "wide") stay loaded for the whole run.
+        G = globals()
+        if self.home == "":
+            self.home = find_home()
+        if self.home == "":
+            self.msg = "Missing ovl/ folder: reinstall"
+            return None
+        before = {}
+        for k in G:
+            before[k] = 1
+        spare_free()
+        collect()
+        ok = False
+        i = 0
+        n_parts = 0
+        try:
+            # One file per top-level def (tools/ovl.py), read and compiled one at a
+            # time: the compiler's working memory grows with what it compiles at once,
+            # and no step needs a big contiguous block (a fragmented heap has none).
+            base = self.home + "/ovl/" + name + "."
+            while File.exist(base + str(i)):
+                exec(SD.read(base + str(i)), G)
+                i = i + 1
+            n_parts = i
+            ok = True
+        except MemoryError:
+            collect()
+            g = 0
+            if GC is not None:
+                g = GC.mem_free() // 1024
+            self.msg = "No memory: {} {}/{} {}KB {}b".format(name, i, n_parts, g, free_kb())
+        except Exception as e:
+            self.msg = "Overlay {}: {}".format(name, e)
+        loaded = []
+        for k in G:
+            if not (k in before):
+                loaded.append(k)
+        before = None
+        if not ok or not (fn in G):
+            for k in loaded:
+                del G[k]
+            collect()
+            spare_take()
+            return None
+        # take the spare back now, before the overlay runs: a save it makes needs
+        # that contiguous block
+        collect()
+        spare_take()
+        return loaded
 
     def paint(self, fn, args):
         # BandedSprite: fn redraws the WHOLE screen once per band
@@ -672,12 +712,14 @@ class App:
         out.append(("Tab", "menu"))
         return out
 
-    def row(self, y, text, selected):
+    def row(self, y, text, selected, w=0):
+        if w == 0:
+            w = self.W
         if selected:
-            self.sp.fill_rect(2, y - 1, self.W - 4, self.lh, self.c_box)
-            self.t(6, y, Widget.clip(self.sp, text, self.W - 12), self.c_sel)
+            self.sp.fill_rect(2, y - 1, w - 4, self.lh, self.c_box)
+            self.t(6, y, Widget.clip(self.sp, text, w - 12), self.c_sel)
         else:
-            self.t(6, y, Widget.clip(self.sp, text, self.W - 12), self.c_text)
+            self.t(6, y, Widget.clip(self.sp, text, w - 12), self.c_text)
 
     def visible_rows(self):
         return (self.bot - self.top - 4) // self.lh
@@ -848,6 +890,17 @@ class App:
         for e in self.lib:
             out.append("{}|{}|{}|{}".format(e[0], e[1], e[2], e[3]))
         write_lines(INDEX, out)
+        rec = []
+        for e in self.lib:
+            if e[1] != "archived":
+                rec.append(e)
+        rec.sort(key=lambda e: 0 - e[2])
+        out = []
+        for e in rec:
+            if len(out) < 8:
+                out.append(e[3] + "|" + str(e[0]))
+        out.append("")
+        SD.write(RECENT, "\n".join(out))
 
     def save(self):
         idea = self.idea
@@ -894,17 +947,36 @@ class App:
             sleep_ms(700)
             self.load_lib()
             spare_take()
+            if self.W >= 300 and self.H >= 200:
+                self.wide = self.ovl_load("wide", "wide_strip") is not None
             self.library()
+        except Switch:
+            pass
         finally:
             self.sp.delete()
             self.sp = None
             Display.fill_screen(self.c_bg)
 
     def library(self):
-        sel = 0
+        # where you were last time (place.txt), or what another app asked for (open.txt)
+        r = self.ov("apps", "apps_start")
+        sel = self.lsel
+        if r is not None and r[0] == "new":
+            if self.ov("newidea", "newidea_main"):
+                self.work(0)
+            self.idea = None
+        elif r is not None:
+            sel = r[0]
+            self.open_idea(sel, r[1])
         while True:
+            self.lsel = sel
+            if self.wide:
+                wide_pv(self, sel)
             k = self.cmd(LIB_KEYS, self.r_library, (sel,))
+            if k != "UP" and k != "DOWN":
+                self.pv = None          # an idea may change: read it again
             if k == "q" or k == "ESC":
+                self.ov("apps", "apps_home")
                 return
             if k == "DOWN" and sel < len(self.lib) - 1:
                 sel = sel + 1
@@ -913,22 +985,29 @@ class App:
             elif k == "n" or k == "a":
                 if self.ov("newidea", "newidea_main"):
                     sel = 0
-                    self.work()
+                    self.work(0)
                 self.idea = None
             elif k == "ENTER" and len(self.lib) > 0:
-                self.idea = None
-                try:
-                    self.idea = load_idea(self.lib[sel][0])
-                except MemoryError:
-                    self.msg = "Out of memory opening it"
-                if self.idea is not None:
-                    self.dirty = False
-                    self.work()
-                    self.idea = None
+                self.open_idea(sel, 0)
             elif (k == "x" or k == "d") and len(self.lib) > 0:
                 self.archive(sel)
 
+    def open_idea(self, i, at):
+        # the strip for library entry i, on stage at
+        self.idea = None
+        try:
+            self.idea = load_idea(self.lib[i][0])
+        except MemoryError:
+            self.msg = "Out of memory opening it"
+        if self.idea is not None:
+            self.dirty = False
+            self.work(at)
+            self.idea = None
+
     def r_library(self, sel):
+        if self.wide:
+            wide_library(self, sel)
+            return
         self.frame("PROJECTOR", "LIBRARY")
         if len(self.lib) == 0:
             Widget.center_lines(self.sp, [("No ideas yet.", self.c_em),
@@ -992,9 +1071,9 @@ class App:
         self.refresh()
         return self.n_open == 0 and len(self.idea.stages) > 0
 
-    def work(self):
+    def work(self, at):
         idea = self.idea
-        self.sel = 0
+        self.sel = at
         note = idea.get("note")
         if note != "" and idea.num("touched", self.session) < self.session:
             self.show("WHERE YOU LEFT OFF", idea.get("title"),
@@ -1049,7 +1128,7 @@ class App:
     def leave(self):
         if not self.dirty:
             return True
-        r = self.ask_yn("LEAVING", "Save your changes?", ["Saving is never automatic."])
+        r = self.ask_yn("LEAVING", "Save your changes?", [])
         if r is None:
             return False
         if r:
@@ -1089,6 +1168,9 @@ class App:
             if first + vc < n:
                 self.t(self.W - 6, y + 20, ">", self.c_em)
         y = y + 4 * 12 + 6
+        if self.wide:
+            wide_strip(self, y)
+            return
         if n > 0:
             self.r_spark(4, y, self.W - 8, 16)
             y = y + 19

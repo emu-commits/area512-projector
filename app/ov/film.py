@@ -4,7 +4,11 @@
 # no room for two): it returns [action, stage] and App.play opens it, then plays on from there.
 # Measured on a real Cardputer: ~23 frames a second, so no sleep between frames.
 
+film_H = [40]        # the chart's height: App.ch, taller on TERM512
+
+
 def film_main(self, i, first):
+    film_H[0] = self.ch
     if len(self.idea.stages) == 0:
         self.msg = "Add a stage first (n)"
         return None
@@ -207,7 +211,7 @@ def film_seg(self, p, j, b, g):
 
 
 def film_y(v, g):
-    return g[0] + 40 - ((v - g[1]) * 40) // g[2]
+    return g[0] + film_H[0] - ((v - g[1]) * film_H[0]) // g[2]
 
 
 def film_head(self, i, m):
@@ -218,7 +222,7 @@ def film_head(self, i, m):
     Widget.text_right(self.sp, self.W - 6, y + 4, "{}, {}".format(DIFF[st[4]], CONF[st[3]]),
                       self.c_dim)
     film_chart(self, y + 24, m)
-    return y + 70
+    return y + 30 + film_H[0]
 
 
 def film_r_run(self, i, m):

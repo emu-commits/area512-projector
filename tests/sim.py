@@ -131,6 +131,18 @@ SEEDS = {"legacy": {"/data": None, "/data/projector": None, "/data/projector/ide
                     "/data/projector/ideas/1.txt": LEGACY}}
 SCENARIOS["legacy"] = "ENTER SHOT:l_strip e SHOT:l_edit ESC l e SHOT:l_edit2 ESC s q q"
 
+# Switching apps (docs/APPS_FORMAT.md): with a registry, Tab 3 saves the idea and its place, then
+# hands off (the sim prints @@RUN_NEXT); the next start opens on that stage. An open request
+# from another app opens its idea; Esc from the library goes to Home.
+APPS = "1|Home|/home/ai/home\n2|Projector|/home/ai/projector\n3|Writer|/home/ai/writer\n"
+SEEDS["switch"] = {"/data/area512": None, "/data/area512/apps.txt": APPS}
+SCENARIOS["switch"] = NEW_IDEA + "l l v DOWN ENTER BS T:now ENTER ESC TAB 3"
+SEEDS["resume"] = dict(SEEDS["legacy"], **{"/data/projector/place.txt": "screen: strip\nsel: 1\nfile: 1\n"})
+SCENARIOS["resume"] = "e ESC q q"
+SEEDS["open_req"] = dict(SEEDS["legacy"], **{"/data/area512": None, "/data/area512/apps.txt": APPS,
+                                            "/data/area512/open.txt": "projector|open|1\n"})
+SCENARIOS["open_req"] = "TAB SHOT:apps_menu LEFT ESC TAB 2 q q"
+
 # The film: WAITs let an animation run to its end (in the sim each WAIT is one empty poll; on
 # the firmware ~0.25 s), so these reach the freeze frame; the other scenarios press keys
 # mid-animation, which skips it.

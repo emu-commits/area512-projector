@@ -5,7 +5,7 @@
 
 def menu_main(self, spec, fn, args):
     ms = menu_parse(spec)
-    m = 0
+    m = menu_apps(self, ms)
     i = 0
     while True:
         self.paint(menu_r, (self, fn, args, ms, m, i))
@@ -24,6 +24,18 @@ def menu_main(self, spec, fn, args):
             r = menu_pick(self, spec, ms, m, i, k)
             if r != "":
                 return r
+
+
+def menu_apps(self, ms):
+    # the Apps menu, first in the bar as on the Psion, when Home has written a registry.
+    # The menu opens on the screen's own first menu: commands are what Tab is mostly for.
+    its = []
+    for p in reg_read():
+        its.append((p[0], p[1]))
+    if len(its) == 0:
+        return 0
+    ms.insert(0, ["Apps", its])
+    return 1
 
 
 def menu_step(m, n, k):
@@ -51,6 +63,11 @@ def menu_run(self, spec, k):
         return None
     if k == "ENT":
         return "ENTER"
+    if k >= "1" and k <= "9":
+        for p in reg_read():
+            if p[0] == k and p[2] != self.home:
+                return "@" + p[2]
+        return None             # this app: nothing to do
     return k
 
 
@@ -81,6 +98,8 @@ def menu_r(self, fn, args, ms, m, i):
     hh = Widget.header_height()
     mx = menu_bar(self, ms, m, hh)
     menu_box(self, ms[m][1], mx, hh + 1, i)
+    # Widget.hints draws over what's there: clear the screen's own hints first
+    self.sp.fill_rect(0, self.H - 14, self.W, 14, self.c_bg)
     Widget.hints(self.sp, [("<>", "menu"), ("ENT", "do"), ("ESC", "close")])
 
 
@@ -110,7 +129,7 @@ def menu_box(self, its, x, y, i):
         n = len(it[1]) + len(menu_kname(it[0])) + 3
         if n > w:
             w = n
-    w = w * self.cw + 8
+    w = w * self.cw + 14
     if x + w > self.W - 2:
         x = self.W - 2 - w
     h = len(its) * self.lh + 4
@@ -129,7 +148,7 @@ def menu_line(self, x, y, w, it, sel):
         c = self.c_sel
     lab = it[1]
     self.t(x + 4, y, lab[0].upper() + cut(lab, 1, len(lab)), c)
-    Widget.text_right(self.sp, x + w - 4, y, menu_kname(it[0]), self.c_em)
+    Widget.text_right(self.sp, x + w - 6, y, menu_kname(it[0]), self.c_em)
 
 
 def menu_kname(k):

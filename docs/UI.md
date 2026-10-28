@@ -29,7 +29,7 @@ diagnostic, not a command.
 | `Enter` | open, confirm, next | |
 | `` ` `` (Esc) | back, cancel, close the menu | Always one level. `q` is an alias, except where letters type |
 | `Tab` | the menu bar | `Tab` again or Esc closes it |
-| `Tab` `1`…`9` | switch app | the Apps menu (step 2.5 / 3.4) |
+| `Tab` `1`…`9` | switch app | the Apps menu, first in the bar when Home has written a registry; the bar still opens on the screen's own first menu |
 | `Tab` › Help | every key on this screen | generated from the key table, so it can't drift |
 | `n` new, `e` edit, `x` delete, `s` save, `f` find | the same letter for the same verb in every app | where letters type, `Tab` then the letter |
 

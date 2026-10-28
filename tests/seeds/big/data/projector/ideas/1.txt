@@ -1,0 +1,21 @@
+PROJECTOR-IDEA 1
+title: Biggest idea of them all
+status: ready
+touched: 1
+wish: abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi
+picture: abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi
+why: abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi
+window: 60
+cash: 20000
+obstacle: abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi
+ifthen: When abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcdefghi abcde
+fixed: 300
+S|Stage1|9|1500|2|3|900|300
+S|Stage2|9|1500|2|3|900|300
+S|Stage3|9|1500|2|3|900|300
+S|Stage4|9|1500|2|3|900|300
+S|Stage5|9|1500|2|3|900|300
+S|Stage6|9|1500|2|3|900|300
+S|Stage7|9|1500|2|3|900|300
+A|0|assumption 0 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+A|0|assumption 1 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
