@@ -1,54 +1,30 @@
 class Writer
-  def init_app
+  def initialize
+    ui_init
     init_doc
-  end
-
-  def save_doc
-    data = ""
-    i = 0
-    while i < @lines.length
-      data += @lines[i] + "\n"
-      i += 1
-    end
-    SD.write(DOC_FILE, data)
-    @dirty = false
-    @msg = "Saved " + DOC_NAME
-  rescue
-    @msg = "Save failed"
-  end
-
-  def open_doc
-    @lines = []
-    SD.read(DOC_FILE).split("\n").each do |line|
-      @lines.push(line.chomp)
-    end
-    @lines.push("") if @lines.length == 0
-    @row = 0
-    @col = 0
-    @top = 0
-    @dirty = false
-    @msg = "Opened " + DOC_NAME
-  rescue
-    @lines = [""] if @lines.length == 0
-    @msg = "Open failed"
-  ensure
-    clamp_cursor
+    @wrap_w = @w - PAGE_PAD * 2 - SCROLLBAR_W - 3
+    @name = nil       # the open document; nil on the list
+    @screen = :files
+    @sel = 0
+    @docs = []
+    @recent = []
+    @find = ""
+    @pv = nil         # TERM512's preview: [name, lines]
+    @quit = false
   end
 
   def run
-    init_app
-    Display.fill_screen(Widget.theme_background)
+    Display.fill_screen(@c_bg)
     @sp = BandedSprite.new(12)
     begin
       SD.mount
-      while !@quit
-        draw
-        handle(read_key)
-      end
+      load_data
+      start
+      main_loop
     ensure
       SD.unmount
       @sp.delete if @sp
-      Display.fill_screen(Widget.theme_background)
+      Display.fill_screen(@c_bg)
     end
   end
 end

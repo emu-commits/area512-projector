@@ -21,7 +21,8 @@ a chord** (decision 7). The single keys are the letters and digits, `; . , /`, `
 A sequence is fine: `Tab`, then `m`, is two single keys.
 
 `Shift` is only for typing text. A chord may stay as an *alias* for an old key (`$`, `?`), never
-as the only way to do something. The one exception is `%`, Projector's hidden memory reading: a
+as the only way to do something. The one exception is `%`, the hidden memory reading (Projector's
+free heap; in the Ruby forks, the VM's heap, where the firmware lets an app read it): a
 diagnostic, not a command.
 
 ## Keys
@@ -39,6 +40,12 @@ diagnostic, not a command.
 **Where letters type** (Writer's text, a cell being edited, a question's answer), every command
 goes through `Tab`. Writer's Move mode is `Tab` › Move; in Move, Esc goes back to typing, and in
 typing, Esc goes back out of the document, saving first (decision 9).
+
+Writer shows which it is: the hint bar's right end always reads `TYPE` or `MOVE`, with the line,
+column and word count. In Type the bar is only `[Tab] menu` (the table's keys can't be pressed
+bare there); in Move it's the table's numbered items as on any screen, and the cursor is a block
+instead of a bar. Writer's one table (`DOC_KEYS`) is both: the menu in Type, and in Move the bare
+keys and their menu.
 
 ## The key table
 
@@ -174,6 +181,6 @@ An app with no icon gets a box with its initial.
 
 ![Home icons](../apps/home/icons/preview.png)
 
-Home and Agenda on the TERM512 firmware (in the emulator):
+Home, Agenda and Writer on the TERM512 firmware (in the emulator):
 
-![Home](home.png) ![Agenda](agenda.png)
+![Home](home.png) ![Agenda](agenda.png) ![Writer](writer.png)

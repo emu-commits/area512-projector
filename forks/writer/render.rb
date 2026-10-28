@@ -1,57 +1,122 @@
 class Writer
-  def draw
-    while @sp.draw
-      render
+  def render_screen
+    return if render_ui
+    if @screen == :doc
+      render_doc
+    else
+      render_files
     end
   end
 
-  def render
-    @sp.fill(Widget.theme_background)
-    Widget.header(@sp, "WRITER", DOC_NAME + dirty_mark)
-    draw_page
-    draw_status
-  end
+  # ---- the document: wrapped rows (laid out by layout), the cursor, the status line
 
-  def draw_page
-    y = Widget.body_top
-    w = Display.width
-    h = Widget.body_height
-    Widget.panel(@sp, 0, y, w, h)
-    draw_lines(PAGE_PAD, y + PAGE_PAD, w - PAGE_PAD * 2 - SCROLLBAR_W)
-    Widget.scrollbar(
-      @sp,
-      w - PAGE_PAD - SCROLLBAR_W,
-      y + PAGE_PAD,
-      h - PAGE_PAD * 2,
-      @top,
-      visible_rows,
-      @lines.length
-    )
-  end
-
-  def draw_lines(x, y, w)
-    r = @top
-    yy = y
-    rows = visible_rows
-    while r < @top + rows && r < @lines.length
-      line = @lines[r]
-      line = "" unless line.is_a?(String)
-      @sp.text(x, yy, clip_px(line, w), Widget.theme_text)
-      draw_cursor(x, yy, w) if r == @row
+  def render_doc
+    frame(@name, @dirty ? "*" : "")
+    y = @top
+    h = @bot - @top
+    Widget.panel(@sp, 0, y, @w, h)
+    x = PAGE_PAD
+    yy = y + PAGE_PAD
+    i = 0
+    while i < @view.length
+      v = @view[i]
+      s = line(v[0])
+      t(x, yy, part(s, v[1], v[2] - v[1]), @c_text) if v[2] > v[1]
+      draw_hit(x, yy, s, v) if @hit && @hit[0] == v[0]
+      draw_cursor(x, yy, s) if i == @cur_y
       yy += LINE_H
-      r += 1
+      i += 1
+    end
+    Widget.scrollbar(@sp, @w - PAGE_PAD - SCROLLBAR_W, y + PAGE_PAD, h - PAGE_PAD * 2,
+                     @scr, visible_rows, @lines.length)
+    doc_foot
+  end
+
+  # Type: a bar. Move: a block over the character, so the mode shows where you're looking.
+  def draw_cursor(x, y, s)
+    cx = x + @cur_x
+    mx = x + @wrap_w + 1
+    cx = mx if cx > mx
+    if @mode == :move
+      g = @col < s.length ? glyph_w(s, @col) : GLYPH_W
+      @sp.fill_rect(cx, y - 1, g, LINE_H - 1, @c_sel)
+      t(cx, y, part(s, @col, step(s, @col)), @c_bg) if @col < s.length
+    else
+      @sp.line(cx, y - 1, cx, y + LINE_H - 2, @c_sel)
     end
   end
 
-  def draw_cursor(x, y, w)
-    cx = x + text_width(current_line, @col)
-    max = x + w
-    cx = max if cx > max
-    @sp.line(cx, y - 1, cx, y + LINE_H - 2, Widget.theme_selected)
+  def draw_hit(x, y, s, v)
+    a = @hit[1]
+    b = a + @hit[2]
+    a = v[1] if a < v[1]
+    b = v[2] if b > v[2]
+    return if b <= a
+    hx = x + width(s, v[1], a)
+    @sp.fill_rect(hx, y - 1, width(s, a, b), LINE_H - 1, @c_em)
+    t(hx, y, part(s, a, b - a), @c_bg)
   end
 
-  def draw_status
-    pos = (@row + 1).to_s + ":" + (@col + 1).to_s
-    Widget.footer(@sp, pos + " " + @msg)
+  # TYPE or MOVE, line:column and the words, right; the hint bar in what's left
+  def doc_foot
+    if @msg != ""
+      Widget.footer(@sp, @msg)
+      return
+    end
+    st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" +
+         (chars(cur_line, @col) + 1).to_s + " " + @words.to_s + "w"
+    if @mode == :move
+      Widget.hints(@sp, hint_fit(DOC_KEYS, (@w - 3) / @cw - st.length - 11))
+    else
+      Widget.hints(@sp, [["Tab", "menu"]])
+    end
+    Widget.text_right(@sp, @w - 3, @h - 13, st, @c_em)
+  end
+
+  # ---- the documents
+
+  def render_files
+    n = @docs.length
+    frame("WRITER", n == 1 ? "1 document" : n.to_s + " documents")
+    lw = @wide ? 132 : @w
+    y = @top + 3
+    if n == 0
+      t(8, y, "No documents yet.", @c_text)
+      t(8, y + @lh, "n starts one.", @c_em)
+    else
+      rows = (@bot - y - 2) / @lh
+      first = @sel - rows + 1
+      first = 0 if first < 0
+      i = first
+      while i < n && i < first + rows
+        row(2, y, lw - 4, @docs[i], i == @sel)
+        y += @lh
+        i += 1
+      end
+      preview if @wide
+    end
+    foot(FILES_KEYS)
+  end
+
+  # TERM512: the selected document's first lines beside the list
+  def preview
+    name = @docs[@sel]
+    if @pv.nil? || @pv[0] != name
+      text = read_file(path_of(name))
+      text = "(too big to open)" if text && text.length > DOC_MAX
+      @pv = [name, text ? text.split("\n") : []]
+    end
+    x = 138
+    y = @top + 2
+    h = @bot - y - 2
+    @sp.rect(x, y, @w - x - 2, h, @c_border)
+    cols = (@w - x - 10) / @cw
+    yy = y + 4
+    i = 0
+    while i < @pv[1].length && yy <= y + h - @lh
+      t(x + 5, yy, clip(@pv[1][i], (cols) * @cw), @c_dim)
+      yy += @lh
+      i += 1
+    end
   end
 end

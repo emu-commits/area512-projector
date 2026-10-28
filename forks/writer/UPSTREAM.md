@@ -8,4 +8,27 @@
 
 ## What changed
 
-Nothing yet.
+Built by `build.sh` into `dist/writer/` with AREA512's own `picorbc`, with
+[`lib/ruby/ui.rb`](../../lib/ruby/ui.rb) (the suite's Ruby UI, `class SuiteApp`) first in
+`main.manifest`. The `.mrb` files aren't kept here.
+
+| Writer | This fork | Why |
+|---|---|---|
+| `class Writer` | `class Writer < SuiteApp` | the shared key loop, menu bar, dialogs, registry |
+| `io.rb`: keys read with `STDIN.getch`, `Fn`+arrow as `\e` and two more bytes read by hand | gone: `Widget.read_key`, which reads the sequence as one key | |
+| every command a chord (`Ctrl+S`, `Ctrl+O`, `Ctrl+Q`, `Ctrl+K`/`J`), shown only on the help line Esc brought up | `Tab` then the key, from the menu bar; the `Ctrl` keys still work (`Ctrl+J` can't: the key layer reads it as Enter) | one key at a time (decision 7), PLAN_V1 Writer 1 |
+| Esc showed the help line | Esc is back: out of the document to the list, saving first | decision 1 |
+| the cursor moved with `Fn`+arrow only | **Move** (`Tab` `m`): the bare `; . , /`, `h`/`l` a word, `j`/`k` a page, `a`/`e` the row's start and end, `[`/`]` the document's; Enter or Esc types again. The footer says TYPE or MOVE; Move's cursor is a block | decision 9, PLAN_V1 Writer 2 |
+| one document, `/data/writer.txt`; quitting didn't save | any number in `/data/writer/<name>.txt`, from a list (`n` new, `r` rename, `x` delete into `deleted/`); the old file copied once as "writer"; `Tab` + digit saves and switches | PLAN_V1 Writer 3 |
+| a line wider than the screen was cut off at the edge | paragraphs wrap at a space, and up/down go a row as drawn, keeping to the same column | |
+| the footer: row:column and the last message | TYPE/MOVE, line:column, the word count | PLAN_V1 Writer 3 |
+| — | find (`Tab` `f`, then `g` for the next), from the cursor, round from the top, case not minded; what's found is highlighted | PLAN_V1 Writer 3 |
+| 240×135 | 320×240 on TERM512: 50 columns and 14 rows, and the list shows the selected document beside it | PLAN_V1 Writer 4 |
+| UTF-8 (the keyboard's kana) taken a byte at a time, so a half-typed character could be cut | taken whole, once all its bytes are in; Backspace takes off a whole character | |
+| `Ctrl+Space` set a JP/EN message the app never got (the key layer keeps that key) | gone; the README says what Ctrl+Space does to Move's letters | |
+| read the whole file and kept typing, whatever its size; past what the VM's 120 KB holds, the device restarts | 12 KB at most: a bigger file isn't opened, typing stops with "Full"; one copy fewer of the text on opening, two on saving | PLAN_V1 step 4.2, measured |
+| — | `recent.txt` (for Home), `place.txt` (document, line, column, mode), Home's `open`, `new` (with a name: notes for an idea) and `delete` requests | docs/APPS_FORMAT.md |
+
+`document.rb` keeps Writer's model (one String per line, the panel, the scrollbar, the line
+height), now with a byte offset for the column and the wrapping; `edit.rb` keeps its editing,
+with the moves added; `render.rb` draws the wrapped rows; `files.rb` and `actions.rb` are new.

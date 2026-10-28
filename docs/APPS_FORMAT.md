@@ -95,6 +95,15 @@ Agenda's are its next 8 events from the last date used, named by date and index 
 
     3 Nov Dentist 09:00|2026-11-03#0
 
+Writer's are its documents, last opened first, by name and file:
+
+    Corner cafe notes|Corner cafe notes.txt
+
+Writer's `place.txt` adds `row:`, `col:` (a byte offset in the line) and `mode:` (`type` or
+`move`) to `screen: doc`, so a switch comes back to the same character. Its `new` with a name
+opens that document if there is one: Projector's notes for an idea (step 5.2) are one document,
+asked for by name each time.
+
 The app rewrites it whenever it saves. Home reads it to list files under the app's icon, and
 opens one by writing `open.txt` (`<app>|open|<file>`) and calling `run_next`. An archived
 document isn't listed.

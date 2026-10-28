@@ -7,7 +7,7 @@
 #                    file per def (see tools/ovl.py and App.ov)
 #   dist/home/       core.mpy = lib/py/base.py + lib/py/menu.py + apps/home/main.py, icons/
 #   dist/agenda/     forks/agenda/*.rb and lib/ruby/ui.rb, compiled with AREA512's picorbc;
-#                    main.manifest (ui.mrb first) from the fork
+#   dist/writer/     main.manifest (ui.mrb first) from the fork. tools/rbcheck.py first.
 #
 # Why two files: launched as main.mpy, the firmware holds the whole .mpy in RAM for the entire
 # run AND sizes the Python heap after reading it. Through main.manifest the heap is sized first
@@ -52,6 +52,8 @@ cp apps/home/icons/*.a5d dist/home/icons/
 rb_fork() {
     name=$1; out=dist/$name
     mkdir -p "$out"
+    # CRuby (tests/rsim.rb) has methods the device lacks: none may be called
+    python3 tools/rbcheck.py lib/ruby/*.rb forks/$name/*.rb || { echo "forks/$name calls a method mruby/c lacks"; exit 1; }
     for f in lib/ruby/*.rb forks/$name/*.rb; do
         "$PICORBC" -o "$out/$(basename "$f" .rb).mrb" "$f" || { echo "$f does not compile"; exit 1; }
     done
@@ -62,6 +64,7 @@ rb_fork() {
 }
 
 rb_fork agenda
+rb_fork writer
 
 for d in dist/*; do echo "$d: $(ls "$d" | tr '\n' ' ')"; done
 echo "projector overlays: $(ls dist/projector/ovl | wc -l) files"

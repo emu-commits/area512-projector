@@ -1,144 +1,234 @@
 class Writer
-  def handle(input)
-    code = input.length == 0 ? 0 : input.ord
-    if input == "\e"
-      @msg = HELP
-    elsif input == "\e[D"
-      move_left
-    elsif input == "\e[C"
-      move_right
-    elsif input == "\e[A"
-      move_up
-    elsif input == "\e[B"
-      move_down
-    elsif code == 0
-      toggle_input_mode
-    elsif code == 17
-      @quit = true
-    elsif code == 11
-      page_up
-    elsif code == 10
-      page_down
-    elsif code == 19
-      save_doc
-    elsif code == 15
-      open_doc
-    elsif code == 13
-      insert_newline
-    elsif code == 8 || code == 127
-      backspace
-    elsif code == 28
-      move_left
-    elsif code == 29
-      move_right
-    elsif code == 30
-      move_up
-    elsif code == 31
-      move_down
-    elsif code >= 32 || input.length > 1
-      insert_text(input)
-    end
-  end
+  # ---- typing
 
-  def toggle_input_mode
-    @jp_mode = !@jp_mode
-    @msg = @jp_mode ? "JP input" : "EN input"
+  # a byte from the keyboard: UTF-8 from the IME comes one byte per key, so a character
+  # goes in once all its bytes have
+  def type_byte(k)
+    b = k.getbyte(0)
+    if b < 0x80
+      @utf = ""
+      insert_text(k)
+    elsif b >= 0xc0
+      @utf = k
+    elsif @utf != ""
+      @utf = @utf + k
+      if @utf.length >= step(@utf, 0)
+        insert_text(@utf)
+        @utf = ""
+      end
+    end
   end
 
   def insert_text(text)
-    line = current_line
-    new_line = left_text(line, @col) + text + right_text(line, @col)
-    set_current_line(new_line)
-    @col += char_count(text)
-    @dirty = true
-    @msg = "Draft"
-    clamp_cursor
+    return if full(text.length)
+    s = cur_line
+    set_line(@row, part(s, 0, @col) + text + part(s, @col, s.length - @col))
+    @col += text.length
+    @goal = nil
   end
 
   def insert_newline
-    line = current_line
-    left = left_text(line, @col)
-    right = right_text(line, @col)
-    set_current_line(left)
-    append_line(@row + 1, right)
+    return if full(1)
+    s = cur_line
+    set_line(@row, part(s, 0, @col))
+    insert_line(@row + 1, part(s, @col, s.length - @col))
     @row += 1
     @col = 0
-    @dirty = true
-    @msg = "Draft"
-    clamp_cursor
+    @goal = nil
   end
 
-  def append_line(pos, text)
-    @lines.push("")
-    i = @lines.length - 1
-    while i > pos
-      @lines[i] = @lines[i - 1]
-      i -= 1
-    end
-    @lines[pos] = text
+  # Writer's most is DOC_MAX bytes: past it, the heap could run out (document.rb, set_text)
+  def full(n)
+    return false if @bytes + n <= DOC_MAX
+    @msg = "Full: " + (DOC_MAX / 1024).to_s + " KB is the most. Start another."
+    true
   end
 
   def backspace
-    changed = false
+    s = cur_line
     if @col > 0
-      line = current_line
-      set_current_line(left_text(line, @col - 1) + right_text(line, @col))
-      @col -= 1
-      changed = true
+      b = back(s, @col)
+      set_line(@row, part(s, 0, b) + part(s, @col, s.length - @col))
+      @col = b
     elsif @row > 0
-      prev = @lines[@row - 1]
-      prev = "" unless prev.is_a?(String)
-      line = current_line
-      @col = char_count(prev)
-      @lines[@row - 1] = prev + line
-      @lines.delete_at(@row)
+      prev = line(@row - 1)
+      set_line(@row - 1, prev + s)
+      delete_line(@row)
       @row -= 1
-      changed = true
+      @col = prev.length
     end
-    @dirty = true if changed
-    @msg = "Draft" if changed
-    clamp_cursor
+    @goal = nil
   end
+
+  # ---- moving: by character, by row on screen, by word, page, row end, document end
 
   def move_left
     if @col > 0
-      @col -= 1
+      @col = back(cur_line, @col)
     elsif @row > 0
       @row -= 1
-      @col = char_count(current_line)
+      @col = cur_line.length
     end
-    clamp_cursor
+    @goal = nil
   end
 
   def move_right
-    if @col < char_count(current_line)
-      @col += 1
+    if @col < cur_line.length
+      @col += step(cur_line, @col)
     elsif @row < @lines.length - 1
       @row += 1
       @col = 0
     end
-    clamp_cursor
+    @goal = nil
   end
 
-  def move_up
-    @row -= 1
-    clamp_cursor
+  # up or down a row as drawn (a long paragraph is several), keeping to the same x
+  def move_row(d)
+    s = cur_line
+    ss = segs(s)
+    k = seg_of(ss, @col)
+    @goal = width(s, ss[k], @col) if @goal.nil?
+    if d < 0
+      if k > 0
+        k -= 1
+      elsif @row > 0
+        @row -= 1
+        s = cur_line
+        ss = segs(s)
+        k = ss.length - 1
+      else
+        @col = 0
+        return
+      end
+    else
+      if k < ss.length - 1
+        k += 1
+      elsif @row < @lines.length - 1
+        @row += 1
+        s = cur_line
+        ss = segs(s)
+        k = 0
+      else
+        @col = s.length
+        return
+      end
+    end
+    @col = col_at(s, ss, k, @goal)
   end
 
-  def move_down
-    @row += 1
-    clamp_cursor
+  def page(d)
+    n = visible_rows - 1
+    n = 1 if n < 1
+    while n > 0
+      move_row(d)
+      n -= 1
+    end
   end
 
-  def page_up
-    @row -= visible_rows
-    clamp_cursor
-    @msg = "Scroll"
+  def space_at?(s, i)
+    b = s.getbyte(i)
+    b == 32 || b == 9
   end
 
-  def page_down
-    @row += visible_rows
-    clamp_cursor
-    @msg = "Scroll"
+  # to the start of the next word, on to the next line at the end of one
+  def word_right
+    s = cur_line
+    if @col >= s.length
+      move_right
+      return
+    end
+    i = @col
+    i += step(s, i) while i < s.length && !space_at?(s, i)
+    i += 1 while i < s.length && space_at?(s, i)
+    @col = i
+    @goal = nil
+  end
+
+  # to the start of this word, or the one before
+  def word_left
+    if @col == 0
+      move_left
+      return
+    end
+    s = cur_line
+    i = @col
+    i = back(s, i) while i > 0 && space_at?(s, back(s, i))
+    i = back(s, i) while i > 0 && !space_at?(s, back(s, i))
+    @col = i
+    @goal = nil
+  end
+
+  # the start of the row on screen; at it already, the start of the paragraph
+  def row_start
+    ss = segs(cur_line)
+    a = ss[seg_of(ss, @col)]
+    @col = @col == a ? 0 : a
+    @goal = nil
+  end
+
+  def row_end
+    s = cur_line
+    ss = segs(s)
+    k = seg_of(ss, @col)
+    e = seg_end(s, ss, k)
+    e = back(s, e) if k + 1 < ss.length
+    @col = @col == e ? s.length : e
+    @goal = nil
+  end
+
+  def doc_start
+    @row = 0
+    @col = 0
+    @goal = nil
+  end
+
+  def doc_end
+    @row = @lines.length - 1
+    @col = cur_line.length
+    @goal = nil
+  end
+
+  # ---- find: from the cursor on, then from the top; case doesn't matter
+
+  def find
+    s = ask_text("FIND", "Find what?", @find, FIND_MAX)
+    return if s.nil? || s == ""
+    @find = s
+    find_from(@row, @col)
+  end
+
+  def find_next
+    if @find == ""
+      find
+    else
+      find_from(@row, @col + 1)
+    end
+  end
+
+  def find_from(r0, c0)
+    want = @find.downcase
+    n = @lines.length
+    i = 0
+    found = nil
+    while i <= n && found.nil?
+      r = (r0 + i) % n
+      from = i == 0 ? c0 : 0
+      s = line(r).downcase
+      if from <= s.length
+        c = s.index(want, from)
+        c = nil if c && i == n && c >= c0      # past where it began: once round is enough
+        found = [r, c] if c
+      end
+      i += 1
+    end
+    if found
+      @msg = "From the top: " + @find if found[0] < r0 || (found[0] == r0 && found[1] < c0)
+      @row = found[0]
+      @col = found[1]
+      @goal = nil
+      @hit = [@row, @col, want.length]
+    else
+      @msg = "Not found: " + @find
+    end
   end
 end

@@ -70,10 +70,23 @@ class SuiteApp
       paint
       @msg = ""
       k = nav(key)
-      return k if k != "\t"
-      k = menu_main(spec)
-      return k if k
+      if k == "%"
+        @msg = mem_text
+      elsif k != "\t"
+        return k
+      else
+        k = menu_main(spec)
+        return k if k
+      end
     end
+  end
+
+  # the hidden % key (docs/UI.md): the VM's heap, shared by every Ruby app's objects
+  def mem_text
+    m = PicoRubyVM.memory_statistics
+    "Ruby heap: " + (m[:free] / 1024).to_s + " KB free of " + (m[:total] / 1024).to_s
+  rescue
+    "Ruby heap: not known here"
   end
 
   def paint
@@ -126,12 +139,16 @@ class SuiteApp
   # the table's numbered items, in order, while they fit beside "[Tab] menu"; Widget.hints
   # draws "[key] label " from 3 px in, unclipped
   def hint_list(spec)
+    hint_fit(spec, (@w - 3) / @cw - 10)
+  end
+
+  # the same in room characters, for a screen with more on its hint line
+  def hint_fit(spec, room)
     found = []
     spec.tr(";", "|").split("|").each do |it|
       found.push(it) if digit?(it)
     end
     found.sort!
-    room = (@w - 3) / @cw - 10
     out = []
     i = 0
     while i < found.length

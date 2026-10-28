@@ -1,7 +1,7 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 3 are built; each
-step's status is under *Order*, in italics.
+Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 3 are built, and
+Agenda and Writer of step 4; each step's status is under *Order*, in italics.
 
 ## Decisions
 
@@ -457,8 +457,32 @@ screen.
   TERM512 firmware: Home lists Agenda's next events under its icon (the bundled Scheduler
   moves to Extras) → Enter opens Agenda on the event → Help, edit the time → `Tab` `1` saves
   and goes back to Home on the same row → `x`, `y` on Home: Agenda deletes it and hands back.
-  That run found one bug, fixed: a request left Agenda's own `place.txt` behind. Not
-  measured yet: the Ruby VM's heap.*
+  That run found one bug, fixed: a request left Agenda's own `place.txt` behind. The Ruby
+  VM's heap: see 4.2.*
+- 4.2 Writer. *Done: `forks/writer/` (Writer at upstream fc9f6f9, then every change listed in
+  its UPSTREAM.md). All five items of the list above but 5 (step 5.2): the commands on `Tab`
+  with the `Ctrl` keys kept (`Ctrl+J` can't be: the key layer reads it as Enter); Move
+  (`Tab` `m`, a block cursor, TYPE/MOVE on the status line); a list of documents in
+  `/data/writer/` (`n` `r` `x`, deleted ones kept in `deleted/`), find (`Tab` `f`, `g`), and
+  a word count; 320×240 with 50 columns, 14 rows and a preview beside the list. Not in the
+  list but needed: paragraphs wrap at a space (upstream cut a long line off at the edge), and
+  up/down go a row as drawn. Home's `new` with a name opens that document if it's there, ready
+  for Projector's notes. `tools/rbcheck.py` (run by `build.sh`) fails the build on a call to a
+  method mruby/c doesn't have, which CRuby in `tests/rsim.rb` can't catch. 17 `writer_*`
+  scenarios at both sizes. On the firmware: the list, typing, wrapping, Move, find and save
+  on the Cardputer build; the preview and find's highlight on TERM512; and Home → Writer on
+  its document → type → `Tab` `1` → Home → `x` `y` (Writer deletes it into `deleted/` and
+  hands back).
+  **Memory**: the Ruby apps share one 120 KB arena (`AREA512_ARENA_BYTE_SIZE`) for code and
+  objects, and mruby/c can't raise running out: it **restarts the device**. Writer's code is
+  33 KB of bytecode (upstream's 9 KB). A 24 KB document restarted the Cardputer build; with
+  one copy less on opening and two less on saving, 16 KB opened, took an edit and saved, and
+  20 KB still ran out while opening. So Writer stops at **12 KB** (about 2,000 words): it
+  won't open a bigger file (it says how big) or type past it. A file needs reading to know its
+  size (AREA512's `File` has no size), so one much bigger copied in by hand could still run
+  out while it's read. The `%` key reads the heap in the Ruby apps too, but the sandbox VM has
+  no `PicoRubyVM` on either firmware, so it says "not known" there: the filer's ARN figure is
+  the measure (60% used after a Writer session with small documents).*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.

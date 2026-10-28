@@ -29,6 +29,12 @@ Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 the month beside the day on TERM512. Copy it to `/Area512_data/home/ai/agenda/`; it copies
 Scheduler's events the first time. See [forks/agenda/UPSTREAM.md](forks/agenda/UPSTREAM.md).
 
+**Writer** (`dist/writer/`) is AREA512's Writer, forked the same way: any number of documents
+from a list, paragraphs that wrap to the screen, a word count, find, every command on `Tab`
+instead of a `Ctrl` chord, and a Move mode where the bare keys move the cursor. Copy it to
+`/Area512_data/home/ai/writer/`; it copies your `writer.txt` the first time. See
+[forks/writer/UPSTREAM.md](forks/writer/UPSTREAM.md).
+
 **Home** (`dist/home/`, new for 1.0) is the suite's first screen: a row of app icons with each
 app's files under its icon, after the Psion Series 3. Copy it to `/Area512_data/home/ai/home/`
 and add `default=app:/home/ai/home` to `/Area512_data/etc/ui` to start on it. It finds the apps
@@ -61,11 +67,13 @@ host `picorbc` built, at `~/area512` (or set `AREA512`), and `ruby` for `tests/r
 You need [area512-factory](https://github.com/emu-commits/area512-factory) checked out at
 `~/area512-factory` (or set `AREA512_FACTORY`), with its `./setup.sh` run (`tests/fw.py` needs its `emu/fwrun.mjs` with `--dump`).
 
-    ./build.sh               # lib/py/ + apps/<app>/ -> dist/projector/, dist/home/ (manifest, .mpy, ovl/, icons/)
+    ./build.sh               # lib/py/ + apps/<app>/ -> dist/projector/, dist/home/ (manifest, .mpy, ovl/, icons/);
+                             # lib/ruby/ + forks/<fork>/ -> dist/agenda/, dist/writer/ (.mrb), after
+                             # tools/rbcheck.py: no call to a method mruby/c doesn't have
     tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks);
                              # home_* run Home, and check the files it writes and the app it hands off to
     tests/sim.py --both      # the same on a Cardputer and on TERM512 (full screen, 320x240);
-                             # agenda_* run the Ruby fork under CRuby (tests/rsim.rb)
+                             # agenda_* and writer_* run the Ruby forks under CRuby (tests/rsim.rb)
     tests/fw.py full_arc     # the same scenario on the OFFICIAL firmware, headless, with screenshots
                              # and the card's files copied back to tests/.fw/data/
     tests/fw.py home_open --term512   # Home and Projector on the TERM512 build (which has run_next)

@@ -18,8 +18,8 @@ SOURCES = ARGV[3..].map { |f| [f, File.read(f)] }    # read before File is mocke
 
 class SimDone < Exception; end
 
-$sim = { pos: 0, frames: 0, cur: [], last: [], fs: {} }
-SEED.each { |k, v| $sim[:fs][k] = v }
+$sim = { pos: 0, frames: 0, cur: [], last: [], fs: {}, pend: [] }
+SEED.each { |k, v| $sim[:fs][k] = v.nil? ? nil : v.b }
 
 def sim_txt(s)
   $sim[:cur] << s.to_s if $sim[:cur].length < 40
@@ -32,14 +32,21 @@ def sim_frame
   raise SimDone, "frame_limit" if $sim[:frames] > 40000
 end
 
+# A non-ASCII token is UTF-8 from the keyboard's IME: the firmware hands it over a byte a key
 def sim_key
+  return $sim[:pend].shift unless $sim[:pend].empty?
   while $sim[:pos] < KEYS.length
     t = KEYS[$sim[:pos]]
     $sim[:pos] += 1
     next if t == "WAIT"
     return " " if t == "SPACE"
+    return (t[5].ord & 31).chr if t.start_with?("CTRL:")    # CTRL:s is Ctrl+S, byte 19
     return "\t" if t == "TAB"
-    return t
+    unless t.ascii_only?
+      $sim[:pend] = t.b.bytes.map { |b| b.chr.b }
+      return $sim[:pend].shift
+    end
+    return t.b
   end
   raise SimDone, "keys_exhausted"
 end
@@ -113,6 +120,9 @@ module Widget
     sim_txt(hs.map { |h| h[0] + ":" + h[1] }.join(" "))
   end
   def self.text_right(sp, x, y, s, c) = sim_txt(s)
+  def self.body_height = body_bottom - body_top
+  def self.panel(sp, x, y, w, h) = nil
+  def self.scrollbar(sp, x, y, h, top, visible, total) = nil
 end
 
 module SD
@@ -135,9 +145,33 @@ class << File
   def unlink(p) = $sim[:fs].delete(p) ? 1 : 0
 end
 
-class << Dir
-  def exist?(p) = $sim[:fs].key?(p) && $sim[:fs][p].nil?
-  def mkdir(p) = ($sim[:fs][p] = nil)
+class << File
+  def rename(a, b)
+    raise IOError, "no file #{a}" unless $sim[:fs].key?(a)
+    $sim[:fs][b] = $sim[:fs].delete(a)
+    0
+  end
+end
+
+# Dir.new(path).read: the names in it, then nil (AREA512's Dir, over POSIX readdir)
+class Dir
+  def self.exist?(p) = $sim[:fs].key?(p) && $sim[:fs][p].nil?
+  def self.mkdir(p) = ($sim[:fs][p] = nil)
+  def self.new(p)
+    raise IOError, "no dir #{p}" unless exist?(p)
+    allocate.tap { |d| d.sim_open(p) }
+  end
+  def sim_open(p)
+    pre = p + "/"
+    @names = $sim[:fs].keys.select { |k| k.start_with?(pre) && !k[pre.length..].include?("/") }
+                       .map { |k| k[pre.length..] }
+  end
+  def read = @names.shift
+  def close = nil
+end
+
+module PicoRubyVM
+  def self.memory_statistics = { total: 120 * 1024, used: 50 * 1024, free: 70 * 1024, fragmentation: 0 }
 end
 
 module Area512

@@ -10,6 +10,7 @@
 
 Script syntax: tokens separated by spaces; "T:some text" types the text (spaces
 included, use _ for a space inside the token); ENTER ESC BS UP DOWN LEFT RIGHT as is.
+CTRL:s is Ctrl+S (the PicoRuby forks only, under tests/rsim.rb).
 """
 import json, os, pathlib, re, subprocess, sys
 
@@ -211,7 +212,7 @@ def _sim_stats():
 EXPECT = {}
 
 
-FORKS = ("agenda",)       # PicoRuby: run by tests/rsim.rb under CRuby
+FORKS = ("agenda", "writer")       # PicoRuby: run by tests/rsim.rb under CRuby
 
 
 def app_of(name):
@@ -354,6 +355,97 @@ EXPECT["agenda_time"] = [rfs("/data/agenda/agenda.txt", "CURSOR\t2026-06-21\n202
 # nothing on the card: every screen says so; leaving without a change writes nothing
 SCENARIOS["agenda_empty"] = "SHOT:a_empty ENTER SHOT:a_empty_day a SHOT:a_empty_list ESC ESC"
 EXPECT["agenda_empty"] = ["!/data/agenda/agenda.txt", "!@@RUN_NEXT"]
+
+
+# Writer (forks/writer, PicoRuby): documents in /data/writer, Type and Move, find
+WR_NOTES = "The quick brown fox\njumps over the lazy dog\n"
+WR_SEED = {"/data": None, "/data/writer": None, "/data/writer/notes.txt": WR_NOTES,
+           "/data/writer/Shopping.txt": "Milk\nBread\n", "/data/writer/recent.txt": "notes|notes.txt\n"}
+WR_APPS = "1|Home|/home/ai/home\n2|Projector|/home/ai/projector\n3|Writer|/home/ai/writer\n"
+WR_REG = dict(WR_SEED, **{"/data/area512": None, "/data/area512/apps.txt": WR_APPS})
+# the one document from before the fork becomes "writer", and the old file stays
+SEEDS["writer_import"] = {"/data": None, "/data/writer.txt": "Hello\nWorld\n"}
+SCENARIOS["writer_import"] = "SHOT:w_files ENTER SHOT:w_doc ESC ESC"
+EXPECT["writer_import"] = [rfs("/data/writer/writer.txt", "Hello\nWorld\n"),
+                           rfs("/data/writer/recent.txt", "writer|writer.txt\n"), rfs("/data/writer.txt", "Hello\nWorld\n")]
+# n names it, then typing; Esc saves and goes to the list, Esc again leaves
+SCENARIOS["writer_type"] = "SHOT:w_empty n T:Draft ENTER T:Hello_world ENTER T:Second_line SHOT:w_typed ESC SHOT:w_list ESC"
+EXPECT["writer_type"] = [rfs("/data/writer/Draft.txt", "Hello world\nSecond line\n"),
+                         rfs("/data/writer/recent.txt", "Draft|Draft.txt\n")]
+# Move (Tab m): the bare arrows, l a word, [ the top, e the row's end; Enter types again
+SEEDS["writer_move"] = WR_SEED
+SCENARIOS["writer_move"] = ("ENTER TAB SHOT:w_menu m SHOT:w_move . l l ENTER T:X TAB m [ e x SHOT:w_movekey ENTER T:! "
+                            "TAB m , , h ESC T:< ESC ESC")
+EXPECT["writer_move"] = [rfs("/data/writer/notes.txt", "The quick brown <fox!\njumps over Xthe lazy dog\n")]
+# a paragraph wider than the screen wraps; down stays in it, on the next row
+WR_LONG = "Lorem ipsum " * 12 + "end\nSecond para\n"
+SEEDS["writer_wrap"] = {"/data": None, "/data/writer": None, "/data/writer/long.txt": WR_LONG}
+SCENARIOS["writer_wrap"] = "ENTER SHOT:w_wrap DOWN T:X DOWN DOWN DOWN DOWN DOWN DOWN T:Y TAB m a e e ENTER T:Z ESC ESC"
+EXPECT["writer_wrap"] = ["XLorem", "\\nSecond paraYZ\\n"]
+# find (Tab f) from the cursor, Tab g again (round from the top), case doesn't matter;
+# Tab then Writer's own digit does nothing
+SEEDS["writer_find"] = WR_REG
+SCENARIOS["writer_find"] = "ENTER TAB f T:LAZY ENTER SHOT:w_found T:very_ TAB g TAB 3 T:Q ESC ESC"
+EXPECT["writer_find"] = [rfs("/data/writer/notes.txt", "The quick brown fox\njumps over the very Qlazy dog\n")]
+# the list: new, rename, delete (into deleted/), Enter opens; names a card can't take
+SEEDS["writer_files"] = WR_SEED
+SCENARIOS["writer_files"] = ("SHOT:w_list2 n T:recent ENTER n T:a/b?c ENTER ESC DOWN DOWN SHOT:w_three r BS BS BS BS BS BS BS BS "
+                             "T:Groceries ENTER r T:x ENTER UP x n x y SHOT:w_deleted n T:GROCERIESX ENTER T:Tea ENTER ESC ESC")
+EXPECT["writer_files"] = [rfs("/data/writer/abc.txt", "\n"), rfs("/data/writer/Groceriesx.txt", "Tea\nMilk\nBread\n"),
+                          rfs("/data/writer/deleted/notes.txt", WR_NOTES), "!/data/writer/notes.txt ",
+                          "!/data/writer/recent.txt.", "!Shopping.txt", "!GROCERIESX"]
+# Tab then a digit: saved, the place written, then Projector
+SEEDS["writer_switch"] = WR_REG
+SCENARIOS["writer_switch"] = "ENTER DOWN T:Hi TAB SHOT:w_apps 2"
+EXPECT["writer_switch"] = ["@@RUN_NEXT /home/ai/projector", rfs("/data/writer/notes.txt", "The quick brown fox\nHijumps over the lazy dog\n"),
+                           rfs("/data/writer/place.txt", "screen: doc\nsel: 0\nfile: notes.txt\nrow: 1\ncol: 2\nmode: type\n")]
+# back from a switch: the same document, line, column and mode, and place.txt used up
+SEEDS["writer_place"] = dict(WR_SEED, **{"/data/writer/place.txt": "screen: doc\nsel: 0\nfile: notes.txt\nrow: 1\ncol: 6\nmode: move\n"})
+SCENARIOS["writer_place"] = "SHOT:w_back ENTER T:Z ESC ESC"
+EXPECT["writer_place"] = ["jumps Zover", "!/data/writer/place.txt"]
+# Home's requests: open, new (named), delete
+SEEDS["writer_open"] = dict(WR_REG, **{"/data/area512/open.txt": "writer|open|Shopping.txt\n"})
+SCENARIOS["writer_open"] = "T:Eggs ENTER ESC ESC"
+EXPECT["writer_open"] = [rfs("/data/writer/Shopping.txt", "Eggs\nMilk\nBread\n"), "@@RUN_NEXT /home/ai/home",
+                         rfs("/data/writer/recent.txt", "Shopping|Shopping.txt\nnotes|notes.txt\n")]
+SEEDS["writer_new_req"] = dict(WR_REG, **{"/data/area512/open.txt": "writer|new|Corner cafe notes\n"})
+SCENARIOS["writer_new_req"] = "T:Hi ESC ESC"
+EXPECT["writer_new_req"] = [rfs("/data/writer/Corner cafe notes.txt", "Hi\n"), "!/data/area512/open.txt"]
+SEEDS["writer_del_req"] = dict(WR_REG, **{"/data/area512/open.txt": "writer|delete|notes.txt\n"})
+SCENARIOS["writer_del_req"] = ""
+EXPECT["writer_del_req"] = ["@@RUN_NEXT /home/ai/home", rfs("/data/writer/deleted/notes.txt", WR_NOTES),
+                            rfs("/data/writer/recent.txt", ""), "!/data/area512/open.txt"]
+# Writer's Ctrl keys still work: ^S save, ^K page up, ^O the list, ^Q leave
+SEEDS["writer_ctrl"] = WR_SEED
+SCENARIOS["writer_ctrl"] = "ENTER T:A CTRL:s CTRL:k T:B CTRL:o ENTER CTRL:q"
+EXPECT["writer_ctrl"] = [rfs("/data/writer/notes.txt", "BAThe quick brown fox\njumps over the lazy dog\n")]
+# UTF-8 from the IME, a byte a key: kept whole, and Backspace takes a whole character
+SCENARIOS["writer_utf8"] = "n T:jp ENTER T:あい BS T:x LEFT LEFT T:< ESC ESC"
+EXPECT["writer_utf8"] = [rfs("/data/writer/jp.txt", "<\\xE3\\x81\\x82x\n").replace("\\\\x", "\\x")]
+# Tab > Help in Move, and the Apps menu
+SEEDS["writer_menu"] = WR_REG
+SCENARIOS["writer_menu"] = "ENTER TAB m TAB ? SHOT:w_help ENTER TAB LEFT LEFT RIGHT ENTER"
+EXPECT["writer_menu"] = ["@@RUN_NEXT /home/ai/home"]
+# a long document: the end, the top, pages
+SEEDS["writer_long"] = {"/data": None, "/data/writer": None,
+                        "/data/writer/big.txt": "".join("Line %d of the big one\n" % i for i in range(1, 301))}
+SCENARIOS["writer_long"] = "ENTER TAB m ] SHOT:w_end k k [ j j ENTER T:@ ESC ESC"
+EXPECT["writer_long"] = ["big one\\n@Line ", "!@Line 1 "]     # two pages down: 7 rows a page, 14 on TERM512
+# the hidden % in Move: the Ruby heap (rsim's numbers; tests/fw.py shows the real ones)
+SEEDS["writer_mem"] = WR_SEED
+SCENARIOS["writer_mem"] = "ENTER TAB m % SHOT:w_mem"
+EXPECT["writer_mem"] = ["@@SCREEN Ruby heap: 70 KB free of 120"]
+# past 12 KB: a file that big isn't opened, and typing stops at the limit
+SEEDS["writer_full"] = {"/data": None, "/data/writer": None, "/data/writer/huge.txt": "x" * 13000 + "\n",
+                        "/data/writer/edge.txt": "y" * 12280 + "\n"}
+SCENARIOS["writer_full"] = "DOWN ENTER SHOT:w_big UP ENTER TAB m ] ENTER T:abcdefghij ENTER SHOT:w_full"
+EXPECT["writer_full"] = ["@@SCREEN Full: 12 KB is the most. Start another."]
+SEEDS["writer_huge"] = SEEDS["writer_full"]
+SCENARIOS["writer_huge"] = "DOWN ENTER SHOT:w_huge"
+EXPECT["writer_huge"] = ["@@SCREEN huge is 13 KB: too big (12 KB most)"]
+# nothing on the card: every key on the empty list is harmless
+SCENARIOS["writer_empty"] = "SHOT:w_none ENTER x r DOWN UP ESC"
+EXPECT["writer_empty"] = ["!/data/writer/recent.txt \"", "!@@RUN_NEXT"]
 
 
 def run_fork(name, app, script, screen):

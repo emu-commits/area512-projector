@@ -15,7 +15,7 @@ class Agenda
 
   # keys every screen has; true if k was one of them
   def common_key(k)
-    if k[0, 1] == "@"
+    if k.length > 1 && k[0, 1] == "@"
       switch_to(k[1, k.length])    # Tab, then an app's digit
     elsif k == "s"
       save_data
