@@ -47,6 +47,7 @@ You need [area512-factory](https://github.com/emu-commits/area512-factory) check
 
     ./build.sh               # app/main.py + app/ov/*.py -> dist/projector/ (manifest, .mpy, ovl/)
     tests/sim.py             # key-script scenarios in a512sim (AREA512's MicroPython + API mocks)
+    tests/sim.py --both      # the same on a Cardputer and on TERM512 (full screen, 320x240)
     tests/fw.py full_arc     # the same scenario on the OFFICIAL firmware, headless, with screenshots
                              # and the card's files copied back to tests/.fw/data/
 

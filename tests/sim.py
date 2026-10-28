@@ -4,6 +4,8 @@
   tests/sim.py                 every scenario in SCENARIOS, against dist/projector (./build.sh)
   tests/sim.py -v NAME         one scenario, print the last screen + SD files
   tests/sim.py --py            run build/core.py instead (line numbers in errors)
+  tests/sim.py --term512       on TERM512: a 240x135 window on a 320x240 display (full_screen)
+  tests/sim.py --both          every scenario on the Cardputer and on TERM512
 
 Script syntax: tokens separated by spaces; "T:some text" types the text (spaces
 included, use _ for a space inside the token); ENTER ESC BS UP DOWN LEFT RIGHT as is.
@@ -13,8 +15,10 @@ import os, pathlib, re, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FACTORY = pathlib.Path(os.environ.get("AREA512_FACTORY", pathlib.Path.home() / "area512-factory"))
 SIM = FACTORY / "sim/a512sim"
-PRELUDE = FACTORY / "sim/prelude.py"
-HEAP_KB = int(os.environ.get("SIM_HEAP_KB", "128"))         # logic checks; memory is measured on the firmware (tests/fw.py, key %)
+PRELUDES = {"cardputer": FACTORY / "sim/prelude.py", "term512": FACTORY / "sim/prelude_term512.py"}
+HEAP_KB = int(os.environ.get("SIM_HEAP_KB", "160"))         # logic checks; memory is measured on the firmware (tests/fw.py, key %).
+# Not 128: the sim keeps the key script in the same heap, and at 320x240 the film overlay no
+# longer fit in 128 KB (it showed "No memory" and the script went on from the strip).
 
 
 def expand(script, shots=False):
@@ -145,7 +149,7 @@ SCENARIOS["arc_mem"] = SCENARIOS["full_arc"].replace(
     "s SHOT:saved q", "% SHOT:mem_judged s SHOT:saved q")
 
 
-def run(name, script, target):
+def run(name, script, target, screen="cardputer"):
     # Like the device: overlays on the card, then main.manifest's entries in order.
     work = ROOT / "tests/.work" / name
     work.mkdir(parents=True, exist_ok=True)
@@ -168,7 +172,7 @@ def run(name, script, target):
     heap = HEAP_KB
     if name.startswith("big") and heap < 400:
         heap = 400          # its 3,500-key script is held in the sim's heap, not the app's
-    r = subprocess.run([str(SIM), str(PRELUDE), ".keys", str(heap)] + files,
+    r = subprocess.run([str(SIM), str(PRELUDES[screen]), ".keys", str(heap)] + files,
                        cwd=work, capture_output=True, text=True, timeout=300)
     return r.stdout + r.stderr
 
@@ -191,17 +195,24 @@ def main():
     args = sys.argv[1:]
     target = "py" if "--py" in args else "mpy"
     verbose = "-v" in args
+    screens = ["cardputer"]
+    if "--term512" in args:
+        screens = ["term512"]
+    if "--both" in args:
+        screens = ["cardputer", "term512"]
     names = [a for a in args if not a.startswith("-")] or list(SCENARIOS)
     bad = 0
-    for n in names:
-        out = run(n, SCENARIOS[n], target)
-        v = verdict(out)
-        stats = next((l for l in out.splitlines() if l.startswith("@@STATS")), "")
-        print("{:20} {:14} {}".format(n, v, stats.replace("@@STATS ", "")))
-        if v != "ok" or verbose:
-            keep = [l for l in out.splitlines() if not l.startswith(("@@HEAP",))]
-            print("\n".join(keep[-60:]))
-        bad += v != "ok"
+    for screen in screens:
+        for n in names:
+            out = run(n, SCENARIOS[n], target, screen)
+            v = verdict(out)
+            stats = next((l for l in out.splitlines() if l.startswith("@@STATS")), "")
+            label = n if len(screens) == 1 else screen + " " + n
+            print("{:30} {:14} {}".format(label, v, stats.replace("@@STATS ", "")))
+            if v != "ok" or verbose:
+                keep = [l for l in out.splitlines() if not l.startswith(("@@HEAP",))]
+                print("\n".join(keep[-60:]))
+            bad += v != "ok"
     sys.exit(1 if bad else 0)
 
 
