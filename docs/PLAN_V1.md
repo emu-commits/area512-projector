@@ -530,7 +530,9 @@ screen.
   emulator): the column was counted from the paragraph's start on every band, the paragraph
   was wrapped about three times a key, three reads a byte. Now the column is counted on from
   where it was, rows are wrapped with one read a byte and only as far as the screen needs,
-  and only the words around a change are counted again: about a tenth of the work. Rows kept
+  and only the words around a change are counted again: about a tenth of the work. At the end
+  of a 4 KB paragraph (now the longest), 247 ms a key on TERM512 and 210 on the Cardputer,
+  148 at its start, 911 a page. Rows kept
   and mended from key to key were quicker still (58 ms), but cost more of the VM's arena
   than they saved, and the device can't say how its arena is cut up, so `tests/arena.sh` was
   written to: it runs a fork on mruby/c built for the PC with the firmware's settings and
