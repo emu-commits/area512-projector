@@ -3,9 +3,9 @@ class Slide
   # :heading_3, :list, :code or :paragraph, segments are [[:text or :inline_code, text], ...]
   # and first is false on a row a long line wrapped onto. Upstream drew each line as one row,
   # cut off at the edge; here a line wraps after a space (code doesn't: it's cut off).
-  def layout_page(text)
+  # text is a chunk of a page (storage.rb); code_block, whether it starts inside ``` lines.
+  def layout_page(text, code_block)
     rows = []
-    code_block = false
     i = 0
     n = text.length
     while i < n

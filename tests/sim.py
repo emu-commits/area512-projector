@@ -615,14 +615,36 @@ SEEDS["slide_scroll"] = dict(SL_SEED, **{"/data/writer/long.txt": "".join("Row %
                                         "/data/slide/recent.txt": "long|long.txt\n"})
 SCENARIOS["slide_scroll"] = "ENTER j . . k SHOT:s_scroll"
 EXPECT["slide_scroll"] = ["@@SCREEN Row 3\n", "!@@SCREEN Row 2\n", "@@SCREEN 1/1"]
+# a page with no "---" can be a whole 10 KB document: it's laid out 1 KB at a time (a ``` block
+# open across the cut), Enter and Space go down it a screen at a time, then say it's the last
+SL_LONG = ["Line %03d of the long notes" % i for i in range(1, 201)]
+SL_LONG[29] = SL_LONG[44] = "```"
+SL_LONG[40] = "# still code"
+SL_LONG = "\n".join(SL_LONG) + "\n"
+SL_LONG_SEED = dict(SL_SEED, **{"/data/writer/long.txt": SL_LONG, "/data/slide/recent.txt": "long|long.txt\n"})
+SEEDS["slide_long"] = SL_LONG_SEED
+SCENARIOS["slide_long"] = "ENTER " + "SPACE " * 60 + "SHOT:s_long_end ENTER"
+EXPECT["slide_long"] = ["@@SCREEN Line 200 of the long notes", "@@SCREEN 1/1", "@@SCREEN Last page. o: the decks"]
+# down past the cuts row by row, and all the way back up
+SEEDS["slide_long_back"] = SL_LONG_SEED
+SCENARIOS["slide_long_back"] = "ENTER " + "j " * 90 + "k " * 90 + "SHOT:s_long_top"
+EXPECT["slide_long_back"] = ["@@SCREEN Line 001 of the long notes", "!@@SCREEN Line 200"]
+# Writer's Tab v on line 41: that line at the top, still code (its ``` is in the chunk before)
+SEEDS["slide_long_show"] = dict(SL_LONG_SEED, **{"/data/area512/open.txt": "slide|show|long.txt:40\n"})
+SCENARIOS["slide_long_show"] = "SHOT:s_long_show"
+EXPECT["slide_long_show"] = ["@@SCREEN # still code", "!@@SCREEN Line 040"]
 # Tab then a digit: to Writer, and the deck and page are kept for coming back
 SEEDS["slide_switch"] = SL_SEED
 SCENARIOS["slide_switch"] = "ENTER ENTER TAB SHOT:s_apps 3"
 EXPECT["slide_switch"] = ["@@RUN_NEXT /home/ai/writer",
-                          rfs("/data/slide/place.txt", "screen: doc\nsel: 0\nfile: talk.txt\npage: 1\n")]
+                          rfs("/data/slide/place.txt", "screen: doc\nsel: 0\nfile: talk.txt\npage: 1\nchunk: 0\nscroll: 0\n")]
 SEEDS["slide_place"] = dict(SL_SEED, **{"/data/slide/place.txt": "screen: doc\nsel: 0\nfile: talk.txt\npage: 2\n"})
 SCENARIOS["slide_place"] = "SHOT:s_back"
 EXPECT["slide_place"] = ["@@SCREEN 3/4", "!/data/slide/place.txt"]
+SEEDS["slide_long_place"] = dict(SL_LONG_SEED, **{"/data/slide/place.txt":
+                                                  "screen: doc\nsel: 0\nfile: long.txt\npage: 0\nchunk: 3\nscroll: 2\n"})
+SCENARIOS["slide_long_place"] = "SHOT:s_long_place"
+EXPECT["slide_long_place"] = ["!@@SCREEN Line 001", "@@SCREEN Line 1"]
 # e and n hand over to Writer: the deck to edit, or a new document
 SEEDS["slide_edit"] = SL_SEED
 SCENARIOS["slide_edit"] = "ENTER e"
@@ -664,7 +686,7 @@ EXPECT["slide_menu_last"] = ["@@SCREEN 4/4"]
 SEEDS["slide_huge"] = dict(SL_SEED, **{"/data/writer/huge.txt": "x" * 13000 + "\n",
                                       "/data/slide/recent.txt": "huge|huge.txt\n"})
 SCENARIOS["slide_huge"] = "ENTER SHOT:s_huge"
-EXPECT["slide_huge"] = ["@@SCREEN huge is 13 KB: too big (12 KB most)"]
+EXPECT["slide_huge"] = ["@@SCREEN huge is 13 KB: too big (10 KB most)"]
 # nothing on the card: every key on the empty list is harmless
 SCENARIOS["slide_empty"] = "SHOT:s_none ENTER e x r DOWN UP ESC"
 EXPECT["slide_empty"] = ["!@@RUN_NEXT"]

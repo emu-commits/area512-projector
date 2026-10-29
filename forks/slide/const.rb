@@ -19,9 +19,12 @@ class Slide < SuiteApp
   DATA_DIR = "/data/slide" unless const_defined?(:DATA_DIR)
   # Slide's pages before the fork: <number>.md in its own folder, joined once as "slides"
   OLD_DIR = "/home/tool/slide" unless const_defined?(:OLD_DIR)
-  # Writer's documents stop at 10 KB (forks/writer/const.rb); one copied in by hand may be
-  # bigger. Slide holds the text and one page laid out, so a little more is safe.
-  DECK_MAX = 12288 unless const_defined?(:DECK_MAX)
+  # Writer's documents stop at 10 KB (forks/writer/const.rb), and so do decks: one copied in
+  # by hand may be bigger. Slide holds the text and the rows of a chunk or two; on the
+  # Cardputer build a 12 KB page with no "---" ran out paging down, and 10 KB went to the end.
+  DECK_MAX = 10240 unless const_defined?(:DECK_MAX)
+  # a page is laid out this many bytes of whole lines at a time (storage.rb)
+  CHUNK = 1024 unless const_defined?(:CHUNK)
 
   # One key table per screen (docs/UI.md)
   SHOW_KEYS = "Page|1ENT next|2BS back|j down|k up|[ first|] last;Deck|3e edit|o decks" unless const_defined?(:SHOW_KEYS)

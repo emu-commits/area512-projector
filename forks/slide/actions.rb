@@ -18,9 +18,13 @@ class Slide
   def show_key(k)
     if k.length > 1 && k[0, 1] == "@"
       switch_to(k[1, k.length])
-    elsif k == "RIGHT" || k == "ENTER" || k == " "
+    elsif k == "ENTER" || k == " "
+      more_below? ? screen_down : next_page
+    elsif k == "BS"
+      more_above? ? screen_up : previous_page
+    elsif k == "RIGHT"
       next_page
-    elsif k == "LEFT" || k == "BS"
+    elsif k == "LEFT"
       previous_page
     elsif k == "DOWN" || k == "j"
       scroll_down
@@ -53,10 +57,33 @@ class Slide
   end
 
   def scroll_down
-    @scroll += 1 if rows_fit(@scroll) < @rows.length
+    fill_down
+    @scroll += 1 if more_below?
+    fill_down
   end
 
   def scroll_up
+    fill_up
     @scroll -= 1 if @scroll > 0
+  end
+
+  # Enter and Space read on: a screen down a long page (a row of it kept), then the next page
+  def screen_down
+    n = rows_fit(@scroll) - @scroll - 1
+    n = 1 if n < 1
+    while n > 0 && more_below?
+      scroll_down
+      n -= 1
+    end
+  end
+
+  # Backspace: a screen up, then the page before
+  def screen_up
+    n = rows_fit(@scroll) - @scroll - 1
+    n = 1 if n < 1
+    while n > 0 && more_above?
+      scroll_up
+      n -= 1
+    end
   end
 end

@@ -56,7 +56,12 @@ class Slide
     @starts = [0]
     @ends = [0]
     @page = 0
-    @rows = []
+    @cs = [0, 0]          # the page's chunks: where each starts, then where the last ends
+    @cf = [false]         # each chunk starts inside a ``` block
+    @rows = []            # the rows of chunks @c to @d - 1, @counts of them for each
+    @counts = []
+    @c = 0
+    @d = 0
     @scroll = 0
     @dirty = false        # Slide never changes a deck
   end
@@ -129,20 +134,116 @@ class Slide
     @starts.length
   end
 
+  # the top of page k
   def go_page(k)
     k = pages - 1 if k >= pages
     k = 0 if k < 0
     @page = k
-    @rows = []         # the old page's rows go before the new one's are made
-    @rows = layout_page(@text[@starts[k], @ends[k] - @starts[k]] || "")
+    split_chunks
+    view(0, 0)
+  end
+
+  # ---- a page laid out a chunk at a time. A page with no "---" can be the whole of a 10 KB
+  # document, and its rows all at once are past the VM's 120 KB (it restarted the device). So a
+  # page is cut into chunks of CHUNK bytes of whole lines, and only the chunks the screen shows
+  # are laid out: rows below are added as you scroll down, and a chunk scrolled past goes.
+
+  def split_chunks
+    @cs = [@starts[@page]]
+    @cf = [false]
+    t = @text
+    n = @ends[@page]
+    i = @cs[0]
+    fence = false
+    while i < n
+      j = t.index("\n", i) || n
+      fence = !fence if j - i >= 3 && t.getbyte(i) == 96 && t.getbyte(i + 1) == 96 && t.getbyte(i + 2) == 96
+      i = j + 1
+      if i < n && i - @cs[@cs.length - 1] >= CHUNK
+        @cs.push(i)
+        @cf.push(fence)
+      end
+    end
+    @cs.push(n)
+  end
+
+  def chunk_rows(c)
+    layout_page(@text[@cs[c], @cs[c + 1] - @cs[c]] || "", @cf[c])
+  end
+
+  # chunk c at the top, then down s rows (or as far as the page goes)
+  def view(c, s)
+    c = @cs.length - 2 if c > @cs.length - 2
+    c = 0 if c < 0
+    @rows = []           # the old rows go before the new ones are made
+    @counts = []
+    @c = c
+    @d = c
     @scroll = 0
+    fill_down
+    while s > 0 && more_below?
+      scroll_down
+      s -= 1
+    end
+  end
+
+  # rows enough to fill the screen from @scroll, and none from a chunk above it
+  def fill_down
+    while @d < @cs.length - 1 && rows_fit(@scroll) >= @rows.length
+      r = chunk_rows(@d)
+      @rows = @rows + r
+      @counts.push(r.length)
+      @d += 1
+    end
+    while @d - @c > 1 && @counts[0] <= @scroll
+      n = @counts[0]
+      @rows = @rows[n, @rows.length - n]
+      @counts = @counts[1, @counts.length - 1]
+      @scroll -= n
+      @c += 1
+    end
+  end
+
+  # the chunk above, when the screen is at the top of the rows on hand
+  def fill_up
+    return unless @scroll == 0 && @c > 0
+    @c -= 1
+    r = chunk_rows(@c)
+    @rows = r + @rows
+    @counts = [r.length] + @counts
+    @scroll = r.length
+    while @d - @c > 1 && @rows.length - @counts[@counts.length - 1] > rows_fit(@scroll)
+      n = @counts[@counts.length - 1]
+      @rows = @rows[0, @rows.length - n]
+      @counts = @counts[0, @counts.length - 1]
+      @d -= 1
+    end
+  end
+
+  def more_below?
+    rows_fit(@scroll) < @rows.length
+  end
+
+  def more_above?
+    @scroll > 0 || @c > 0
+  end
+
+  # where the screen is in the page, in rows: [first row shown, rows in all]. Rows not laid
+  # out are guessed from the bytes, at the rate of the chunks that are
+  def scroll_place
+    bytes = @cs[@d] - @cs[@c]
+    return [@scroll, @rows.length] if bytes <= 0
+    total = (@cs[@cs.length - 1] - @cs[0]) * @rows.length / bytes
+    pos = (@cs[@c] - @cs[0]) * @rows.length / bytes + @scroll
+    total = pos + @rows.length - @scroll if total < pos + @rows.length - @scroll
+    [pos, total]
   end
 
   # ---- where you were, when you switch away
 
   def write_place
     s = "screen: " + @screen.to_s + "\nsel: " + @sel.to_s + "\n"
-    s += "file: " + @name + ".txt\npage: " + @page.to_s + "\n" if @name
+    s += "file: " + @name + ".txt\npage: " + @page.to_s + "\nchunk: " + @c.to_s + "\nscroll: " + @scroll.to_s + "\n" if @name
     SD.write(place_file, s)
   end
 
@@ -153,6 +254,7 @@ class Slide
     return unless f["screen"] == "doc" && file && file.length > 4
     return unless open_doc(file[0, file.length - 4])
     go_page(f["page"].to_i) if f["page"]
+    view(f["chunk"].to_i, f["scroll"].to_i) if f["chunk"]
   end
 
   # TERM512's list: the deck's first page, its first lines, 64 bytes of each
@@ -187,11 +289,19 @@ class Slide
     @sel = @docs.index(name) || 0
     return unless open_doc(name)
     reg_read.each { |p| @back = p[2] if p[1] == "Writer" }
-    go_page(page_of_line(line))
+    off = offset_of_line(line)
+    k = 0
+    k += 1 while k + 1 < pages && @starts[k + 1] <= off
+    go_page(k)
+    return if off <= @cs[0]
+    # the cursor's line at the top of the screen: its chunk, and the rows above it in that
+    c = 0
+    c += 1 while c + 2 < @cs.length && @cs[c + 1] <= off
+    view(c, layout_page(@text[@cs[c], off - @cs[c]] || "", @cf[c]).length)
   end
 
-  # the page that line n (from 0) is on: the last page starting at or before it
-  def page_of_line(n)
+  # where line n (from 0) starts
+  def offset_of_line(n)
     off = 0
     while n > 0
       j = @text.index("\n", off)
@@ -199,9 +309,7 @@ class Slide
       off = j + 1
       n -= 1
     end
-    k = 0
-    k += 1 while k + 1 < pages && @starts[k + 1] <= off
-    k
+    off
   end
 
   # ---- writing a deck is Writer's: n and e hand over to it (docs/APPS_FORMAT.md)

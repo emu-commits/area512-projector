@@ -20,8 +20,9 @@ class Slide
       y += row_h(@rows[i])
       i += 1
     end
-    if @scroll > 0 || last < @rows.length
-      Widget.scrollbar(@sp, @w - 5, @top + 3, @bot - @top - 6, @scroll, last - @scroll, @rows.length)
+    if more_above? || last < @rows.length
+      at = scroll_place
+      Widget.scrollbar(@sp, @w - 5, @top + 3, @bot - @top - 6, at[0], last - @scroll, at[1])
     end
     foot(SHOW_KEYS)
   end

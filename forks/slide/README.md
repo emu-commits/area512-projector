@@ -17,8 +17,11 @@ the numbered pages you had in `/home/tool/slide/` (`1.md`, `2.md`, …) into the
 
 ## A deck
 
-- Enter, Space or `/` (→): the next page; Backspace or `,` (←): the one before
-- `.` `;` (or `j` `k`): scroll a page longer than the screen
+- Enter or Space: on, a screen at a time down a long page, then the next page; Backspace:
+  back the same way
+- `/` (→) and `,` (←): the next and the previous page, wherever you are on this one
+- `.` `;` (or `j` `k`): scroll a row. A document with no `---` is one long page: it scrolls
+  to the end
 - `[` and `]` (in the menu): the first and last page
 - `e`: edit it in Writer; Esc or `o`: back to the list. Shown from Writer (its Tab `v`), Esc
   goes back to Writer, where you were, and `o` to the list
@@ -32,4 +35,5 @@ the numbered pages you had in `/home/tool/slide/` (`1.md`, `2.md`, …) into the
 - `` `code` ``: inline code
 - Lines between two ```` ``` ```` lines: code. A `---` inside them doesn't start a page.
 
-Long lines wrap at a space. Code doesn't: it's cut off at the edge.
+Long lines wrap at a space. Code doesn't: it's cut off at the edge. A deck is 10 KB at most,
+as a Writer document is.
