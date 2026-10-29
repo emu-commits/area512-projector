@@ -116,6 +116,11 @@ Slide's decks are Writer's documents, so its recent.txt names them the same way
 Slide's own `n` and `e` are requests to Writer (`writer|new|`, `writer|open|talk.txt`): Slide
 writes no decks. Its `place.txt` adds `page:` (from 0) to `screen: doc`.
 
+Projector asks Writer and Calc too (its `w` and `b`): `writer|new|<title> notes` opens the
+idea's notes, made the first time, and `calc|open|<title> money.txt` the sheet it has just
+written into `/data/calc/` (Calc's format: one cell a line). The title is cut to what a name
+can hold, at a word.
+
 Every app that keeps documents drops a name from its recent.txt when the file is gone (Slide or
 Writer may have deleted it), and rewrites it.
 

@@ -20,7 +20,14 @@ Keys on the strip
   , / or h/l stage   p play   c cracks   m money
   e edit     n new       x delete  v vision
   a assumptions          o obstacle
+  w notes   b money sheet
   s save    Tab menu    Esc back
+
+w opens the idea's notes in Writer (one document an
+idea, "<title> notes"). b writes the plan's money as
+a sheet in Calc ("<title> money": a row a stage, the
+nets and totals as formulas, the likely end), asking
+first if there's one already. Both save first.
 
 Switching apps (Tab, then the app's digit) saves first
 and comes back to the same idea and stage. Leaving with

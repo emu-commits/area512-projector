@@ -18,7 +18,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FACTORY = pathlib.Path(os.environ.get("AREA512_FACTORY", pathlib.Path.home() / "area512-factory"))
 SIM = FACTORY / "sim/a512sim"
 PRELUDES = {"cardputer": FACTORY / "sim/prelude.py", "term512": FACTORY / "sim/prelude_term512.py"}
-HEAP_KB = int(os.environ.get("SIM_HEAP_KB", "160"))         # logic checks; memory is measured on the firmware (tests/fw.py, key %).
+HEAP_KB = int(os.environ.get("SIM_HEAP_KB", "168"))         # logic checks; memory is measured on the firmware (tests/fw.py, key %). The sim holds its mocks and the key script here too: 160 ran short at 320x240 (step 5.2)
 # Not 128: the sim keeps the key script in the same heap, and at 320x240 the film overlay no
 # longer fit in 128 KB (it showed "No memory" and the script went on from the strip).
 
@@ -222,6 +222,39 @@ def app_of(name):
         if name.startswith(a):
             return a
     return "projector"
+
+
+# step 5.2: w hands the idea's notes to Writer, b its money as a sheet to Calc
+APPS5 = APPS + "4|Calc|/home/ai/calc\n"
+SEEDS["notes_req"] = {"/data/area512": None, "/data/area512/apps.txt": APPS5}
+SCENARIOS["notes_req"] = NEW_IDEA + "w"
+EXPECT["notes_req"] = ["@@RUN_NEXT /home/ai/writer", "@@FS /data/area512/open.txt 'writer|new|Corner cafe notes\\n'",
+                       "@@FS /data/projector/place.txt 'screen: strip"]
+MONEY_SHEET = ("A1\tCash now\nB1\t5000\nA2\tFixed a month\nB2\t200\nA4\tStage\nB4\tMonths\nC4\tStart\nD4\tCost/mo\n"
+               "E4\tIncome/mo\nF4\tNet/mo\nG4\tTotal\n"
+               "A5\tPlan\nB5\t3\nC5\t0\nD5\t0\nE5\t0\nF5\t=E5-D5-$B$2\nG5\t=B5*F5-C5\n"
+               "A6\tBuild\nB6\t6\nC6\t0\nD6\t1800\nE6\t0\nF6\t=E6-D6-$B$2\nG6\t=B6*F6-C6\n"
+               "A7\tOpen\nB7\t6\nC7\t0\nD7\t800\nE7\t0\nF7\t=E7-D7-$B$2\nG7\t=B7*F7-C7\n"
+               "A8\tGrow\nB8\t18\nC8\t0\nD8\t800\nE8\t3500\nF8\t=E8-D8-$B$2\nG8\t=B8*F8-C8\n"
+               "A10\tEnd\nB10\t=SUM(B5:B8)\nG10\t=B1+SUM(G5:G8)\nWIDTH\tA\t14\n")
+# a long title is cut at a word for the name (24 at most, with " notes")
+SEEDS["notes_long"] = SEEDS["notes_req"]
+SCENARIOS["notes_long"] = NEW_IDEA.replace("T:Corner_cafe", "T:The_biggest_idea_of_them_all") + "w"
+EXPECT["notes_long"] = ["@@FS /data/area512/open.txt 'writer|new|The biggest idea notes\\n'"]
+SEEDS["sheet_req"] = SEEDS["notes_req"]
+SCENARIOS["sheet_req"] = NEW_IDEA + "b"
+EXPECT["sheet_req"] = ["@@RUN_NEXT /home/ai/calc", "@@FS /data/area512/open.txt 'calc|open|Corner cafe money.txt\\n'",
+                       "@@FS /data/calc/Corner cafe money.txt " + repr(MONEY_SHEET)]
+# one already there: n opens it as it is; Esc stays
+SEEDS["sheet_keep"] = dict(SEEDS["notes_req"], **{"/data/calc": None, "/data/calc/Corner cafe money.txt": "A1\tmine\n"})
+SCENARIOS["sheet_keep"] = NEW_IDEA + "b SHOT:p_sheetq n"
+EXPECT["sheet_keep"] = ["@@RUN_NEXT /home/ai/calc", "@@FS /data/calc/Corner cafe money.txt 'A1\\tmine\\n'"]
+SEEDS["sheet_esc"] = SEEDS["sheet_keep"]
+SCENARIOS["sheet_esc"] = NEW_IDEA + "b ESC"
+EXPECT["sheet_esc"] = ["!@@RUN_NEXT", "!/data/area512/open.txt", "@@FS /data/calc/Corner cafe money.txt 'A1\\tmine\\n'"]
+SEEDS["sheet_nocalc"] = {"/data/area512": None, "/data/area512/apps.txt": APPS}
+SCENARIOS["sheet_nocalc"] = NEW_IDEA + "b SHOT:p_nocalc"
+EXPECT["sheet_nocalc"] = ["@@SCREEN Calc isn't installed", "!@@RUN_NEXT", "!/data/calc"]
 
 
 # TERM512 (step 5.1): the library's keys on two lines, and the app row with Projector marked
@@ -543,6 +576,11 @@ EXPECT["calc_bytes"] = ["@@SCREEN Full: 250 cells or 6 KB is the most. Start ano
 SEEDS["calc_huge"] = SEEDS["calc_bytes"]
 SCENARIOS["calc_huge"] = "DOWN ENTER SHOT:c_huge"
 EXPECT["calc_huge"] = ["@@SCREEN huge is 10 KB: too big (6 KB most)"]
+# Projector's money sheet (step 5.2), asked for by name: G10 is the likely end, 31400
+SEEDS["calc_money"] = {"/data": None, "/data/calc": None, "/data/calc/Corner cafe money.txt": MONEY_SHEET,
+                       "/data/area512": None, "/data/area512/open.txt": "calc|open|Corner cafe money.txt\n"}
+SCENARIOS["calc_money"] = "RIGHT RIGHT RIGHT RIGHT RIGHT RIGHT DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN SHOT:c_money"
+EXPECT["calc_money"] = ["31400", "!#ERR"]
 # nothing on the card: every key on the empty list is harmless
 SCENARIOS["calc_empty"] = "SHOT:c_none ENTER x r DOWN UP ESC"
 EXPECT["calc_empty"] = ["!@@RUN_NEXT"]

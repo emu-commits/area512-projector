@@ -30,7 +30,7 @@ MAX_ASSUME = 6
 # ends with Tab menu. The menu bar (overlay "menu") and Tab > Help are drawn from the same
 # table, so the three can't disagree.
 LIB_KEYS = "Idea|1n new|2ENT open|3x archive"
-STRIP_KEYS = ("Idea|1p play|2c cracks|s save;Plan|5m money|v vision|a assume|o obstacle;"
+STRIP_KEYS = ("Idea|1p play|2c cracks|s save|w notes;Plan|5m money|b money sheet|v vision|a assume|o obstacle;"
               "Stage|3e edit|4n new|x delete")
 CRACK_KEYS = "Crack|1ENT deal with it"
 
@@ -789,6 +789,13 @@ class App(UI):
                 self.ov("assume", "assume_main")
             elif k == "o":
                 self.premortem()
+            elif k == "w" or k == "b":
+                # the idea's notes in Writer, or its money as a sheet in Calc (step 5.2)
+                fn = "apps_notes"
+                if k == "b":
+                    fn = "apps_sheet"
+                if self.ov("apps", fn):
+                    raise Switch()
 
     def leave(self):
         if not self.dirty:

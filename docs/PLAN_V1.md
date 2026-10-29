@@ -559,6 +559,18 @@ screen.
   reopens where it was. On the TERM512 firmware with the suite installed: Home → Writer → type
   `---` and a second page → `Tab` `v` → Slide on page 2 → `,` → Esc → Writer on the same
   character → `Tab` `1` → Home lists the document under Slide's icon. 4 more scenarios.*
+  *Projector → Writer and → Calc done: on the strip, `w` asks Writer for the idea's notes
+  (`writer|new|<title> notes`: Writer makes it the first time, then opens it), and `b` writes
+  the plan's money into `/data/calc/<title> money.txt` and asks Calc to open it: cash and
+  fixed costs, a row a stage (months, start, cost and income a month, then net a month and
+  the stage's total as formulas), and the end, `=B1+SUM(...)`, the likely case. A sheet
+  already there is replaced only if you say (`n` opens it as it is). The code is in the
+  `apps` overlay, loaded only for the switch. On the TERM512 firmware with the suite: Home →
+  Projector on the largest idea → `b` → Calc on the sheet, whose end (−80,800) is Projector's
+  likely end → `Tab` `2` → `w` → Writer on the notes → `Tab` `1` → Home lists both. The sim's
+  heap went from 160 to 168 KB: `arc_mem` at 320×240 ran out in the sim only (it holds its
+  mocks and the key script there); on both firmware builds the same arc has 88 KB free of 149
+  and 109 of 157. 7 more scenarios, 222 in all.*
 - 5.3 Release: one zip with Home, Projector, the forks, and the `/etc/ui` line, plus an install page.
 - 5.4 Next major: Capture, Harness and the items index (LIFECYCLE_SHELL.md order, steps 2, 4–7),
   as icons on Home.
