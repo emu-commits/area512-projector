@@ -20,7 +20,7 @@ first in `main.manifest`. The `.mrb` files aren't kept here.
 | `h`/`l` page, `j`/`k` scroll; the arrow keys did nothing | the bare `,` `/` and `Fn`+arrows page, Enter and Space go on, Backspace back; `.` `;` scroll; `[` `]` first and last; `Tab` shows them all | PLAN_V1 Slide 1, decision 7 |
 | the header: the file's name, and `3/12` | the deck's name, and `3/12` | PLAN_V1 Slide 1 |
 | Esc quit | Esc back to the list, then to Home; `Tab` then a digit switches app, and `place.txt` brings you back to the page | decision 1, docs/APPS_FORMAT.md |
-| every page parsed when it started | the text kept (10 KB at most, as Writer's), and of a page only the 1 KB chunks on screen laid out, as you scroll | memory: the Ruby VM's 120 KB. A 10 KB document with no `---` is one page, and laid out whole it restarted the device |
+| every page parsed when it started | the text kept (10 KB at most, as Writer's), and of a page only the 1 KB chunks on screen laid out, as you scroll; a row is one String, not arrays of them | memory: the Ruby VM's 120 KB. A 10 KB document with no `---` is one page, and laid out whole it restarted the device |
 | — | Enter and Space: a screen down a long page, then the next page; Backspace the same way back | reading a long page |
 | a line wider than the screen was cut off | wrapped at a space (code still cut off) | |
 | only ```` ```ruby ```` opened a code block; any line starting `-` was a list item (`---` too) | any ```` ``` ````; `- ` or `* ` | |
