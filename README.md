@@ -19,6 +19,9 @@ suggests ideas, words or numbers: it asks, and it calculates.
 
 ## Install
 
+**[docs/INSTALL.md](docs/INSTALL.md)**: the whole suite from one zip (`tools/release.sh` makes it),
+the firmware it needs, and the `/etc/ui` line that starts on Home. Each app on its own:
+
 Copy `dist/projector/` (from a release, or `./build.sh`) to the card at
 `/Area512_data/home/ai/projector/` (any folder works). In Filer, select the folder and press
 `R`. Copy the whole folder: the `ovl/` subfolder is part of the app. Data lives in

@@ -1,7 +1,7 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 4 are built
-(Agenda, Writer, Calc and Slide); each step's status is under *Order*, in italics.
+Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 5.3 are built
+(the release is made, not published); each step's status is under *Order*, in italics.
 
 ## Decisions
 
@@ -594,6 +594,16 @@ screen.
   mocks and the key script there); on both firmware builds the same arc has 88 KB free of 149
   and 109 of 157. 7 more scenarios, 222 in all.*
 - 5.3 Release: one zip with Home, Projector, the forks, and the `/etc/ui` line, plus an install page.
+  *Done: `tools/release.sh 1.0.0` builds and makes `release/projector-v1.0.0.zip`, laid out as
+  the card (`Area512_data/home/ai/<app>/` for the six apps), with the line in
+  `Area512_data/etc/ui.suite`, not `etc/ui`: that file holds the user's own `default=` lines,
+  so [INSTALL.md](INSTALL.md) says to rename it if there's none, or add the line. INSTALL.md is
+  in the zip too: the firmware each part needs (switching, starting on Home and TERM512's
+  whole screen need AREA512 after v2.7), coming from the bundled apps or Projector 0.4 (its
+  idea files are read and written by the same code), the limits, removing. On the TERM512
+  firmware in the emulator, a blank card with the zip unzipped at its root and `ui.suite`
+  renamed starts on Home with all six icons, opens an app full screen and comes back. Not
+  tagged or published.*
 - 5.4 Next major: Capture, Harness and the items index (LIFECYCLE_SHELL.md order, steps 2, 4–7),
   as icons on Home.
 
