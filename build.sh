@@ -8,7 +8,8 @@
 #   dist/home/       core.mpy = lib/py/base.py + lib/py/menu.py + apps/home/main.py, icons/
 #   dist/agenda/     forks/<fork>/*.rb and lib/ruby/*.rb, compiled with AREA512's picorbc;
 #   dist/writer/     main.manifest from the fork (ui.mrb first, then docs.mrb for Writer and
-#   dist/calc/       Calc). tools/rbcheck.py first.
+#   dist/calc/       Calc and Slide). tools/rbcheck.py first.
+#   dist/slide/
 #
 # Why two files: launched as main.mpy, the firmware holds the whole .mpy in RAM for the entire
 # run AND sizes the Python heap after reading it. Through main.manifest the heap is sized first
@@ -67,6 +68,7 @@ rb_fork() {
 rb_fork agenda
 rb_fork writer
 rb_fork calc
+rb_fork slide
 
 for d in dist/*; do echo "$d: $(ls "$d" | tr '\n' ' ')"; done
 echo "projector overlays: $(ls dist/projector/ovl | wc -l) files"

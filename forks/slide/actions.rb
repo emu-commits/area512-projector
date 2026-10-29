@@ -1,49 +1,59 @@
-class SlideShow
-  def handle_key(key)
-    case key
-    when "h" then previous_page
-    when "l" then next_page
-    when "k" then scroll_up
-    when "j" then scroll_down
-    when "ESC" then @quit = true
+class Slide
+  def main_loop
+    until @quit
+      if @screen == :doc
+        show_key(cmd(SHOW_KEYS))
+      else
+        k = cmd(FILES_KEYS)
+        if k == "e"
+          edit_doc(@docs[@sel]) if @docs[@sel]
+        else
+          files_key(k)
+        end
+      end
+    end
+  end
+
+  # A key on a page, bare or from the menu (which hands back j and k as they are)
+  def show_key(k)
+    if k.length > 1 && k[0, 1] == "@"
+      switch_to(k[1, k.length])
+    elsif k == "RIGHT" || k == "ENTER" || k == " "
+      next_page
+    elsif k == "LEFT" || k == "BS"
+      previous_page
+    elsif k == "DOWN" || k == "j"
+      scroll_down
+    elsif k == "UP" || k == "k"
+      scroll_up
+    elsif k == "["
+      go_page(0)
+    elsif k == "]"
+      go_page(pages - 1)
+    elsif k == "e"
+      edit_doc(@name)
+    elsif k == "o" || k == "ESC" || k == "q"
+      close_doc
     end
   end
 
   def next_page
-    return if @error_message
-    return if @page_index >= @pages.length - 1
-
-    @page_index += 1
-    @top_row_index = 0
+    if @page >= pages - 1
+      @msg = "Last page. o: the decks"
+      return
+    end
+    go_page(@page + 1)
   end
 
   def previous_page
-    return if @error_message
-    return if @page_index == 0
-
-    @page_index -= 1
-    @top_row_index = 0
+    go_page(@page - 1) if @page > 0
   end
 
   def scroll_down
-    return if @error_message
-    return if @top_row_index >= maximum_top_row_index
-
-    @top_row_index += 1
+    @scroll += 1 if rows_fit(@scroll) < @rows.length
   end
 
   def scroll_up
-    return if @error_message
-    return if @top_row_index == 0
-
-    @top_row_index -= 1
-  end
-
-  def current_rows
-    @pages[@page_index][1]
-  end
-
-  def maximum_top_row_index
-    [current_rows.length - VISIBLE_ROW_COUNT, 0].max
+    @scroll -= 1 if @scroll > 0
   end
 end

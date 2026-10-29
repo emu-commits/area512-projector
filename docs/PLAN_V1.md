@@ -1,7 +1,7 @@
 # Projector 1.0 and the AREA512 suite: plan
 
-Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 3 are built, and
-Agenda, Writer and Calc of step 4; each step's status is under *Order*, in italics.
+Status: plan, 2026-10-28, round 3 (all questions answered, below). Steps 0 to 4 are built
+(Agenda, Writer, Calc and Slide); each step's status is under *Order*, in italics.
 
 ## Decisions
 
@@ -525,6 +525,21 @@ screen.
   paragraphs all took that four times on both builds. A file that's too big says how big,
   as a share of the most. One long paragraph near 10 KB is slow to type in (it's laid out
   again on each key); not fixed. 21 `writer_*` scenarios, 158 in all at both sizes.*
+
+- 4.4 Slide. *Done: `forks/slide/` (Slide at upstream fc9f6f9, then every change listed in its
+  UPSTREAM.md). A deck is one of Writer's documents, a line of `---` between pages, so decks
+  are written on the device and step 5.2's "a Writer document as slides" is how Slide works
+  (Writer's own menu item for it is still 5.2). Upstream's numbered pages are joined once as
+  the deck "slides". All three items of the list above: the bare arrows, Enter and Space for
+  the next page, `3/12` in the header; a list of decks (Writer's documents; `e` and `n` hand
+  over to Writer, `x` and `r` as Writer's list); 320×240 with 50 columns and a 24 px `#` title
+  (`Widget.big_text`; the screen buffer has one font, and only that call changes it). Long
+  lines wrap; one page is laid out at a time, from the text. Its recent.txt and place.txt are
+  in `/data/slide/`. On the way: every app with documents now drops a recent.txt entry whose
+  file is gone, since two apps can delete the same document. 18 `slide_*` scenarios at both
+  sizes, 194 in all. On the firmware, both builds: the one-time join, the list (and the
+  preview on TERM512), every page of a four-page deck with a wrapped list and a code block
+  holding `---`, the menu, and `e` without Writer installed.*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.

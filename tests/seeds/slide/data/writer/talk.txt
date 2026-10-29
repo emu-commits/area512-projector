@@ -1,0 +1,17 @@
+# Corner cafe
+A plan in `three` stages
+---
+## Money
+- Rent 900 a month
+- Wages for two, and a very long line that has to wrap on both screens, the small one and the big one too
+---
+```
+code line
+---
+still code
+```
+---
+
+---
+### End
+Thanks

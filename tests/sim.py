@@ -212,7 +212,7 @@ def _sim_stats():
 EXPECT = {}
 
 
-FORKS = ("agenda", "writer", "calc")       # PicoRuby: run by tests/rsim.rb under CRuby
+FORKS = ("agenda", "writer", "calc", "slide")   # PicoRuby: run by tests/rsim.rb under CRuby
 
 
 def app_of(name):
@@ -537,6 +537,91 @@ EXPECT["calc_huge"] = ["@@SCREEN huge is 10 KB: too big (6 KB most)"]
 # nothing on the card: every key on the empty list is harmless
 SCENARIOS["calc_empty"] = "SHOT:c_none ENTER x r DOWN UP ESC"
 EXPECT["calc_empty"] = ["!@@RUN_NEXT"]
+
+# Slide (forks/slide, PicoRuby): Writer's documents shown as decks, pages split by "---"
+SL_TALK = ("# Corner cafe\nA plan in `three` stages\n---\n## Money\n- Rent 900 a month\n"
+           "- Wages for two, and a very long line that has to wrap on both screens, the small one and the big one too\n"
+           "---\n```\ncode line\n---\nstill code\n```\n---\n\n---\n### End\nThanks\n")
+SL_APPS = "1|Home|/home/ai/home\n2|Projector|/home/ai/projector\n3|Writer|/home/ai/writer\n4|Slide|/home/ai/slide\n"
+SL_SEED = {"/data": None, "/data/writer": None, "/data/writer/talk.txt": SL_TALK,
+           "/data/writer/notes.txt": "Just notes\n", "/data/area512": None, "/data/area512/apps.txt": SL_APPS,
+           "/data/slide": None, "/data/slide/recent.txt": "talk|talk.txt\n"}
+# four pages (the blank one is skipped), Enter, Space and the bare / for the next; the last says so
+SEEDS["slide_show"] = SL_SEED
+SCENARIOS["slide_show"] = "SHOT:s_list ENTER SHOT:s_p1 ENTER SHOT:s_p2 SPACE SHOT:s_p3 / SHOT:s_p4 ENTER"
+EXPECT["slide_show"] = ["@@SCREEN 4/4", "@@SCREEN Thanks", "@@SCREEN Last page. o: the decks"]
+# a "---" inside a code block isn't a page break; back with BS and the bare ,
+SEEDS["slide_code"] = SL_SEED
+SCENARIOS["slide_code"] = "ENTER ] BS , / SHOT:s_code"
+EXPECT["slide_code"] = ["@@SCREEN 3/4", "@@SCREEN code line\n@@SCREEN ---\n@@SCREEN still code"]
+# a long line wraps after a space; the list's dash only on its first row
+SEEDS["slide_wrap"] = SL_SEED
+SCENARIOS["slide_wrap"] = "ENTER ENTER SHOT:s_wrap"
+EXPECT["slide_wrap"] = ["@@SCREEN 2/4", "@@SCREEN Wages for two, and a very ", "!both screens, the small one and the big one too\n@@SCREEN -",
+                        "!@@SCREEN Wages for two, and a very long line that has to wrap on both screens, the small one and the big one too"]
+# the title of a page is one row; inline code is its own piece
+SEEDS["slide_title"] = SL_SEED
+SCENARIOS["slide_title"] = "ENTER SHOT:s_title"
+EXPECT["slide_title"] = ["@@SCREEN Corner cafe\n", "@@SCREEN A plan in \n@@SCREEN three\n@@SCREEN  stages"]
+# a page longer than the screen scrolls with j and the bare .
+SEEDS["slide_scroll"] = dict(SL_SEED, **{"/data/writer/long.txt": "".join("Row %d\n" % i for i in range(1, 31)),
+                                        "/data/slide/recent.txt": "long|long.txt\n"})
+SCENARIOS["slide_scroll"] = "ENTER j . . k SHOT:s_scroll"
+EXPECT["slide_scroll"] = ["@@SCREEN Row 3\n", "!@@SCREEN Row 2\n", "@@SCREEN 1/1"]
+# Tab then a digit: to Writer, and the deck and page are kept for coming back
+SEEDS["slide_switch"] = SL_SEED
+SCENARIOS["slide_switch"] = "ENTER ENTER TAB SHOT:s_apps 3"
+EXPECT["slide_switch"] = ["@@RUN_NEXT /home/ai/writer",
+                          rfs("/data/slide/place.txt", "screen: doc\nsel: 0\nfile: talk.txt\npage: 1\n")]
+SEEDS["slide_place"] = dict(SL_SEED, **{"/data/slide/place.txt": "screen: doc\nsel: 0\nfile: talk.txt\npage: 2\n"})
+SCENARIOS["slide_place"] = "SHOT:s_back"
+EXPECT["slide_place"] = ["@@SCREEN 3/4", "!/data/slide/place.txt"]
+# e and n hand over to Writer: the deck to edit, or a new document
+SEEDS["slide_edit"] = SL_SEED
+SCENARIOS["slide_edit"] = "ENTER e"
+EXPECT["slide_edit"] = ["@@RUN_NEXT /home/ai/writer", rfs("/data/area512/open.txt", "writer|open|talk.txt\n")]
+SEEDS["slide_new"] = SL_SEED
+SCENARIOS["slide_new"] = "n"
+EXPECT["slide_new"] = ["@@RUN_NEXT /home/ai/writer", rfs("/data/area512/open.txt", "writer|new|\n")]
+# without Writer there's nowhere to write a deck
+SEEDS["slide_nowriter"] = dict(SL_SEED, **{"/data/area512/apps.txt": "1|Home|/home/ai/home\n4|Slide|/home/ai/slide\n"})
+SCENARIOS["slide_nowriter"] = "e SHOT:s_nowriter"
+EXPECT["slide_nowriter"] = ["@@SCREEN Decks are written in Writer: not here", "!@@RUN_NEXT"]
+# Home's requests: open a deck; delete one (into Writer's deleted/, as Writer does) and go back
+SEEDS["slide_open"] = dict(SL_SEED, **{"/data/area512/open.txt": "slide|open|notes.txt\n"})
+SCENARIOS["slide_open"] = "SHOT:s_open"
+EXPECT["slide_open"] = ["@@SCREEN notes\n@@SCREEN 1/1", rfs("/data/slide/recent.txt", "notes|notes.txt\ntalk|talk.txt\n"),
+                        "!/data/area512/open.txt"]
+SEEDS["slide_del_req"] = dict(SL_SEED, **{"/data/area512/open.txt": "slide|delete|talk.txt\n"})
+SCENARIOS["slide_del_req"] = ""
+EXPECT["slide_del_req"] = ["@@RUN_NEXT /home/ai/home", rfs("/data/writer/deleted/talk.txt", SL_TALK),
+                           rfs("/data/slide/recent.txt", ""), "!/data/writer/talk.txt "]
+# the first time: Slide's numbered pages, in number order, become the deck "slides"
+SEEDS["slide_import"] = {"/data": None, "/home": None, "/home/tool": None, "/home/tool/slide": None,
+                         "/home/tool/slide/2.md": "# Two\n", "/home/tool/slide/10.md": "# Ten",
+                         "/home/tool/slide/1.md": "# One\n", "/home/tool/slide/notes.md": "not a page\n"}
+SCENARIOS["slide_import"] = "SHOT:s_import ENTER ] SHOT:s_ten"
+EXPECT["slide_import"] = [rfs("/data/writer/slides.txt", "# One\n---\n# Two\n---\n# Ten\n"),
+                          rfs("/data/slide/recent.txt", "slides|slides.txt\n"), "@@SCREEN 3/3", "@@SCREEN Ten"]
+# a deck gone from the card leaves recent.txt (Home lists it)
+SEEDS["slide_prune"] = dict(SL_SEED, **{"/data/slide/recent.txt": "gone|gone.txt\ntalk|talk.txt\n"})
+SCENARIOS["slide_prune"] = "SHOT:s_prune"
+EXPECT["slide_prune"] = [rfs("/data/slide/recent.txt", "talk|talk.txt\n")]
+# the menu bar: Page's last (]) and Deck's "o decks" back to the list
+SEEDS["slide_menu"] = SL_SEED
+SCENARIOS["slide_menu"] = "ENTER TAB SHOT:s_menu UP ENTER SHOT:s_last TAB RIGHT SHOT:s_menu2 DOWN ENTER SHOT:s_list"
+EXPECT["slide_menu"] = ["@@SCREEN SLIDE\n@@SCREEN 2 decks", "!@@RUN_NEXT"]
+SEEDS["slide_menu_last"] = SL_SEED
+SCENARIOS["slide_menu_last"] = "ENTER TAB UP ENTER"
+EXPECT["slide_menu_last"] = ["@@SCREEN 4/4"]
+SEEDS["slide_huge"] = dict(SL_SEED, **{"/data/writer/huge.txt": "x" * 13000 + "\n",
+                                      "/data/slide/recent.txt": "huge|huge.txt\n"})
+SCENARIOS["slide_huge"] = "ENTER SHOT:s_huge"
+EXPECT["slide_huge"] = ["@@SCREEN huge is 13 KB: too big (12 KB most)"]
+# nothing on the card: every key on the empty list is harmless
+SCENARIOS["slide_empty"] = "SHOT:s_none ENTER e x r DOWN UP ESC"
+EXPECT["slide_empty"] = ["!@@RUN_NEXT"]
+
 
 def run_fork(name, app, script, screen):
     # the fork's sources, in main.manifest's order, from forks/<app>/ and lib/ruby/

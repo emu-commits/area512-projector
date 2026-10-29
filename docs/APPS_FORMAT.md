@@ -108,6 +108,14 @@ Calc's are its sheets, the same way (`Cafe money|Cafe money.txt`), and so are it
 `new` with a name opens that sheet if there is one, for Projector's money as a sheet (step 5.2).
 Its `place.txt` adds `cell:` (`B12`) to `screen: doc`.
 
+Slide's decks are Writer's documents, so its recent.txt names them the same way
+(`talk|talk.txt`), in `/data/slide/`, and an `open` request names one of Writer's documents.
+Slide's own `n` and `e` are requests to Writer (`writer|new|`, `writer|open|talk.txt`): Slide
+writes no decks. Its `place.txt` adds `page:` (from 0) to `screen: doc`.
+
+Every app that keeps documents drops a name from its recent.txt when the file is gone (Slide or
+Writer may have deleted it), and rewrites it.
+
 The app rewrites it whenever it saves. Home reads it to list files under the app's icon, and
 opens one by writing `open.txt` (`<app>|open|<file>`) and calling `run_next`. An archived
 document isn't listed.

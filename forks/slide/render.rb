@@ -1,100 +1,85 @@
-class SlideShow
-  def draw
-    while @sprite.draw
-      render
-    end
-  end
-
-  def render
-    @sprite.fill(Widget.theme_background)
-
-    if @error_message
-      Widget.header(@sprite, "SLIDE SHOW")
-      Widget.text_center(@sprite, 58, @error_message, Widget.theme_emphasis)
-      Widget.footer(@sprite, "ESC exit")
+class Slide
+  def render_screen
+    return if render_ui
+    if @screen == :doc
+      render_deck
     else
-      draw_page
+      render_files
     end
   end
 
-  def draw_page
-    page = @pages[@page_index]
-    markdown_rows = page[1]
-    Widget.header(
-      @sprite,
-      page[0].split("/")[-1],
-      (@page_index + 1).to_s + "/" + @pages.length.to_s
-    )
+  # ---- a page: the deck's name and the page number above, the rows, the keys below
 
-    screen_row_index = 0
-    row_index = @top_row_index
-    while screen_row_index < VISIBLE_ROW_COUNT && row_index < markdown_rows.length
-      screen_y = BODY_TOP + screen_row_index * ROW_HEIGHT
-      draw_row(
-        markdown_rows[row_index][0],
-        markdown_rows[row_index][1],
-        screen_y
-      )
-      screen_row_index += 1
-      row_index += 1
+  def render_deck
+    frame(@name, (@page + 1).to_s + "/" + pages.to_s)
+    y = @top + 4
+    last = rows_fit(@scroll)
+    i = @scroll
+    while i < last
+      draw_row(@rows[i], y)
+      y += row_h(@rows[i])
+      i += 1
     end
-
-    Widget.footer(@sprite, "h/l page  j/k scroll  ESC exit")
+    if @scroll > 0 || last < @rows.length
+      Widget.scrollbar(@sp, @w - 5, @top + 3, @bot - @top - 6, @scroll, last - @scroll, @rows.length)
+    end
+    foot(SHOW_KEYS)
   end
 
-  def draw_row(row_kind, row_segments, screen_y)
-    screen_x = 4
+  def row_h(row)
+    big?(row[0]) ? 28 : @rh
+  end
 
-    case row_kind
-    when :heading_1
-      @sprite.fill_rect(0, screen_y, Display.width, ROW_HEIGHT, Widget.theme_box)
-      draw_segments(row_segments, screen_x, screen_y + 2, row_kind)
-    when :heading_2
-      draw_segments(row_segments, screen_x + 4, screen_y + 2, row_kind)
-    when :heading_3
-      draw_segments(row_segments, screen_x + 8, screen_y + 2, row_kind)
-    when :list
-      @sprite.text(screen_x, screen_y + 2, "-", Widget.theme_emphasis)
-      draw_segments(row_segments, screen_x + 12, screen_y + 2, row_kind)
-    when :code
-      @sprite.fill_rect(0, screen_y, Display.width, ROW_HEIGHT, CODE_BACKGROUND_COLOR)
-      draw_segments(row_segments, screen_x, screen_y + 2, row_kind)
-    else
-      draw_segments(row_segments, screen_x, screen_y + 2, row_kind)
+  # the first row past the screen when it starts at row s
+  def rows_fit(s)
+    y = @top + 4
+    i = s
+    while i < @rows.length && y + row_h(@rows[i]) <= @bot
+      y += row_h(@rows[i])
+      i += 1
     end
+    i
+  end
+
+  def draw_row(row, y)
+    row_kind = row[0]
+    x = 4 + indent(row_kind)
+    if row_kind == :heading_1
+      if @wide
+        Widget.big_text(@sp, x, y + 2, plain(row[1]), @c_em)
+        return
+      end
+      @sp.fill_rect(0, y - 1, @w, @rh, @c_box)
+    elsif row_kind == :code
+      @sp.fill_rect(0, y - 1, @w, @rh, @c_box)
+      t(x, y + 1, clip(row[1][0][1], @w - 8), @c_em)
+      return
+    elsif row_kind == :list && row[2]
+      t(4, y + 1, "-", @c_em)
+    end
+    draw_segments(row[1], x, y + 1, row_kind)
+  end
+
+  def plain(segments)
+    s = ""
+    segments.each { |seg| s += seg[1] }
+    s
   end
 
   def draw_segments(row_segments, screen_x, screen_y, row_kind)
+    c = @c_text
+    c = @c_em if row_kind == :heading_1 || row_kind == :heading_2
     segment_index = 0
-    while segment_index < row_segments.length && screen_x < Display.width
+    while segment_index < row_segments.length && screen_x < @w
       segment_kind = row_segments[segment_index][0]
       segment_text = row_segments[segment_index][1]
-      segment_width = Widget.text_width(@sprite, segment_text)
-
+      segment_width = Widget.text_width(@sp, segment_text)
       if segment_kind == :inline_code
-        @sprite.fill_rect(
-          screen_x,
-          screen_y - 1,
-          segment_width,
-          ROW_HEIGHT - 2,
-          CODE_BACKGROUND_COLOR
-        )
-        @sprite.text(screen_x, screen_y, segment_text, CODE_COLOR)
+        @sp.fill_rect(screen_x, screen_y - 1, segment_width, @rh - 3, @c_box)
+        t(screen_x, screen_y, segment_text, @c_em)
       else
-        case row_kind
-        when :heading_1
-          @sprite.text(screen_x, screen_y, segment_text, HEADING_1_COLOR)
-        when :heading_2
-          @sprite.text(screen_x, screen_y, segment_text, HEADING_2_COLOR)
-        when :heading_3
-          @sprite.text(screen_x, screen_y, segment_text, HEADING_3_COLOR)
-        when :code
-          @sprite.text(screen_x, screen_y, segment_text, CODE_COLOR)
-        else
-          @sprite.text(screen_x, screen_y, segment_text, TEXT_COLOR)
-        end
+        t(screen_x, screen_y, segment_text, c)
       end
-
       screen_x += segment_width
       segment_index += 1
     end

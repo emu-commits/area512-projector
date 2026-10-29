@@ -253,14 +253,25 @@ class SuiteApp
 
   # ---- recent.txt: for Home, newest first, at most 8 (docs/APPS_FORMAT.md)
 
+  # without the ones gone from the card (Slide shows Writer's documents, and either app can
+  # delete one), rewritten if any were, so Home doesn't list them
   def load_recent
     @recent = []
     text = read_file(recent_file)
     return unless text
+    gone = false
     text.split("\n").each do |l|
       p = l.split("|")
-      @recent.push(p[1][0, p[1].length - 4]) if p.length == 2 && p[1].length > 4
+      if p.length == 2 && p[1].length > 4
+        n = p[1][0, p[1].length - 4]
+        if File.exist?(path_of(n))
+          @recent.push(n)
+        else
+          gone = true
+        end
+      end
     end
+    write_recent if gone
   end
 
   def touch_recent(name)

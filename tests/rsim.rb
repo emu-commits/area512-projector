@@ -120,6 +120,7 @@ module Widget
     sim_txt(hs.map { |h| h[0] + ":" + h[1] }.join(" "))
   end
   def self.text_right(sp, x, y, s, c) = sim_txt(s)
+  def self.big_text(sp, x, y, s, c = nil) = sim_txt(s)
   def self.body_height = body_bottom - body_top
   def self.panel(sp, x, y, w, h) = nil
   def self.scrollbar(sp, x, y, h, top, visible, total) = nil

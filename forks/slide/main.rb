@@ -1,39 +1,30 @@
-require 'area512-sprite'
-require 'area512-widget'
-require 'area512-sdfat'
-require 'machine'
-require 'io/console'
-
-class SlideShow
-  def read_key
-    key = ""
-    STDIN.raw do
-      key = Widget.read_key
-    end
-    key
+class Slide
+  def initialize
+    ui_init
+    docs_init
+    init_doc
+    @dir = DECK_DIR
+    @title = "Slide"
+    @kind = "deck"
+    @old = nil
+    @docs_keys = FILES_KEYS
+    @rh = @wide ? 16 : 14         # a row of text; a title on TERM512 is 24 px (render.rb)
   end
 
   def run
-    @page_index = 0
-    @top_row_index = 0
-    @quit = false
-
-    Display.fill_screen(Widget.theme_background)
-    @sprite = BandedSprite.new(12)
-
+    Display.fill_screen(@c_bg)
+    @sp = BandedSprite.new(12)
     begin
       SD.mount
-      load_pages
-      until @quit
-        draw
-        handle_key(read_key)
-      end
+      load_decks
+      start
+      main_loop
     ensure
       SD.unmount
-      @sprite.delete if @sprite
-      Display.fill_screen(Widget.theme_background)
+      @sp.delete if @sp
+      Display.fill_screen(@c_bg)
     end
   end
 end
 
-SlideShow.new.run
+Slide.new.run
