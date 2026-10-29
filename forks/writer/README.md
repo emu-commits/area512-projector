@@ -17,10 +17,11 @@ as it is).
 A deleted document goes to `/data/writer/deleted/`, so a slip can be undone from the Files app.
 Names are letters, digits, spaces, `-` `_` `(` `)`, up to 24 characters.
 
-A document holds up to 12 KB (about 2,000 words): Writer shares the device's 120 KB for Ruby
-apps with its own code, and running out restarts the device. It won't open a bigger file, and
-says "Full" when typing reaches it: start another document. Don't copy a much bigger file into
-`/data/writer/`.
+A document holds up to 10 KB (about 1,700 words), and fewer if its lines are short: each line
+costs about 40 bytes more, so a list stops at about 330 lines. Writer shares the device's
+120 KB for Ruby apps with its own code, and running out restarts the device. It won't open a
+bigger file (it says how big, as a share of the most), and says "Full" when typing reaches it:
+start another document. Don't copy a much bigger file into `/data/writer/`.
 
 ## Typing
 

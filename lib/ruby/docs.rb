@@ -175,10 +175,12 @@ class SuiteApp
   def close_doc
     return false if @dirty && !save_doc
     @screen = :files
+    @pv = nil         # it may have changed
     refresh_docs
     i = @docs.index(@name)
     @sel = i if i
     @name = nil
+    init_doc          # let the text go: the list's preview reads the file again
     true
   end
 

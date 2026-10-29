@@ -1,7 +1,7 @@
 class Writer
   # The document: @lines, one String per paragraph, as bytes (the firmware's strings are
   # bytes; what the keyboard's IME types is UTF-8). @col is a byte offset into the line, always
-  # on a character's first byte. Every change goes through set_line, insert_line and
+  # on a character's first byte. Every change goes through splice, insert_line and
   # delete_line, which keep the word count.
   def init_doc
     @lines = [""]
@@ -33,11 +33,42 @@ class Writer
     p.is_a?(String) ? p : ""
   end
 
-  def set_line(i, s)
-    @words += word_count(s) - word_count(line(i))
-    @bytes += s.length - line(i).length
-    @lines[i] = s
+  # line i's n bytes at pos become text, in place: built anew, a long paragraph was copied
+  # three times a key, and 12 KB in one ran the VM out
+  def splice(i, pos, n, text)
+    s = @lines[i]
+    w = word_count(s)
+    s[pos, n] = text
+    @words += word_count(s) - w
+    @bytes += text.length - n
     @dirty = true
+  end
+
+  # what the document takes against DOC_MAX (const.rb)
+  def room
+    @bytes + LINE_COST * @lines.length
+  end
+
+  # how much of the most a document of these bytes and room is, in percent, rounded up:
+  # past 100 is too big
+  def share(bytes, rm)
+    a = (bytes * 100 + DOC_BYTES - 1) / DOC_BYTES
+    b = (rm * 100 + DOC_MAX - 1) / DOC_MAX
+    a > b ? a : b
+  end
+
+  # the same for a file not opened yet, without splitting it
+  def room_of(text)
+    n = 0
+    i = 0
+    while i < text.length
+      j = text.index("\n", i)
+      break if j.nil?
+      n += 1
+      i = j + 1
+    end
+    n += 1 if i < text.length || n == 0      # a last line with no newline, or an empty file
+    text.length + LINE_COST * n
   end
 
   # mruby/c's Array has no insert

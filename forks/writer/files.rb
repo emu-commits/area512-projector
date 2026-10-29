@@ -8,8 +8,9 @@ class Writer
       @msg = "Can't open " + name
       return false
     end
-    if text.length > DOC_MAX
-      @msg = name + " is " + (text.length / 1024 + 1).to_s + " KB: too big (" + (DOC_MAX / 1024).to_s + " KB most)"
+    pc = share(text.length, room_of(text))
+    if pc > 100
+      @msg = name + " is too big: " + pc.to_s + "% of the most"
       return false
     end
     set_text(text)

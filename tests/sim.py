@@ -428,21 +428,28 @@ SCENARIOS["writer_menu"] = "ENTER TAB m TAB ? SHOT:w_help ENTER TAB LEFT LEFT RI
 EXPECT["writer_menu"] = ["@@RUN_NEXT /home/ai/home"]
 # a long document: the end, the top, pages
 SEEDS["writer_long"] = {"/data": None, "/data/writer": None,
-                        "/data/writer/big.txt": "".join("Line %d of the big one\n" % i for i in range(1, 301))}
+                        "/data/writer/big.txt": "".join("Line %d of the big one\n" % i for i in range(1, 201))}
 SCENARIOS["writer_long"] = "ENTER TAB m ] SHOT:w_end k k [ j j ENTER T:@ ESC ESC"
 EXPECT["writer_long"] = ["big one\\n@Line ", "!@Line 1 "]     # two pages down: 7 rows a page, 14 on TERM512
 # the hidden % in Move: the Ruby heap (rsim's numbers; tests/fw.py shows the real ones)
 SEEDS["writer_mem"] = WR_SEED
 SCENARIOS["writer_mem"] = "ENTER TAB m % SHOT:w_mem"
 EXPECT["writer_mem"] = ["@@SCREEN Ruby heap: 70 KB free of 120"]
-# past 12 KB: a file that big isn't opened, and typing stops at the limit
-SEEDS["writer_full"] = {"/data": None, "/data/writer": None, "/data/writer/huge.txt": "x" * 13000 + "\n",
-                        "/data/writer/edge.txt": "y" * 12280 + "\n"}
-SCENARIOS["writer_full"] = "DOWN ENTER SHOT:w_big UP ENTER TAB m ] ENTER T:abcdefghij ENTER SHOT:w_full"
-EXPECT["writer_full"] = ["@@SCREEN Full: 12 KB is the most. Start another."]
+# past 10 KB, or 16 KB of room (bytes, and 40 a line): a file that big isn't opened, and
+# typing stops at the limit; short lines count, one String each
+SEEDS["writer_full"] = {"/data": None, "/data/writer": None, "/data/writer/huge.txt": "x" * 17000 + "\n",
+                        "/data/writer/edge.txt": "y" * 10230 + "\n", "/data/writer/lines.txt": "b\n" * 400}
+SCENARIOS["writer_full"] = "ENTER TAB m ] ENTER T:abcdefghij SHOT:w_full"
+EXPECT["writer_full"] = ["@@SCREEN Full: Writer takes no more. Start another."]
+SEEDS["writer_edge"] = SEEDS["writer_full"]
+SCENARIOS["writer_edge"] = "ENTER TAB m ] ENTER T:abcdefghij ESC"
+EXPECT["writer_edge"] = [rfs("/data/writer/edge.txt", "y" * 10230 + "abcdefghi\n")]
 SEEDS["writer_huge"] = SEEDS["writer_full"]
 SCENARIOS["writer_huge"] = "DOWN ENTER SHOT:w_huge"
-EXPECT["writer_huge"] = ["@@SCREEN huge is 13 KB: too big (12 KB most)"]
+EXPECT["writer_huge"] = ["@@SCREEN huge is too big: 167% of the most"]
+SEEDS["writer_lines"] = SEEDS["writer_full"]
+SCENARIOS["writer_lines"] = "DOWN DOWN ENTER SHOT:w_lines"
+EXPECT["writer_lines"] = ["@@SCREEN lines is too big: 103% of the most"]
 # nothing on the card: every key on the empty list is harmless
 SCENARIOS["writer_empty"] = "SHOT:w_none ENTER x r DOWN UP ESC"
 EXPECT["writer_empty"] = ["!/data/writer/recent.txt \"", "!@@RUN_NEXT"]

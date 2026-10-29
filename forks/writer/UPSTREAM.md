@@ -27,7 +27,7 @@ and switching, cut out of Writer for Calc in step 4.3) first in `main.manifest`.
 | 240×135 | 320×240 on TERM512: 50 columns and 14 rows, and the list shows the selected document beside it | PLAN_V1 Writer 4 |
 | UTF-8 (the keyboard's kana) taken a byte at a time, so a half-typed character could be cut | taken whole, once all its bytes are in; Backspace takes off a whole character | |
 | `Ctrl+Space` set a JP/EN message the app never got (the key layer keeps that key) | gone; the README says what Ctrl+Space does to Move's letters | |
-| read the whole file and kept typing, whatever its size; past what the VM's 120 KB holds, the device restarts | 12 KB at most: a bigger file isn't opened, typing stops with "Full"; one copy fewer of the text on opening, two on saving | PLAN_V1 step 4.2, measured |
+| read the whole file and kept typing, whatever its size; past what the VM's 120 KB holds, the device restarts | 10 KB at most, and 16 KB of "room" (the bytes and 40 a line): a bigger file isn't opened, typing stops with "Full"; one copy fewer of the text on opening, two on saving; typing changes the line in place (`[]=`), where a new line built each key made three copies of a long paragraph; the list's preview keeps 16 lines of 64 bytes, not the whole file split; closing a document lets its text go | PLAN_V1 step 4.2, measured on the TERM512 build |
 | — | `recent.txt` (for Home), `place.txt` (document, line, column, mode), Home's `open`, `new` (with a name: notes for an idea) and `delete` requests | docs/APPS_FORMAT.md |
 
 `document.rb` keeps Writer's model (one String per line, the panel, the scrollbar, the line

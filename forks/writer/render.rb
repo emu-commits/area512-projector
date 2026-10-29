@@ -73,10 +73,26 @@ class Writer
     Widget.text_right(@sp, @w - 3, @h - 13, st, @c_em)
   end
 
-  # TERM512's list: the selected document's first lines
+  # TERM512's list: the selected document's first lines, only as many as show, and only
+  # their first 64 bytes. Not the whole text split: the list keeps them, and a second copy of
+  # the document while it opens ran the VM out at 12 KB on the TERM512 build. And a long
+  # paragraph whole made Widget.clip, which drops a character at a time, slow every band.
   def doc_preview(name)
     text = read_file(path_of(name))
-    return ["(too big to open)"] if text && text.length > DOC_MAX
-    text ? text.split("\n") : []
+    return [] if text.nil?
+    return ["(too big to open)"] if share(text.length, room_of(text)) > 100
+    out = []
+    i = 0
+    while out.length < 16 && i < text.length
+      j = text.index("\n", i) || text.length
+      n = j - i
+      if n > 64
+        n = 64
+        n -= 1 while n > 0 && text.getbyte(i + n) >= 0x80 && text.getbyte(i + n) < 0xc0
+      end
+      out.push(text[i, n])
+      i = j + 1
+    end
+    out
   end
 end

@@ -20,27 +20,27 @@ class Writer
   end
 
   def insert_text(text)
-    return if full(text.length)
-    s = cur_line
-    set_line(@row, part(s, 0, @col) + text + part(s, @col, s.length - @col))
+    return if full(text.length, 0)
+    splice(@row, @col, 0, text)
     @col += text.length
     @goal = nil
   end
 
   def insert_newline
-    return if full(1)
+    return if full(1, 1)
     s = cur_line
-    set_line(@row, part(s, 0, @col))
-    insert_line(@row + 1, part(s, @col, s.length - @col))
+    rest = part(s, @col, s.length - @col)
+    splice(@row, @col, rest.length, "")
+    insert_line(@row + 1, rest)
     @row += 1
     @col = 0
     @goal = nil
   end
 
-  # Writer's most is DOC_MAX bytes: past it, the heap could run out (document.rb, set_text)
-  def full(n)
-    return false if @bytes + n <= DOC_MAX
-    @msg = "Full: " + (DOC_MAX / 1024).to_s + " KB is the most. Start another."
+  # past DOC_BYTES or DOC_MAX the VM could run out (const.rb)
+  def full(bytes, lines)
+    return false if @bytes + bytes <= DOC_BYTES && room + bytes + LINE_COST * lines <= DOC_MAX
+    @msg = "Full: Writer takes no more. Start another."
     true
   end
 
@@ -48,14 +48,14 @@ class Writer
     s = cur_line
     if @col > 0
       b = back(s, @col)
-      set_line(@row, part(s, 0, b) + part(s, @col, s.length - @col))
+      splice(@row, b, @col - b, "")
       @col = b
     elsif @row > 0
-      prev = line(@row - 1)
-      set_line(@row - 1, prev + s)
+      plen = line(@row - 1).length
+      splice(@row - 1, plen, 0, s)
       delete_line(@row)
       @row -= 1
-      @col = prev.length
+      @col = plen
     end
     @goal = nil
   end

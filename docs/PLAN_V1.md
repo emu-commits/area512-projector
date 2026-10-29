@@ -511,8 +511,20 @@ screen.
   60-character text open, take copy, paste, fill, undo, find and a width, and save. So a
   sheet stops at **250 cells and 6 KB**, and a change past either says "Full".
   **Writer, re-checked on the TERM512 build**: a 12 KB document (its limit, measured on the
-  Cardputer's v2.7) runs the VM out while opening and restarts the device. Writer's limit
-  needs measuring again on this build and lowering; not done in this step.*
+  Cardputer's v2.7) runs the VM out while opening and restarts the device. *Fixed after
+  step 4.3:* three causes, all fixed. On TERM512 only, the list's preview kept the whole
+  document split into lines, a second copy while it opened (now 16 lines of 64 bytes). Closing
+  a document kept its lines while the list read the file again (`close_doc` now lets them
+  go). And each key built a new line from three copies of the old one (now `[]=` in place:
+  one 12 KB paragraph ran out on the first key). Measured again on the TERM512 build, two
+  emulators at a time, opening, editing, saving and closing four times: what ran out was
+  12 KB in 200 lines, 12 KB in 300, 500 short lines, and 15 KB in 10 paragraphs. Lines count:
+  each String costs about 40 bytes more. So Writer now stops at **10 KB, and 16 KB of
+  "room"** (the bytes, and 40 a line): about 1,700 words of prose, or 330 short lines.
+  At the limit, 10 KB in 160 lines, 330 short lines, 250 lines of 24 bytes and 10 KB in 7
+  paragraphs all took that four times on both builds. A file that's too big says how big,
+  as a share of the most. One long paragraph near 10 KB is slow to type in (it's laid out
+  again on each key); not fixed. 21 `writer_*` scenarios, 158 in all at both sizes.*
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.

@@ -14,10 +14,17 @@ class Writer < SuiteApp
   DATA_DIR = "/data/writer" unless const_defined?(:DATA_DIR)
   # Writer's one document before the fork: copied once, the first time, as "writer"
   OLD_FILE = "/data/writer.txt" unless const_defined?(:OLD_FILE)
-  # The biggest document, in bytes. It's held twice while it opens and saves, in the VM's
-  # 120 KB with the app's own code, and running out restarts the device. On the Cardputer
-  # firmware 16 KB opened, took an edit and saved, and 20 KB ran out opening (PLAN_V1 4.2).
-  DOC_MAX = 12288 unless const_defined?(:DOC_MAX)
+  # The biggest document: DOC_BYTES of text, and DOC_MAX of "room", its bytes and LINE_COST
+  # more for each line (a String's own cost in the VM). Opening holds the file twice, each
+  # copy in one piece, and saving joins the lines into one, all in the VM's 120 KB with the
+  # app's own code; running out restarts the device. Measured on the TERM512 build, which
+  # leaves the VM less than the Cardputer's v2.7, opening, editing, saving and closing four
+  # times: 10 KB in 160 lines, 330 short lines and 15 KB in 10 paragraphs on the Cardputer
+  # took it; 12 KB in 200 lines, 500 short lines and 15 KB in 10 paragraphs on TERM512 ran
+  # out (PLAN_V1 4.2). So about 1,700 words of prose, or 330 short lines.
+  DOC_BYTES = 10240 unless const_defined?(:DOC_BYTES)
+  DOC_MAX = 16384 unless const_defined?(:DOC_MAX)
+  LINE_COST = 40 unless const_defined?(:LINE_COST)
   FIND_MAX = 30 unless const_defined?(:FIND_MAX)
 
   LINE_H = 14 unless const_defined?(:LINE_H)
