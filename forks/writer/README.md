@@ -32,6 +32,8 @@ Letters type, so Writer's commands are in the menu: **Tab**, then the command's 
 - Esc: back to the list, saving first.
 - Tab `s` save, Tab `f` find, Tab `g` find the next one, Tab `o` the list, Tab `n` new,
   Tab `r` rename, Tab `m` **Move**.
+- Tab `v`: show the document as slides in Slide (if it's installed), on the page the cursor is
+  in. A line of `---` starts a new page. Esc in Slide comes back here.
 - The bottom line says TYPE or MOVE, the line and column, and the words.
 
 ## Move

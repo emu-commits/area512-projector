@@ -176,6 +176,34 @@ class Slide
     out
   end
 
+  # Writer's Tab v: "<file>:<line>", the deck on the page holding that line; Esc goes back
+  def request(verb, arg)
+    return unless verb == "show"
+    c = arg.length - 1
+    c -= 1 while c > 0 && arg[c, 1] != ":"
+    line = c > 0 ? arg[c + 1, arg.length].to_i : 0
+    file = c > 0 ? arg[0, c] : arg
+    name = file.length > 4 && file[file.length - 4, 4] == ".txt" ? file[0, file.length - 4] : file
+    @sel = @docs.index(name) || 0
+    return unless open_doc(name)
+    reg_read.each { |p| @back = p[2] if p[1] == "Writer" }
+    go_page(page_of_line(line))
+  end
+
+  # the page that line n (from 0) is on: the last page starting at or before it
+  def page_of_line(n)
+    off = 0
+    while n > 0
+      j = @text.index("\n", off)
+      break if j.nil?
+      off = j + 1
+      n -= 1
+    end
+    k = 0
+    k += 1 while k + 1 < pages && @starts[k + 1] <= off
+    k
+  end
+
   # ---- writing a deck is Writer's: n and e hand over to it (docs/APPS_FORMAT.md)
 
   # n, and Home's "new" request: Writer makes the document (and asks its name if none)

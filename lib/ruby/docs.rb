@@ -336,7 +336,13 @@ class SuiteApp
       delete_doc(name) if @docs.include?(name)
       h = home_path
       @quit = true if h && run_next(h)
+    else
+      request(verb, arg)
     end
+  end
+
+  # a verb of the app's own (Slide's "show", from Writer); none by default
+  def request(verb, arg)
   end
 
   # ---- leaving and switching (docs/APPS_FORMAT.md)

@@ -545,6 +545,11 @@ screen.
 - 5.1 The app row and two-line hints on TERM512 everywhere.
 - 5.2 Open requests between apps: Projector → Calc (money as a sheet), Projector → Writer (notes
   for an idea), Writer → Slide.
+  *Writer → Slide done: Writer's `Tab` `v` saves and asks Slide to `show` the document
+  (`<file>:<line>`), which opens on the cursor's page; Esc there goes back to Writer, which
+  reopens where it was. On the TERM512 firmware with the suite installed: Home → Writer → type
+  `---` and a second page → `Tab` `v` → Slide on page 2 → `,` → Esc → Writer on the same
+  character → `Tab` `1` → Home lists the document under Slide's icon. 4 more scenarios.*
 - 5.3 Release: one zip with Home, Projector, the forks, and the `/etc/ui` line, plus an install page.
 - 5.4 Next major: Capture, Harness and the items index (LIFECYCLE_SHELL.md order, steps 2, 4–7),
   as icons on Home.

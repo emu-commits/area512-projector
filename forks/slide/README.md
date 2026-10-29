@@ -20,7 +20,8 @@ the numbered pages you had in `/home/tool/slide/` (`1.md`, `2.md`, …) into the
 - Enter, Space or `/` (→): the next page; Backspace or `,` (←): the one before
 - `.` `;` (or `j` `k`): scroll a page longer than the screen
 - `[` and `]` (in the menu): the first and last page
-- `e`: edit it in Writer; Esc or `o`: back to the list
+- `e`: edit it in Writer; Esc or `o`: back to the list. Shown from Writer (its Tab `v`), Esc
+  goes back to Writer, where you were, and `o` to the list
 - The header shows the page, as `3/12`
 - Tab then a digit: switch app. Coming back shows the same page.
 

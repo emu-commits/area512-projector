@@ -623,6 +623,23 @@ SCENARIOS["slide_empty"] = "SHOT:s_none ENTER e x r DOWN UP ESC"
 EXPECT["slide_empty"] = ["!@@RUN_NEXT"]
 
 
+# Writer's Tab v: the document in Slide, on the cursor's line; Esc there comes back to Writer
+SEEDS["writer_slides"] = dict(WR_SEED, **{"/data/area512": None, "/data/area512/apps.txt": SL_APPS})
+SCENARIOS["writer_slides"] = "ENTER DOWN T:Hi TAB SHOT:w_slides v"
+EXPECT["writer_slides"] = ["@@RUN_NEXT /home/ai/slide", rfs("/data/area512/open.txt", "slide|show|notes.txt:1\n"),
+                           rfs("/data/writer/notes.txt", "The quick brown fox\nHijumps over the lazy dog\n"),
+                           rfs("/data/writer/place.txt", "screen: doc\nsel: 0\nfile: notes.txt\nrow: 1\ncol: 2\nmode: type\n")]
+SEEDS["writer_noslide"] = WR_REG
+SCENARIOS["writer_noslide"] = "ENTER TAB v SHOT:w_noslide"
+EXPECT["writer_noslide"] = ["@@SCREEN Slide isn't installed", "!@@RUN_NEXT"]
+SEEDS["slide_from_writer"] = dict(SL_SEED, **{"/data/area512/open.txt": "slide|show|talk.txt:8\n"})
+SCENARIOS["slide_from_writer"] = "SHOT:s_fromw ESC"
+EXPECT["slide_from_writer"] = ["@@SCREEN 3/4", "@@RUN_NEXT /home/ai/writer", "!/data/area512/open.txt"]
+SEEDS["slide_from_writer_o"] = SEEDS["slide_from_writer"]
+SCENARIOS["slide_from_writer_o"] = "o SHOT:s_fromw_o"
+EXPECT["slide_from_writer_o"] = ["@@SCREEN SLIDE", "!@@RUN_NEXT"]
+
+
 def run_fork(name, app, script, screen):
     # the fork's sources, in main.manifest's order, from forks/<app>/ and lib/ruby/
     work = ROOT / "tests/.work" / name

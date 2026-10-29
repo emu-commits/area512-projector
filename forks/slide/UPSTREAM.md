@@ -24,6 +24,7 @@ first in `main.manifest`. The `.mrb` files aren't kept here.
 | a line wider than the screen was cut off | wrapped at a space (code still cut off) | |
 | only ```` ```ruby ```` opened a code block; any line starting `-` was a list item (`---` too) | any ```` ``` ````; `- ` or `* ` | |
 | 240×135 | 320×240 on TERM512: 50 columns, rows of 16 px, a `#` title in 24 px (`Widget.big_text`), and the list shows the selected deck's first page beside it | PLAN_V1 Slide 3 |
+| — | Writer's `Tab` `v`: a `show` request (`<file>:<line>`) opens the deck on the page holding that line, and Esc goes back to Writer (`o` to the list) | PLAN_V1 step 5.2 |
 | — | `recent.txt` (for Home) and `place.txt` (deck, page) in `/data/slide/`; Home's `open`, `new` (to Writer) and `delete` requests | docs/APPS_FORMAT.md |
 
 `storage.rb` keeps the deck (its pages, place, the hand-over to Writer), `markdown.rb` lays out

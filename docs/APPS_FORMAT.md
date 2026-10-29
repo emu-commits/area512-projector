@@ -51,6 +51,9 @@ One line, written by the app that switches, just before `run_next`:
 - `verb`:
   - `open`: the file named in `arg`, as the target's `recent.txt` names it.
   - `new`: a new document. `arg` is its title, or empty: the app asks, as its own `n` does.
+  - `show` (Slide only, from Writer's `Tab` `v`): `arg` is `<file>:<line>`, a document and the
+    cursor's line in it (from 0). Slide shows it on the page holding that line, and Esc goes
+    back to the app that asked, whose own `place.txt` brings it back to where it was.
   - `delete`: the file named in `arg`. Home has already asked, so the app doesn't ask again: it
     does what its own `x` does (Projector archives the idea), rewrites `recent.txt`, and hands
     straight back to Home.

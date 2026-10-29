@@ -109,6 +109,8 @@ class Writer
       new_doc("")
     elsif k == "r"
       rename_doc(@name)
+    elsif k == "v"
+      show_slides
     else
       return false
     end

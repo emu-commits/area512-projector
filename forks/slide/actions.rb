@@ -32,7 +32,10 @@ class Slide
       go_page(pages - 1)
     elsif k == "e"
       edit_doc(@name)
+    elsif (k == "ESC" || k == "q") && @back
+      @quit = true if run_next(@back)      # shown from Writer: back to it, where you were
     elsif k == "o" || k == "ESC" || k == "q"
+      @back = nil
       close_doc
     end
   end

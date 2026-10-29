@@ -35,6 +35,6 @@ class Writer < SuiteApp
 
   # One key table per screen (docs/UI.md). In the document the letters type, so these are
   # Tab then the key; in Move (Tab m) they work bare, and the digits are Move's hint bar.
-  DOC_KEYS = "Edit|1ENT type|m move|2f find|3g find next;Cursor|h word left|l word right|k page up|j page down|a line start|e line end|[ top|] end;File|s save|o documents|n new|r rename" unless const_defined?(:DOC_KEYS)
+  DOC_KEYS = "Edit|1ENT type|m move|2f find|3g find next;Cursor|h word left|l word right|k page up|j page down|a line start|e line end|[ top|] end;File|s save|o documents|n new|r rename|v slides" unless const_defined?(:DOC_KEYS)
   FILES_KEYS = "Document|1ENT open|2n new|3x delete|r rename" unless const_defined?(:FILES_KEYS)
 end

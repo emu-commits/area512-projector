@@ -37,6 +37,22 @@ class Writer
     false
   end
 
+  # Tab v: this document in Slide, on the page the cursor is in ("---" lines between pages).
+  # Saved first, as any switch; Esc in Slide comes back here (place.txt).
+  def show_slides
+    sl = nil
+    reg_read.each { |p| sl = p[2] if p[1] == "Slide" }
+    if sl.nil?
+      @msg = "Slide isn't installed"
+      return
+    end
+    return if @dirty && !save_doc
+    SD.write(OPEN_FILE, "slide|show|" + @name + ".txt:" + @row.to_s + "\n")
+    switch_to(sl)
+  rescue
+    @msg = "Can't hand over to Slide"
+  end
+
   # where you were, when you switch away
   def write_place
     s = "screen: " + @screen.to_s + "\nsel: " + @sel.to_s + "\n"
