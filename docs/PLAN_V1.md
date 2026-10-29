@@ -543,6 +543,15 @@ screen.
 
 **5. Together**
 - 5.1 The app row and two-line hints on TERM512 everywhere.
+  *Done (docs/UI.md, Two sizes): on TERM512 every screen with a key table shows all of it on
+  two hint lines, with a message or Writer's status on the first, and the app row under them
+  (`1 Home  2 Projector  3 Writer  4 Calc  5 Agenda  6 Slide`, this app marked). Ruby: in
+  `lib/ruby/ui.rb` (`foot`, `foot_pairs`), so Agenda, Writer, Calc and Slide have it, and the
+  menu bar keeps the app row. Projector: in `ovl/wide`, so the Cardputer holds none of it;
+  `lib/py/base.py` only has the hook. On the TERM512 firmware with the suite: Writer (Type and
+  Move), Calc and its menu, Agenda, Slide and Projector (library, strip, menu). Projector's
+  heap with the largest idea on the strip: 87 KB free of 149. Size-specific checks in
+  `tests/sim.py` (`EXPECT_SIZE`): `foot_lib`, `writer_foot`, `slide_foot`; 206 in all.*
 - 5.2 Open requests between apps: Projector → Calc (money as a sheet), Projector → Writer (notes
   for an idea), Writer → Slide.
   *Writer → Slide done: Writer's `Tab` `v` saves and asks Slide to `show` the document

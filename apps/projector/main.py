@@ -603,6 +603,8 @@ class App(UI):
             spare_take()
             if self.W >= 300 and self.H >= 200:
                 self.wide = self.ovl_load("wide", "wide_strip") is not None
+                if self.wide:
+                    wide_init(self)
             self.library()
         except Switch:
             pass

@@ -200,6 +200,7 @@ class UI:
         self.msg = ""
         self.hl_spec = None
         self.hl = []
+        self.wfoot = None      # TERM512: the app's two-line hints and app row (Projector: ovl/wide)
         # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
         try:
             if Display.screen_width() > Display.width():
@@ -285,6 +286,9 @@ class UI:
         Widget.header(self.sp, title, right)
 
     def foot(self, hints):
+        if self.wfoot is not None:
+            self.wfoot(self, hints)
+            return
         if self.msg != "":
             Widget.footer(self.sp, self.msg)
             return

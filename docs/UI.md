@@ -152,6 +152,13 @@ Projector (`ask_text`, `ask_number`, `ask_choice`, `ask_yn`):
   row, one hint line. Every command stays reachable through the hint bar and `Tab`.
 - On TERM512, the extras: a second hint line, the app row (`1 Home  2 Projector …`) like the
   Series 3's silkscreen, and on wide screens a panel beside the content (step 2.4 and 5.1).
+  The body ends 28 px higher. Under it, two hint lines hold every item of the screen's key
+  table, the numbered ones first and `[Tab] menu` last; a message, or a status such as Writer's
+  TYPE/MOVE, goes on the first. Under them, the app row: every app in the registry, digit then
+  name, this one marked (names cut to 4 letters if they don't all fit). In the Ruby apps it's
+  `SuiteApp#foot` / `foot_pairs` (`lib/ruby/ui.rb`); in Projector, `ovl/wide` (`wide_foot`),
+  loaded only on TERM512. Question screens and the film keep a plain one-line bar. Home has
+  no app row: its icons are one.
 
 Measured on a TERM512 (PLAN_V1 step 0.1): Projector has a 149 KB heap there, and 100 KB of it is
 still free with the largest idea after the film. The Cardputer ADV (about 53 KB) is the one that

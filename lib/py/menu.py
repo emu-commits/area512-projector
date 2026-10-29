@@ -98,9 +98,14 @@ def menu_r(self, fn, args, ms, m, i):
     hh = Widget.header_height()
     mx = menu_bar(self, ms, m, hh)
     menu_box(self, ms[m][1], mx, hh + 1, i)
-    # Widget.hints draws over what's there: clear the screen's own hints first
-    self.sp.fill_rect(0, self.H - 14, self.W, 14, self.c_bg)
-    Widget.hints(self.sp, [("<>", "menu"), ("ENT", "do"), ("ESC", "close")])
+    # Widget.hints draws over what's there: clear the screen's own hints first (on TERM512,
+    # the two hint lines and the app row)
+    fh = self.H - self.bot - 1
+    self.sp.fill_rect(0, self.H - fh, self.W, fh, self.c_bg)
+    m = self.msg
+    self.msg = ""
+    self.foot([("<>", "menu"), ("ENT", "do"), ("ESC", "close")])
+    self.msg = m
 
 
 def menu_bar(self, ms, m, hh):

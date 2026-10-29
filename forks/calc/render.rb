@@ -17,10 +17,8 @@ class Calc
     frame(@name, @dirty ? "*" : "")
     render_bar
     render_grid
-    if @msg != ""
-      Widget.footer(@sp, @msg)
-    elsif @edit
-      Widget.hints(@sp, [["ENT", "ok"], ["ESC", "cancel"], ["BS", "delete"]])
+    if @edit
+      foot_pairs([["ENT", "ok"], ["ESC", "cancel"], ["BS", "delete"]], "")
     else
       foot(GRID_KEYS)
     end

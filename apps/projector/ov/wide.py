@@ -129,3 +129,89 @@ def wide_pv2(idea, iid, pl, pw):
     if idea.get("note") != "":
         out.append("Left off: " + idea.get("note"))
     return out
+
+
+# ---- the bottom of the screen on TERM512 (step 5.1): two hint lines with every key of the
+# screen's table, and the app row, as lib/ruby/ui.rb does for the Ruby apps
+
+def wide_init(self):
+    self.bot = self.bot - 28
+    self.wfoot = wide_foot
+    self.wrow = None
+
+
+def wide_foot(self, hints):
+    if isinstance(hints, str):
+        if not (self.hl_spec is hints):
+            self.hl = wide_hints(hints)
+            self.hl_spec = hints
+        hints = self.hl
+    y = self.H - 42
+    self.sp.line(0, y, self.W - 1, y, Widget.theme_border())
+    if self.msg != "":
+        self.t(3, y + 2, Widget.clip(self.sp, self.msg, self.W - 6), self.c_em)
+    else:
+        wide_lines(self, hints, y + 2)
+    wide_apps(self)
+
+
+def wide_lines(self, hints, y):
+    x = 3
+    ln = 0
+    for h in hints:
+        w = (len(h[0]) + len(h[1]) + 4) * self.cw
+        if x + w > self.W - 3 and x > 3:
+            ln = ln + 1
+            x = 3
+        if ln > 1:
+            break
+        self.t(x, y + ln * self.lh, "[" + h[0] + "]", self.c_em)
+        self.t(x + (len(h[0]) + 3) * self.cw, y + ln * self.lh, h[1], self.c_text)
+        x = x + w
+
+
+def wide_hints(spec):
+    # every item: the numbered ones in order, then the rest, then [Tab] menu
+    out = []
+    rest = []
+    for it in spec.replace(";", "|").split("|"):
+        sp = it.find(" ")
+        if sp > 0 and it[0] >= "1" and it[0] <= "9":
+            out.append(it)
+        elif sp > 0:
+            rest.append((cut(it, 0, sp), cut(it, sp + 1, len(it))))
+    out.sort()
+    for i in range(len(out)):
+        sp = out[i].find(" ")
+        out[i] = (cut(out[i], 1, sp), cut(out[i], sp + 1, len(out[i])))
+    return out + rest + [("Tab", "menu")]
+
+
+def wide_apps(self):
+    # "1 Home  2 Projector ...", this app marked; names cut to 4 letters if all don't fit
+    if self.wrow is None:
+        wide_appsread(self)
+    y = self.H - 14
+    self.sp.line(0, y, self.W - 1, y, Widget.theme_border())
+    x = 3
+    for p in self.wrow:
+        name = cut(p[1], 0, self.wcut)
+        w = (len(name) + 3) * self.cw
+        if x + w - self.cw <= self.W:
+            c = self.c_text
+            if p[1] == "Projector":
+                self.sp.fill_rect(x - 2, y + 1, w - self.cw + 3, 13, self.c_box)
+                c = self.c_sel
+            self.t(x, y + 1, p[0], self.c_em)
+            self.t(x + 2 * self.cw, y + 1, name, c)
+        x = x + w
+
+
+def wide_appsread(self):
+    self.wrow = reg_read()
+    n = 0
+    for p in self.wrow:
+        n = n + len(p[1]) + 3
+    self.wcut = 9
+    if n * self.cw > self.W - 3:
+        self.wcut = 4

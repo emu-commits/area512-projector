@@ -59,18 +59,19 @@ class Writer
 
   # TYPE or MOVE, line:column and the words, right; the hint bar in what's left
   def doc_foot
-    if @msg != ""
-      Widget.footer(@sp, @msg)
-      return
-    end
     st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" +
          (chars(cur_line, @col) + 1).to_s + " " + @words.to_s + "w"
-    if @mode == :move
-      Widget.hints(@sp, hint_fit(DOC_KEYS, (@w - 3) / @cw - st.length - 11))
+    if @mode != :move
+      foot_pairs([["Tab", "menu"]], st)
+    elsif @wide
+      if @hl_spec != DOC_KEYS                       # foot's cache: every key, on two lines
+        @hl = hint_all(DOC_KEYS)
+        @hl_spec = DOC_KEYS
+      end
+      foot_pairs(@hl, st)
     else
-      Widget.hints(@sp, [["Tab", "menu"]])
+      foot_pairs(hint_fit(DOC_KEYS, (@w - 3) / @cw - st.length - 11), st)
     end
-    Widget.text_right(@sp, @w - 3, @h - 13, st, @c_em)
   end
 
   # TERM512's list: the selected document's first lines, only as many as show, and only

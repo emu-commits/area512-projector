@@ -78,11 +78,7 @@ class Agenda
     t(8, y + 4, m ? fmt_time(m) : "--:--", @c_sel)
     t(60, y + 4, "typed " + @q[1], @c_dim) if @q[1] != ""
     t(6, y + h + 6, clip("Up/down: 15 min. Or type 930, 1415.", @w - 12), @c_dim)
-    if @msg != ""
-      Widget.footer(@sp, @msg)
-    else
-      Widget.hints(@sp, [[";.", "15 min"], ["0-9", "type"], ["ENT", "ok"]])
-    end
+    foot_pairs([[";.", "15 min"], ["0-9", "type"], ["ENT", "ok"]], "")
   end
 
   # time, then text; nil if either is cancelled

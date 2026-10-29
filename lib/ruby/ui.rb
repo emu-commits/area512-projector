@@ -10,6 +10,9 @@
 class SuiteApp
   REG_FILE = "/data/area512/apps.txt" unless const_defined?(:REG_FILE)
   OPEN_FILE = "/data/area512/open.txt" unless const_defined?(:OPEN_FILE)
+  # TERM512: a second hint line and the app row under the body (docs/UI.md, PLAN_V1 5.1)
+  FOOT_EXTRA = 28 unless const_defined?(:FOOT_EXTRA)
+  FOOT_H = 14 unless const_defined?(:FOOT_H)        # Widget.hints' bar (WIDGET_FOOTER_HEIGHT)
 
   def ui_init
     # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
@@ -22,6 +25,8 @@ class SuiteApp
     @wide = @w >= 300 && @h >= 200
     @top = Widget.body_top
     @bot = Widget.body_bottom
+    @bot -= FOOT_EXTRA if @wide
+    @row_apps = nil  # the app row's [[digit, name, path], ...], read once (SD isn't up yet)
     @cw = Widget.char_width
     @lh = 13
     @c_text = Widget.theme_text
@@ -125,15 +130,102 @@ class SuiteApp
   end
 
   def foot(spec)
-    if @msg != ""
-      Widget.footer(@sp, @msg)
-      return
-    end
     if @hl_spec != spec
-      @hl = hint_list(spec)
+      @hl = @wide ? hint_all(spec) : hint_list(spec)
       @hl_spec = spec
     end
-    Widget.hints(@sp, @hl)
+    foot_pairs(@hl, "")
+  end
+
+  # The bottom of the screen: a message, else the hints ([[key, label], ...]); right is a
+  # status on the right of the first line ("" for none). On TERM512 two lines of hints and the
+  # app row; on the Cardputer one line, the hints cut to what fits beside right.
+  def foot_pairs(hs, right)
+    if @wide
+      wide_foot(hs, right)
+    elsif @msg != ""
+      Widget.footer(@sp, @msg)
+    else
+      Widget.hints(@sp, hs)
+      Widget.text_right(@sp, @w - 3, @h - 13, right, @c_em) if right != ""
+    end
+  end
+
+  def wide_foot(hs, right)
+    y = @h - FOOT_H - FOOT_EXTRA
+    @sp.line(0, y, @w - 1, y, @c_border)
+    rw = right == "" ? 0 : Widget.text_width(@sp, right) + 8
+    if @msg != ""
+      t(3, y + 2, clip(@msg, @w - 6 - rw), @c_em)
+    else
+      x = 3
+      ln = 0
+      i = 0
+      while i < hs.length && ln < 2
+        kk = "[" + hs[i][0] + "]"
+        w = Widget.text_width(@sp, kk + " " + hs[i][1]) + @cw
+        lim = ln == 0 ? @w - 3 - rw : @w - 3
+        if x + w > lim && x > 3
+          ln += 1
+          x = 3
+        else
+          yy = y + 2 + ln * @lh
+          t(x, yy, kk, @c_em)
+          t(x + Widget.text_width(@sp, kk) + @cw, yy, hs[i][1], @c_text)
+          x += w
+          i += 1
+        end
+      end
+    end
+    Widget.text_right(@sp, @w - 3, y + 2, right, @c_em) if right != ""
+    app_row
+  end
+
+  # the Series 3's application buttons: "1 Home  2 Projector ...", this app marked. Names
+  # are cut to 4 letters when all of them don't fit.
+  def app_row
+    if @row_apps.nil?
+      @row_apps = reg_read
+      n = 0
+      @row_apps.each { |p| n += p[1].length + 3 }
+      @row_n = n * @cw > @w - 3 ? 4 : 9
+    end
+    y = @h - FOOT_H
+    @sp.line(0, y, @w - 1, y, @c_border)
+    x = 3
+    @row_apps.each do |p|
+      name = p[1][0, @row_n]
+      w = (name.length + 3) * @cw
+      if x + w - @cw <= @w
+        me = p[2] == @app_dir
+        @sp.fill_rect(x - 2, y + 1, w - @cw + 3, 13, @c_box) if me
+        t(x, y + 1, p[0], @c_em)
+        t(x + 2 * @cw, y + 1, name, me ? @c_sel : @c_text)
+      end
+      x += w
+    end
+  end
+
+  # TERM512: every item of the table, the numbered ones first, then "[Tab] menu"
+  def hint_all(spec)
+    nums = []
+    rest = []
+    spec.tr(";", "|").split("|").each do |it|
+      sp = it.index(" ")
+      if sp && sp > 0
+        if digit?(it)
+          nums.push(it)
+        else
+          rest.push(it)
+        end
+      end
+    end
+    nums.sort!
+    out = []
+    nums.each { |it| out.push([it[1, it.index(" ") - 1], it[it.index(" ") + 1, it.length]]) }
+    rest.each { |it| out.push([it[0, it.index(" ")], it[it.index(" ") + 1, it.length]]) }
+    out.push(["Tab", "menu"])
+    out
   end
 
   # the table's numbered items, in order, while they fit beside "[Tab] menu"; Widget.hints
@@ -272,8 +364,12 @@ class SuiteApp
       j += 1
     end
     menu_box(ms[@menu[1]][1], mx, hh + 1)
-    @sp.fill_rect(0, @h - 14, @w, 14, @c_bg)   # Widget.hints draws over what's there
-    Widget.hints(@sp, [["<>", "menu"], ["ENT", "do"], ["ESC", "close"]])
+    fh = @h - @bot - 1                           # Widget.hints draws over what's there
+    @sp.fill_rect(0, @h - fh, @w, fh, @c_bg)
+    m = @msg
+    @msg = ""
+    foot_pairs([["<>", "menu"], ["ENT", "do"], ["ESC", "close"]], "")
+    @msg = m
   end
 
   def menu_box(its, x, y)
