@@ -56,8 +56,10 @@ rb_fork() {
     mkdir -p "$out"
     # CRuby (tests/rsim.rb) has methods the device lacks: none may be called
     python3 tools/rbcheck.py lib/ruby/*.rb forks/$name/*.rb || { echo "forks/$name calls a method mruby/c lacks"; exit 1; }
+    # --remove-lv: no local variables' names, which mruby/c never reads. The code stays in
+    # the VM's 120 KB with the app's data: 2.2 KB less for Writer (PLAN_V1 4.3)
     for f in lib/ruby/*.rb forks/$name/*.rb; do
-        "$PICORBC" -o "$out/$(basename "$f" .rb).mrb" "$f" || { echo "$f does not compile"; exit 1; }
+        "$PICORBC" --remove-lv -o "$out/$(basename "$f" .rb).mrb" "$f" || { echo "$f does not compile"; exit 1; }
     done
     cp forks/$name/main.manifest forks/$name/README.md "$out/"
     for e in $(cat forks/$name/main.manifest); do

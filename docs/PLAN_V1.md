@@ -525,6 +525,26 @@ screen.
   paragraphs all took that four times on both builds. A file that's too big says how big,
   as a share of the most. One long paragraph near 10 KB is slow to type in (it's laid out
   again on each key); not fixed. 21 `writer_*` scenarios, 158 in all at both sizes.*
+  *Fixed after step 5.2 (2026-10-29). A key at the end of a 10 KB paragraph took 2.9 s on the
+  TERM512 build and 2.3 s on the Cardputer's, a page 5.7 s (a timer on the status line, in the
+  emulator): the column was counted from the paragraph's start on every band, the paragraph
+  was wrapped about three times a key, three reads a byte. Now the column is counted on from
+  where it was, rows are wrapped with one read a byte and only as far as the screen needs,
+  and only the words around a change are counted again: about a tenth of the work. Rows kept
+  and mended from key to key were quicker still (58 ms), but cost more of the VM's arena
+  than they saved, and the device can't say how its arena is cut up, so `tests/arena.sh` was
+  written to: it runs a fork on mruby/c built for the PC with the firmware's settings and
+  says how much it has to spare. It also found the rest. A 10 KB paragraph, split, saved,
+  joined and searched, ran the old Writer out too: find lowercased a copy of each line (now
+  it reads them where they are), a save grew the file a line at a time (now it's made at its
+  size), and the paragraph itself is held twice or more, in one piece, by each of those. So
+  a paragraph holds 4 KB (typing stops, a join past it is refused, a longer file isn't
+  opened), and `build.sh` drops local variables' names from the bytecode (`--remove-lv`,
+  2.2 KB of Writer's), which Agenda, Calc, Slide and Home were checked with on both builds.
+  On both builds, a 10 KB document with a 4 KB paragraph took that four times. Upstream's
+  wrapping could run a row past the edge (a word carried down wasn't measured again); fixed.
+  `tests/wrfuzz.rb` checks the column, words, size, rows and find under random keys. 26
+  `writer_*` scenarios, 242 in all.*
 
 - 4.4 Slide. *Done: `forks/slide/` (Slide at upstream fc9f6f9, then every change listed in its
   UPSTREAM.md). A deck is one of Writer's documents, a line of `---` between pages, so decks
