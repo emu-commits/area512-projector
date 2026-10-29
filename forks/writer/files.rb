@@ -25,7 +25,6 @@ class Writer
   # False (and a message) if the save failed: whatever was about to happen then stops.
   def save_doc
     return true if @name.nil?
-    drop_rows                        # the room for the text; laid out again after
     SD.write(path_of(@name), file_text)
     @dirty = false
     @msg = "Saved " + @name

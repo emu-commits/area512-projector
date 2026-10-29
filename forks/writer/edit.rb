@@ -28,7 +28,6 @@ class Writer
 
   def insert_newline
     return if full(1, 1)
-    drop_rows                        # the room for the rest's copy (document.rb)
     s = cur_line
     rest = part(s, @col, s.length - @col)
     splice(@row, @col, rest.length, "")
@@ -52,7 +51,6 @@ class Writer
       splice(@row, b, @col - b, "")
       @col = b
     elsif @row > 0
-      drop_rows                      # both lines are held while they're joined
       plen = line(@row - 1).length
       splice(@row - 1, plen, 0, s)
       delete_line(@row)
@@ -87,7 +85,7 @@ class Writer
   # up or down a row as drawn (a long paragraph is several), keeping to the same x
   def move_row(d)
     s = cur_line
-    ss = segs_of(@row)
+    ss = segs(cur_line)
     k = seg_of(ss, @col)
     @goal = width(s, ss[k], @col) if @goal.nil?
     if d < 0
@@ -96,7 +94,7 @@ class Writer
       elsif @row > 0
         @row -= 1
         s = cur_line
-        ss = segs_of(@row)
+        ss = segs(cur_line)
         k = ss.length - 1
       else
         @col = 0
@@ -108,7 +106,7 @@ class Writer
       elsif @row < @lines.length - 1
         @row += 1
         s = cur_line
-        ss = segs_of(@row)
+        ss = segs(cur_line)
         k = 0
       else
         @col = s.length
@@ -162,7 +160,7 @@ class Writer
 
   # the start of the row on screen; at it already, the start of the paragraph
   def row_start
-    ss = segs_of(@row)
+    ss = segs(cur_line)
     a = ss[seg_of(ss, @col)]
     @col = @col == a ? 0 : a
     @goal = nil
@@ -170,7 +168,7 @@ class Writer
 
   def row_end
     s = cur_line
-    ss = segs_of(@row)
+    ss = segs(cur_line)
     k = seg_of(ss, @col)
     e = seg_end(s, ss, k)
     e = back(s, e) if k + 1 < ss.length

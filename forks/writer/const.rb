@@ -26,10 +26,6 @@ class Writer < SuiteApp
   DOC_MAX = 16384 unless const_defined?(:DOC_MAX)
   LINE_COST = 40 unless const_defined?(:LINE_COST)
   FIND_MAX = 30 unless const_defined?(:FIND_MAX)
-  # a line this long keeps its wrapped rows (document.rb); a shorter one is quick to lay out
-  SEG_KEEP = 256 unless const_defined?(:SEG_KEEP)
-  # a change of more bytes than this lays the line out anew instead of mending its rows
-  MEND_MAX = 16 unless const_defined?(:MEND_MAX)
 
   LINE_H = 14 unless const_defined?(:LINE_H)
   PAGE_PAD = 4 unless const_defined?(:PAGE_PAD)

@@ -1,7 +1,8 @@
-# Writer's document under random keys, under CRuby: after every key, the rows Writer keeps
-# (document.rb's @sg_cur and @sg_oth), the word count, the size, the cursor's column and the
-# screen laid out must equal what a fresh count and layout give. They're mended a key at a
-# time so a long paragraph stays quick (PLAN_V1 4.3); this is what says the mending is right.
+# Writer's document under random keys, under CRuby: after every key, the word count, the size
+# and the cursor's column, which are kept up a change at a time so a long paragraph stays
+# quick (PLAN_V1 4.3), must equal a fresh count; the rows must equal upstream's wrapping (one
+# read of each byte now, three then), and a capped wrap the start of the whole one; find must
+# equal a search of a lowercased copy.
 #
 #   ruby tests/wrfuzz.rb [seed] [documents]
 #
@@ -30,7 +31,33 @@ KANA = ["あ", "い", "漢"].map(&:b)
 LONG = "supercalifragilisticexpialidocious".b
 
 def got(w, v) = w.instance_variable_get(v)
-def rows(ss) = Array.new(ss.length) { |k| ss[k] }
+# upstream's wrapping, as forked (document.rb before PLAN_V1 4.3's speed-up), with its one
+# fault mended: after carrying a word down it didn't look again, so a row could run past the
+# edge (" lcious\u3042a\u3042" at 60 px: "lcious\u3042a\u3042" on one row, 66 px). Now: while,
+# not if.
+def ref_segs(w, s)
+  wrap = w.instance_variable_get(:@wrap_w)
+  out = [0]
+  start = 0
+  brk = 0
+  x = 0
+  i = 0
+  while i < s.length
+    b = s.getbyte(i)
+    g = w.glyph_w(s, i)
+    while b != 32 && x + g > wrap && i > start
+      cut = brk > start ? brk : i
+      out.push(cut)
+      start = cut
+      brk = 0
+      x = w.width(s, start, i)
+    end
+    brk = i + 1 if b == 32
+    x += g
+    i += w.step(s, i)
+  end
+  out
+end
 
 docs.times do |doc|
   # the Cardputer's and TERM512's widths and heights, and narrow ones for more rows
@@ -59,17 +86,14 @@ docs.times do |doc|
     wr.layout
     lines = got(wr, :@lines)
     bad = []
-    %w[cur oth].each do |k|
-      r = got(wr, "@sg_#{k}_row")
-      bad << "@sg_#{k}" if r >= 0 && rows(got(wr, "@sg_#{k}")) != rows(wr.segs(wr.line(r)))
-    end
+    l = wr.cur_line
+    whole = wr.segs(l)
+    bad << "rows" if whole != ref_segs(wr, l)
+    cap = rng.rand(1..20)
+    bad << "capped rows" if wr.segs(l, cap) != whole[0, cap + 1]
     bad << "@words" if got(wr, :@words) != lines.sum { |l| wr.word_count(l) }
     bad << "@bytes" if got(wr, :@bytes) != lines.sum { |l| l.length + 1 }
     bad << "column" if wr.col_chars != wr.chars_in(wr.cur_line, 0, wr.col)
-    seen = %i[@view @cur_y @cur_x @scr @scr_seg].map { |v| got(wr, v) }
-    wr.drop_rows
-    wr.layout
-    bad << "layout" if seen != %i[@view @cur_y @cur_x @scr @scr_seg].map { |v| got(wr, v) }
     if op == 12                      # find: the same as a lowercased copy, without one
       s = lines.sample(random: rng)
       want = (rng.rand(2) == 0 ? WORDS.sample(random: rng) : s[rng.rand(s.length + 1), rng.rand(1..6)].to_s).downcase

@@ -1,34 +1,4 @@
 class Writer
-  # A paragraph's rows: the byte each starts at, 2 bytes apiece in one String, with room made
-  # ahead. An Array takes 16 bytes a number and grows 6 at a time, each a copy: 4 KB for a
-  # 10 KB paragraph, copied 45 times as it grew, which left the VM's arena in pieces too small
-  # for a save's joined text (the Cardputer build, 10 KB in one paragraph, split and saved).
-  class Rows
-    def initialize(cap)
-      @b = "  " * (cap < 4 ? 4 : cap)
-      @n = 0
-    end
-
-    def length
-      @n
-    end
-
-    def [](k)
-      @b.getbyte(k * 2) * 256 + @b.getbyte(k * 2 + 1)
-    end
-
-    def []=(k, v)
-      @b.setbyte(k * 2, v / 256)
-      @b.setbyte(k * 2 + 1, v % 256)
-    end
-
-    def push(v)
-      @b << "  " * @n if @n * 2 >= @b.length     # twice the room, seldom: cap is a guess
-      self[@n] = v
-      @n += 1
-    end
-  end
-
   # The document: @lines, one String per paragraph, as bytes (the firmware's strings are
   # bytes; what the keyboard's IME types is UTF-8). @col is a byte offset into the line, always
   # on a character's first byte. Every change goes through splice, insert_line and
@@ -46,36 +16,14 @@ class Writer
     @mode = :type
     @hit = nil        # [row, col, length] of what find found, until the next key
     @utf = ""         # a UTF-8 character still arriving, one byte per key
-    drop_rows
-  end
-
-  # The kept work, so a key costs about the same in a 10 KB paragraph as in a short one (it
-  # took 1.4 to 2.9 s a key there, and 5.7 a page, on the device: PLAN_V1 4.3). The wrapped
-  # rows of the cursor's line (@sg_cur) and of one other long one, mostly the line at the top
-  # of the screen (@sg_oth), with their line numbers; and the cursor's column in characters
-  # (@cc_n at byte @cc_col of line @cc_row). Each is mended by splice, insert_line and
-  # delete_line. The rows of a 10 KB paragraph take a few KB, so they're let go before
-  # whatever holds a second copy of a long line (a save, Enter, joining two lines, find):
-  # kept through joining two halves of a 10 KB paragraph, they ran the TERM512 build out.
-  def drop_rows
-    @sg_cur = nil
-    @sg_cur_row = -1
-    @sg_oth = nil
-    @sg_oth_row = -1
     @cc_row = -1
   end
 
-  # line i's kept rows, if any
-  def forget_rows(i)
-    if @sg_cur_row == i
-      @sg_cur = nil
-      @sg_cur_row = -1
-    end
-    if @sg_oth_row == i
-      @sg_oth = nil
-      @sg_oth_row = -1
-    end
-  end
+  # The cursor's column in characters, for the status line: @cc_n at byte @cc_col of line
+  # @cc_row, counted on from where it was. Counted from the line's start on every band, it
+  # took 1.4 to 2.9 s a key at the end of a 10 KB paragraph on the device (PLAN_V1 4.3).
+  # Nothing else is kept from key to key: rows kept and mended a row at a time were quicker,
+  # but their code and their pieces left the VM's arena without room for a 10 KB save.
 
   def line(i)
     s = @lines[i]
@@ -94,8 +42,7 @@ class Writer
 
   # line i's n bytes at pos become text, in place: built anew, a long paragraph was copied
   # three times a key, and 12 KB in one ran the VM out. Only the words around the change are
-  # counted again, and the rows from just before it; a change longer than typing makes them
-  # be laid out anew instead, once it's done.
+  # counted again.
   def splice(i, pos, n, text)
     s = @lines[i]
     a = pos
@@ -116,12 +63,6 @@ class Writer
       elsif @cc_col > pos
         @cc_row = -1
       end
-    end
-    if n + text.length > MEND_MAX
-      forget_rows(i)
-    else
-      @sg_cur = reflow(@sg_cur, s, pos, n, text.length) if i == @sg_cur_row
-      @sg_oth = reflow(@sg_oth, s, pos, n, text.length) if i == @sg_oth_row
     end
     @bytes += d
     @dirty = true
@@ -163,8 +104,6 @@ class Writer
       i -= 1
     end
     @lines[pos] = s
-    @sg_cur_row += 1 if @sg_cur_row >= pos
-    @sg_oth_row += 1 if @sg_oth_row >= pos
     @cc_row = -1
     @words += word_count(s)
     @bytes += s.length + 1
@@ -175,9 +114,6 @@ class Writer
     @words -= word_count(line(i))
     @bytes -= line(i).length + 1
     @lines.delete_at(i)
-    forget_rows(i)
-    @sg_cur_row -= 1 if @sg_cur_row > i
-    @sg_oth_row -= 1 if @sg_oth_row > i
     @cc_row = -1
     @dirty = true
   end
@@ -186,7 +122,7 @@ class Writer
   # copy: a document's size counts twice against the VM's heap, where running out restarts
   # the device (mruby/c can't raise it).
   def set_text(text)
-    drop_rows
+    @cc_row = -1
     @lines = text.split("\n")
     @lines.push("") if @lines.length == 0
     @words = 0
@@ -294,8 +230,7 @@ class Writer
   # the byte offsets where each row of s starts: [0, ...]; with max, no more than max + 1 of
   # them (the rest of a long paragraph isn't needed to fill the screen)
   def segs(s, max = 0)
-    out = Rows.new(max > 0 ? max + 2 : s.length * GLYPH_W / @wrap_w + 4)
-    out.push(0)
+    out = [0]
     a = next_row(s, 0)
     while a
       out.push(a)
@@ -306,8 +241,7 @@ class Writer
   end
 
   # where the row starting at byte a of s ends, which is where the next one starts; nil if
-  # it runs to the end. A row depends only on the bytes from its start, which is what lets
-  # reflow stop early. One read of each byte (glyph_w and step each read it again).
+  # it runs to the end. One read of each byte (glyph_w and step each read it again).
   def next_row(s, a)
     brk = 0           # just after the last space in this row, 0 if none
     x = 0
@@ -328,60 +262,6 @@ class Writer
       i += st
     end
     nil
-  end
-
-  # line i's rows, kept if it's the cursor's line or a long one laid out whole
-  def segs_of(i, max = 0)
-    return @sg_cur if i == @sg_cur_row
-    return @sg_oth if i == @sg_oth_row
-    s = line(i)
-    if i == @row
-      ss = segs(s)
-      if @sg_cur && line(@sg_cur_row).length >= SEG_KEEP
-        @sg_oth = @sg_cur                # the old cursor's line, often still on screen
-        @sg_oth_row = @sg_cur_row
-      end
-      @sg_cur = ss
-      @sg_cur_row = i
-      return ss
-    end
-    ss = segs(s, max)
-    if max == 0 && s.length >= SEG_KEEP
-      @sg_oth = ss
-      @sg_oth_row = i
-    end
-    ss
-  end
-
-  # The rows of line s, whose bytes pos...pos+n became len others, from ss, its rows before:
-  # laid out again from two rows before the change (a word can move up, and a row ends on the
-  # first byte that doesn't fit, which can be the next row's first), until a row starts where
-  # one did before, moved by the change. From there on they're the same, so typing lays out a
-  # row or two, not the paragraph.
-  def reflow(ss, s, pos, n, len)
-    d = len - n
-    k = seg_of(ss, pos) - 2
-    k = 0 if k < 0
-    out = Rows.new(ss.length + 2)
-    i = 0
-    while i <= k
-      out.push(ss[i])
-      i += 1
-    end
-    a = next_row(s, ss[k])
-    while a
-      if a >= pos + len
-        i += 1 while i < ss.length && ss[i] + d < a
-        break if i < ss.length && ss[i] + d == a
-      end
-      out.push(a)
-      a = next_row(s, a)
-    end
-    while a && i < ss.length
-      out.push(ss[i] + d)
-      i += 1
-    end
-    out
   end
 
   def seg_of(ss, col)
@@ -421,9 +301,9 @@ class Writer
     rows = visible_rows
     @scr = @lines.length - 1 if @scr >= @lines.length
     @scr = 0 if @scr < 0
-    tn = segs_of(@scr).length
+    tn = segs(line(@scr)).length
     @scr_seg = tn - 1 if @scr_seg >= tn
-    ss = segs_of(@row)
+    ss = segs(cur_line)
     k = seg_of(ss, @col)
     if @row < @scr || (@row == @scr && k < @scr_seg)
       @scr = @row
@@ -437,7 +317,7 @@ class Writer
     s0 = @scr_seg
     while @view.length < rows && r < @lines.length
       s = line(r)
-      ss = segs_of(r, s0 + rows - @view.length)
+      ss = segs(s, s0 + rows - @view.length)
       while s0 < ss.length && @view.length < rows
         e = seg_end(s, ss, s0)
         if r == @row && seg_of(ss, @col) == s0
@@ -459,7 +339,7 @@ class Writer
     r = r0
     k = k0
     while r < r1
-      n += segs_of(r, k + max + 1).length - k
+      n += segs(line(r), k + max + 1).length - k
       return n if n > max
       k = 0
       r += 1
@@ -477,7 +357,7 @@ class Writer
       elsif r > 0
         left -= k + 1
         r -= 1
-        k = segs_of(r).length - 1
+        k = segs(line(r)).length - 1
       else
         k = 0
         left = 0
