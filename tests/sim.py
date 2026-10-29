@@ -424,15 +424,29 @@ WR_LONG = "Lorem ipsum " * 12 + "end\nSecond para\n"
 SEEDS["writer_wrap"] = {"/data": None, "/data/writer": None, "/data/writer/long.txt": WR_LONG}
 SCENARIOS["writer_wrap"] = "ENTER SHOT:w_wrap DOWN T:X DOWN DOWN DOWN DOWN DOWN DOWN T:Y TAB m a e e ENTER T:Z ESC ESC"
 EXPECT["writer_wrap"] = ["XLorem", "\\nSecond paraYZ\\n"]
-# one paragraph at the limit, its rows kept and mended a key at a time (tests/wrfuzz.rb
-# checks the mending): typed at the end, paged through, typed at the start, split and joined
-WR_PARA = ("lorem ipsum dolor sit amet " * 400)[:10000]
+# one long paragraph (PLAN_V1 4.3: a key cost the same at its end as in a short one, and a
+# paragraph holds 4 KB): typed at the end, paged through, typed at the start, split and joined
+WR_PARA = ("lorem ipsum dolor sit amet " * 160)[:4000]
 SEEDS["writer_para"] = {"/data": None, "/data/writer": None, "/data/writer/para.txt": WR_PARA + "\n"}
 SCENARIOS["writer_para"] = "ENTER TAB m ] ENTER T:abc SHOT:w_para TAB m [ j j k [ ENTER T:z ENTER BS ESC ESC"
 EXPECT["writer_para"] = [rfs("/data/writer/para.txt", "z" + WR_PARA + "abc\n")]
 SEEDS["writer_para_foot"] = SEEDS["writer_para"]
 SCENARIOS["writer_para_foot"] = "ENTER TAB m ] ENTER T:abc"
-EXPECT["writer_para_foot"] = ["@@SCREEN TYPE 1:10004 1852w"]
+EXPECT["writer_para_foot"] = ["@@SCREEN TYPE 1:4004 741w"]
+# at 4 KB typing stops; a file with a longer paragraph isn't opened; a join past it is refused
+SEEDS["writer_para_full"] = {"/data": None, "/data/writer": None, "/data/writer/para.txt": "x" * 4094 + "\n"}
+SCENARIOS["writer_para_full"] = "ENTER TAB m ] ENTER T:abcd SHOT:w_parafull ESC ESC"
+EXPECT["writer_para_full"] = [rfs("/data/writer/para.txt", "x" * 4094 + "ab\n")]
+SEEDS["writer_para_msg"] = SEEDS["writer_para_full"]
+SCENARIOS["writer_para_msg"] = "ENTER TAB m ] ENTER T:abcd"
+EXPECT["writer_para_msg"] = ["@@SCREEN Full: a paragraph holds 4 KB"]
+SEEDS["writer_para_big"] = {"/data": None, "/data/writer": None, "/data/writer/para.txt": "x" * 5000 + "\n"}
+SCENARIOS["writer_para_big"] = "ENTER"
+EXPECT["writer_para_big"] = ["@@SCREEN para has a paragraph over 4 KB: 123% of the most"]
+SEEDS["writer_para_join"] = {"/data": None, "/data/writer": None,
+                             "/data/writer/para.txt": "a" * 4080 + "\n" + "b" * 30 + "\n"}
+SCENARIOS["writer_para_join"] = "ENTER TAB m ] a ENTER BS"
+EXPECT["writer_para_join"] = ["@@SCREEN Too long to join"]
 # find (Tab f) from the cursor, Tab g again (round from the top), case doesn't matter;
 # Tab then Writer's own digit does nothing
 SEEDS["writer_find"] = WR_REG
@@ -488,13 +502,16 @@ SCENARIOS["writer_mem"] = "ENTER TAB m % SHOT:w_mem"
 EXPECT["writer_mem"] = ["@@SCREEN Ruby heap: 70 KB free of 120"]
 # past 10 KB, or 16 KB of room (bytes, and 40 a line): a file that big isn't opened, and
 # typing stops at the limit; short lines count, one String each
-SEEDS["writer_full"] = {"/data": None, "/data/writer": None, "/data/writer/huge.txt": "x" * 17000 + "\n",
-                        "/data/writer/edge.txt": "y" * 10230 + "\n", "/data/writer/lines.txt": "b\n" * 400}
+# in paragraphs of at most 4 KB (PARA_MAX): 17,001 and 10,231 bytes, as one line each was
+WR_HUGE = ("x" * 4000 + "\n") * 4 + "x" * 996 + "\n"
+WR_EDGE = "y" * 4000 + "\n" + "y" * 4000 + "\n" + "y" * 2228
+SEEDS["writer_full"] = {"/data": None, "/data/writer": None, "/data/writer/huge.txt": WR_HUGE,
+                        "/data/writer/edge.txt": WR_EDGE + "\n", "/data/writer/lines.txt": "b\n" * 400}
 SCENARIOS["writer_full"] = "ENTER TAB m ] ENTER T:abcdefghij SHOT:w_full"
 EXPECT["writer_full"] = ["@@SCREEN Full: Writer takes no more. Start another."]
 SEEDS["writer_edge"] = SEEDS["writer_full"]
 SCENARIOS["writer_edge"] = "ENTER TAB m ] ENTER T:abcdefghij ESC"
-EXPECT["writer_edge"] = [rfs("/data/writer/edge.txt", "y" * 10230 + "abcdefghi\n")]
+EXPECT["writer_edge"] = [rfs("/data/writer/edge.txt", WR_EDGE + "abcdefghi\n")]
 SEEDS["writer_huge"] = SEEDS["writer_full"]
 SCENARIOS["writer_huge"] = "DOWN ENTER SHOT:w_huge"
 EXPECT["writer_huge"] = ["@@SCREEN huge is too big: 167% of the most"]

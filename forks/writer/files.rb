@@ -8,9 +8,10 @@ class Writer
       @msg = "Can't open " + name
       return false
     end
-    pc = share(text.length, room_of(text))
+    pc = share_of(text)
     if pc > 100
-      @msg = name + " is too big: " + pc.to_s + "% of the most"
+      @msg = name + (@longest > PARA_MAX ? " has a paragraph over 4 KB: " : " is too big: ") +
+             pc.to_s + "% of the most"
       return false
     end
     set_text(text)

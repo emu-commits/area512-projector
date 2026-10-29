@@ -81,7 +81,7 @@ class Writer
   def doc_preview(name)
     text = read_file(path_of(name))
     return [] if text.nil?
-    return ["(too big to open)"] if share(text.length, room_of(text)) > 100
+    return ["(too big to open)"] if share_of(text) > 100
     out = []
     i = 0
     while out.length < 16 && i < text.length

@@ -23,6 +23,10 @@ costs about 40 bytes more, so a list stops at about 330 lines. Writer shares the
 bigger file (it says how big, as a share of the most), and says "Full" when typing reaches it:
 start another document. Don't copy a much bigger file into `/data/writer/`.
 
+A paragraph holds up to 4 KB (about 700 words). Typing stops there ("Full: ... Enter starts
+another"), Backspace won't join two paragraphs past it, and a file with a longer one isn't
+opened (split it on a computer first).
+
 ## Typing
 
 Letters type, so Writer's commands are in the menu: **Tab**, then the command's key.

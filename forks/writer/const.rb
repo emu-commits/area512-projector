@@ -25,6 +25,10 @@ class Writer < SuiteApp
   DOC_BYTES = 10240 unless const_defined?(:DOC_BYTES)
   DOC_MAX = 16384 unless const_defined?(:DOC_MAX)
   LINE_COST = 40 unless const_defined?(:LINE_COST)
+  # The longest paragraph (one line in the file). Splitting, joining and saving one hold it
+  # twice or more, each copy in one piece: one paragraph of 10 KB ran the Cardputer build out
+  # (PLAN_V1 4.3), a 4 KB one in a 10 KB document didn't, on either build.
+  PARA_MAX = 4096 unless const_defined?(:PARA_MAX)
   FIND_MAX = 30 unless const_defined?(:FIND_MAX)
 
   LINE_H = 14 unless const_defined?(:LINE_H)

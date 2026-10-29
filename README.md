@@ -83,6 +83,10 @@ You need [area512-factory](https://github.com/emu-commits/area512-factory) check
     tests/fw.py full_arc     # the same scenario on the OFFICIAL firmware, headless, with screenshots
                              # and the card's files copied back to tests/.fw/data/
     tests/fw.py home_open --term512   # Home and Projector on the TERM512 build (which has run_next)
+    ruby tests/wrfuzz.rb     # Writer's document under random keys: word count, column, rows, find
+    tests/arena.sh dist/writer term512 tests/seeds/writer "ENTER a b ESC"
+                             # how much of the Ruby VM's 120 KB a fork has to spare, on mruby/c
+                             # built for the PC with the firmware's settings (needs gcc)
 
 Layout: `apps/<app>/` (MicroPython apps: `main.py`, overlays in `ov/`), `lib/py/` (shared by
 them: MINIMUM has no `import`, so `build.sh` puts these files in front of each app's

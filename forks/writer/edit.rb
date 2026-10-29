@@ -39,6 +39,10 @@ class Writer
 
   # past DOC_BYTES or DOC_MAX the VM could run out (const.rb)
   def full(bytes, lines)
+    if lines == 0 && cur_line.length + bytes > PARA_MAX
+      @msg = "Full: a paragraph holds 4 KB. Enter starts another."
+      return true
+    end
     return false if @bytes + bytes <= DOC_BYTES && room + bytes + LINE_COST * lines <= DOC_MAX
     @msg = "Full: Writer takes no more. Start another."
     true
@@ -52,6 +56,10 @@ class Writer
       @col = b
     elsif @row > 0
       plen = line(@row - 1).length
+      if plen + s.length > PARA_MAX
+        @msg = "Too long to join: a paragraph holds 4 KB."
+        return
+      end
       splice(@row - 1, plen, 0, s)
       delete_line(@row)
       @row -= 1

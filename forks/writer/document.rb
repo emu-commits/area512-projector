@@ -81,18 +81,26 @@ class Writer
     a > b ? a : b
   end
 
-  # the same for a file not opened yet, without splitting it
+  # the same for a file not opened yet, without splitting it; @longest is its longest line
   def room_of(text)
     n = 0
     i = 0
+    @longest = 0
     while i < text.length
-      j = text.index("\n", i)
-      break if j.nil?
+      j = text.index("\n", i) || text.length
+      @longest = j - i if j - i > @longest
       n += 1
       i = j + 1
     end
-    n += 1 if i < text.length || n == 0      # a last line with no newline, or an empty file
+    n = 1 if n == 0                  # an empty file
     text.length + LINE_COST * n
+  end
+
+  # what share says of a file not opened yet, its longest paragraph counted too
+  def share_of(text)
+    pc = share(text.length, room_of(text))
+    lp = (@longest * 100 + PARA_MAX - 1) / PARA_MAX
+    pc > lp ? pc : lp
   end
 
   # mruby/c's Array has no insert
