@@ -25,16 +25,28 @@ class Writer
   # False (and a message) if the save failed: whatever was about to happen then stops.
   def save_doc
     return true if @name.nil?
-    @lines.push("")                  # the last newline, without a copy of the whole text
-    data = @lines.join("\n")
-    @lines.pop
-    SD.write(path_of(@name), data)
+    drop_rows                        # the room for the text; laid out again after
+    SD.write(path_of(@name), file_text)
     @dirty = false
     @msg = "Saved " + @name
     true
   rescue
     @msg = "Save failed: NOT saved"
     false
+  end
+
+  # The file: every line and its newline, made at its size (@bytes) and filled in place, one
+  # piece the whole time. join grew it a line at a time, and each growth past a 10 KB line
+  # could hold the old piece and the new one: it ran the TERM512 build out, saving a 10 KB
+  # paragraph split in two.
+  def file_text
+    data = "\n" * @bytes
+    at = 0
+    @lines.each do |l|
+      data[at, l.length] = l if l.length > 0
+      at += l.length + 1
+    end
+    data
   end
 
   # Tab v: this document in Slide, on the page the cursor is in ("---" lines between pages).

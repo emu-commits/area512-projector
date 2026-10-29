@@ -424,6 +424,15 @@ WR_LONG = "Lorem ipsum " * 12 + "end\nSecond para\n"
 SEEDS["writer_wrap"] = {"/data": None, "/data/writer": None, "/data/writer/long.txt": WR_LONG}
 SCENARIOS["writer_wrap"] = "ENTER SHOT:w_wrap DOWN T:X DOWN DOWN DOWN DOWN DOWN DOWN T:Y TAB m a e e ENTER T:Z ESC ESC"
 EXPECT["writer_wrap"] = ["XLorem", "\\nSecond paraYZ\\n"]
+# one paragraph at the limit, its rows kept and mended a key at a time (tests/wrfuzz.rb
+# checks the mending): typed at the end, paged through, typed at the start, split and joined
+WR_PARA = ("lorem ipsum dolor sit amet " * 400)[:10000]
+SEEDS["writer_para"] = {"/data": None, "/data/writer": None, "/data/writer/para.txt": WR_PARA + "\n"}
+SCENARIOS["writer_para"] = "ENTER TAB m ] ENTER T:abc SHOT:w_para TAB m [ j j k [ ENTER T:z ENTER BS ESC ESC"
+EXPECT["writer_para"] = [rfs("/data/writer/para.txt", "z" + WR_PARA + "abc\n")]
+SEEDS["writer_para_foot"] = SEEDS["writer_para"]
+SCENARIOS["writer_para_foot"] = "ENTER TAB m ] ENTER T:abc"
+EXPECT["writer_para_foot"] = ["@@SCREEN TYPE 1:10004 1852w"]
 # find (Tab f) from the cursor, Tab g again (round from the top), case doesn't matter;
 # Tab then Writer's own digit does nothing
 SEEDS["writer_find"] = WR_REG

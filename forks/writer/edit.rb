@@ -28,6 +28,7 @@ class Writer
 
   def insert_newline
     return if full(1, 1)
+    drop_rows                        # the room for the rest's copy (document.rb)
     s = cur_line
     rest = part(s, @col, s.length - @col)
     splice(@row, @col, rest.length, "")
@@ -51,6 +52,7 @@ class Writer
       splice(@row, b, @col - b, "")
       @col = b
     elsif @row > 0
+      drop_rows                      # both lines are held while they're joined
       plen = line(@row - 1).length
       splice(@row - 1, plen, 0, s)
       delete_line(@row)
@@ -85,7 +87,7 @@ class Writer
   # up or down a row as drawn (a long paragraph is several), keeping to the same x
   def move_row(d)
     s = cur_line
-    ss = segs(s)
+    ss = segs_of(@row)
     k = seg_of(ss, @col)
     @goal = width(s, ss[k], @col) if @goal.nil?
     if d < 0
@@ -94,7 +96,7 @@ class Writer
       elsif @row > 0
         @row -= 1
         s = cur_line
-        ss = segs(s)
+        ss = segs_of(@row)
         k = ss.length - 1
       else
         @col = 0
@@ -106,7 +108,7 @@ class Writer
       elsif @row < @lines.length - 1
         @row += 1
         s = cur_line
-        ss = segs(s)
+        ss = segs_of(@row)
         k = 0
       else
         @col = s.length
@@ -160,7 +162,7 @@ class Writer
 
   # the start of the row on screen; at it already, the start of the paragraph
   def row_start
-    ss = segs(cur_line)
+    ss = segs_of(@row)
     a = ss[seg_of(ss, @col)]
     @col = @col == a ? 0 : a
     @goal = nil
@@ -168,7 +170,7 @@ class Writer
 
   def row_end
     s = cur_line
-    ss = segs(s)
+    ss = segs_of(@row)
     k = seg_of(ss, @col)
     e = seg_end(s, ss, k)
     e = back(s, e) if k + 1 < ss.length
@@ -213,9 +215,9 @@ class Writer
     while i <= n && found.nil?
       r = (r0 + i) % n
       from = i == 0 ? c0 : 0
-      s = line(r).downcase
+      s = line(r)
       if from <= s.length
-        c = s.index(want, from)
+        c = find_in(s, want, from)
         c = nil if c && i == n && c >= c0      # past where it began: once round is enough
         found = [r, c] if c
       end
@@ -230,5 +232,34 @@ class Writer
     else
       @msg = "Not found: " + @find
     end
+  end
+
+  # where want (lowercase) is in s from byte i on, case not minded, or nil. Not in a lowercased
+  # copy of s: of a 10 KB paragraph, that copy ran the VM out (the Cardputer build, the second
+  # find after a save). index finds each place the first letter is, either case.
+  def find_in(s, want, i)
+    a = want[0, 1]
+    b = a.upcase
+    n = want.length
+    while i + n <= s.length
+      p = s.index(a, i)
+      q = a == b ? nil : s.index(b, i)
+      p = q if p.nil? || (q && q < p)
+      return nil if p.nil? || p + n > s.length
+      return p if same_ci?(s, p, want)
+      i = p + 1
+    end
+    nil
+  end
+
+  def same_ci?(s, p, want)
+    j = 0
+    while j < want.length
+      c = s.getbyte(p + j)
+      c += 32 if c >= 65 && c <= 90
+      return false if c != want.getbyte(j)
+      j += 1
+    end
+    true
   end
 end

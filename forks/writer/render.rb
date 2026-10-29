@@ -59,8 +59,8 @@ class Writer
 
   # TYPE or MOVE, line:column and the words, right; the hint bar in what's left
   def doc_foot
-    st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" +
-         (chars(cur_line, @col) + 1).to_s + " " + @words.to_s + "w"
+    st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" + (col_chars + 1).to_s +
+         " " + @words.to_s + "w"
     if @mode != :move
       foot_pairs([["Tab", "menu"]], st)
     elsif @wide
