@@ -28,7 +28,7 @@ class Slide
   end
 
   def row_h(row)
-    big?(row[0]) ? 28 : @rh
+    big?(row_kind(row)) ? 28 : @rh
   end
 
   # the first row past the screen when it starts at row s
@@ -43,46 +43,63 @@ class Slide
   end
 
   def draw_row(row, y)
-    row_kind = row[0]
-    x = 4 + indent(row_kind)
-    if row_kind == :heading_1
+    kind = row_kind(row)
+    x = 4 + indent(kind)
+    if kind == "1"
       if @wide
-        Widget.big_text(@sp, x, y + 2, plain(row[1]), @c_em)
+        Widget.big_text(@sp, x, y + 2, plain(row), @c_em)
         return
       end
       @sp.fill_rect(0, y - 1, @w, @rh, @c_box)
-    elsif row_kind == :code
+    elsif kind == "c"
       @sp.fill_rect(0, y - 1, @w, @rh, @c_box)
-      t(x, y + 1, clip(row[1][0][1], @w - 8), @c_em)
+      t(x, y + 1, clip(row[2, row.length - 2], @w - 8), @c_em)
       return
-    elsif row_kind == :list && row[2]
+    elsif kind == "-" && first_row?(row)
       t(4, y + 1, "-", @c_em)
     end
-    draw_segments(row[1], x, y + 1, row_kind)
+    draw_segments(row, x, y + 1, kind)
   end
 
-  def plain(segments)
+  # the row's text without its `
+  def plain(row)
     s = ""
-    segments.each { |seg| s += seg[1] }
+    a = 2
+    i = 2
+    while i <= row.length
+      if i == row.length || row.getbyte(i) == 96
+        s += row[a, i - a] if i > a
+        a = i + 1
+      end
+      i += 1
+    end
     s
   end
 
-  def draw_segments(row_segments, screen_x, screen_y, row_kind)
+  # the row's text a piece at a time, `inline code` on a box
+  def draw_segments(row, screen_x, screen_y, kind)
     c = @c_text
-    c = @c_em if row_kind == :heading_1 || row_kind == :heading_2
-    segment_index = 0
-    while segment_index < row_segments.length && screen_x < @w
-      segment_kind = row_segments[segment_index][0]
-      segment_text = row_segments[segment_index][1]
-      segment_width = Widget.text_width(@sp, segment_text)
-      if segment_kind == :inline_code
-        @sp.fill_rect(screen_x, screen_y - 1, segment_width, @rh - 3, @c_box)
-        t(screen_x, screen_y, segment_text, @c_em)
-      else
-        t(screen_x, screen_y, segment_text, c)
+    c = @c_em if kind == "1" || kind == "2"
+    code = inline_at_start?(row)
+    a = 2
+    i = 2
+    while i <= row.length && screen_x < @w
+      if i == row.length || row.getbyte(i) == 96
+        if i > a
+          piece = row[a, i - a]
+          piece_w = Widget.text_width(@sp, piece)
+          if code
+            @sp.fill_rect(screen_x, screen_y - 1, piece_w, @rh - 3, @c_box)
+            t(screen_x, screen_y, piece, @c_em)
+          else
+            t(screen_x, screen_y, piece, c)
+          end
+          screen_x += piece_w
+        end
+        code = !code
+        a = i + 1
       end
-      screen_x += segment_width
-      segment_index += 1
+      i += 1
     end
   end
 end

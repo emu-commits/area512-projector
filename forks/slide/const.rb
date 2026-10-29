@@ -25,6 +25,8 @@ class Slide < SuiteApp
   DECK_MAX = 10240 unless const_defined?(:DECK_MAX)
   # a page is laid out this many bytes of whole lines at a time (storage.rb)
   CHUNK = 1024 unless const_defined?(:CHUNK)
+  # a row's flags byte (markdown.rb): 1 its line's first row, 2 inside `inline code`
+  FLAGS = ["0", "1", "2", "3"] unless const_defined?(:FLAGS)
 
   # One key table per screen (docs/UI.md)
   SHOW_KEYS = "Page|1ENT next|2BS back|j down|k up|[ first|] last;Deck|3e edit|o decks" unless const_defined?(:SHOW_KEYS)
