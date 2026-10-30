@@ -262,10 +262,12 @@ SEEDS["foot_lib"] = SEEDS["switch"]
 SCENARIOS["foot_lib"] = "SHOT:p_foot"
 EXPECT_SIZE[("foot_lib", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN menu", "!@@SCREEN Home"]   # the app row is the menu's
 EXPECT_SIZE[("foot_lib", "cardputer")] = ["!@@SCREEN Home"]
-# Tab: "Tab then the digit" said, and on TERM512 the app row under it
+# Tab: "Tab then the digit" said, and on TERM512 every key that works in the bar (here, with
+# no ideas, only n) and the app row under it
 SEEDS["foot_menu"] = SEEDS["switch"]
 SCENARIOS["foot_menu"] = "TAB SHOT:p_foot_menu"
-EXPECT_SIZE[("foot_menu", "term512")] = ["@@SCREEN [1-3]\n@@SCREEN switch app\n@@SCREEN [<>]\n@@SCREEN menus",
+EXPECT_SIZE[("foot_menu", "term512")] = ["@@SCREEN [1-3]\n@@SCREEN switch app\n@@SCREEN [n]\n@@SCREEN new\n"
+                                         "@@SCREEN [ENT]\n@@SCREEN run\n@@SCREEN [<>]\n@@SCREEN menus",
                                          "@@SCREEN 1\n@@SCREEN Home\n@@SCREEN 2\n@@SCREEN Projector"]
 EXPECT_SIZE[("foot_menu", "cardputer")] = ["@@SCREEN 1-3:switch app <>:menus ESC:close"]
 
@@ -304,6 +306,12 @@ SCENARIOS["home_extras"] = "6 SHOT:h_extras ENTER DOWN SHOT:h_paint n x ENTER"
 EXPECT["home_extras"] = ["@@RUN_NEXT /home/tool/paint", "@@FS /data/home/place.txt 'app: extras\\nfile: 1\\n'"]
 SCENARIOS["home_files"] = "6 ENTER DOWN DOWN DOWN DOWN SHOT:h_files ENTER"
 EXPECT["home_files"] = ["!@@RUN_NEXT"]
+SEEDS["home_icon_foot"] = dict(HOME_CARD)
+SCENARIOS["home_icon_foot"] = ""
+EXPECT_SIZE[("home_icon_foot", "cardputer")] = ["@@SCREEN ENT:open n:new Tab:menu"]
+SEEDS["home_file_foot"] = dict(HOME_CARD)
+SCENARIOS["home_file_foot"] = "DOWN"
+EXPECT_SIZE[("home_file_foot", "cardputer")] = ["@@SCREEN ENT:open x:delete Tab:menu"]
 SCENARIOS["home_new"] = "n"
 EXPECT["home_new"] = ["@@RUN_NEXT /home/ai/projector", "@@FS /data/area512/open.txt 'projector|new|\\n'"]
 # x asks first: n keeps it, then y hands the delete to Projector
@@ -311,7 +319,7 @@ SCENARIOS["home_delete"] = "x DOWN x SHOT:h_delete n x ESC x y"
 EXPECT["home_delete"] = ["@@RUN_NEXT /home/ai/projector",
                          "@@FS /data/area512/open.txt 'projector|delete|7\\n'"]
 # the menu bar: Apps first (from the registry Home has just written), Help from the key table
-SCENARIOS["home_menu"] = ("TAB SHOT:h_menu LEFT SHOT:h_apps RIGHT DOWN DOWN DOWN ENTER SHOT:h_help ENTER "
+SCENARIOS["home_menu"] = ("TAB SHOT:h_menu LEFT SHOT:h_apps RIGHT DOWN DOWN ENTER SHOT:h_help ENTER "
                           "TAB 1 TAB ESC TAB 3")
 EXPECT["home_menu"] = ["@@RUN_NEXT /home/tool/writer"]
 # back from an app: on the icon and file you left from, and place.txt is used once
@@ -756,14 +764,53 @@ EXPECT_SIZE[("slide_foot_menu", "term512")] = ["@@SCREEN [1-4]\n@@SCREEN switch 
 EXPECT_SIZE[("slide_foot_menu", "cardputer")] = ["@@SCREEN 1-4:switch app <>:menus ESC:close", "!@@SCREEN Projector"]
 SEEDS["writer_foot"] = WR_REG
 SCENARIOS["writer_foot"] = "ENTER TAB m SHOT:w_foot"
-EXPECT_SIZE[("writer_foot", "term512")] = ["@@SCREEN [h]\n@@SCREEN word left", "@@SCREEN MOVE 1:1 9w"]
-EXPECT_SIZE[("writer_foot", "cardputer")] = ["@@SCREEN MOVE 1:1 9w", "!@@SCREEN Projector"]
-# typing: the commands are Tab then a letter, and the hint bar lists them
+EXPECT_SIZE[("writer_foot", "term512")] = ["@@SCREEN [;.,/]\n@@SCREEN cursor\n@@SCREEN [ENT]\n@@SCREEN type",
+                                           "@@SCREEN [h l]\n@@SCREEN word", "@@SCREEN [Tab]\n@@SCREEN menu",
+                                           "@@SCREEN MOVE 1:1 9w", "![m]"]
+EXPECT_SIZE[("writer_foot", "cardputer")] = ["@@SCREEN ENT:type Tab:menu", "@@SCREEN MOVE 1:1 9w", "!@@SCREEN Projector"]
+# typing: only what works while letters type (Tab, Tab m, Esc), not the commands' letters
 SEEDS["writer_type_foot"] = WR_REG
 SCENARIOS["writer_type_foot"] = "ENTER SHOT:w_type_foot"
-EXPECT_SIZE[("writer_type_foot", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN then:\n@@SCREEN [s]\n@@SCREEN save",
-                                                "@@SCREEN [v]\n@@SCREEN slides", "!@@SCREEN Home", "![ENT]"]
-EXPECT_SIZE[("writer_type_foot", "cardputer")] = ["@@SCREEN Tab:then: s:save", "@@SCREEN TYPE 1:1 9w"]
+EXPECT_SIZE[("writer_type_foot", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN menu: every command\n@@SCREEN [Tab m]\n"
+                                                "@@SCREEN move the cursor\n@@SCREEN [ESC]\n@@SCREEN save and close",
+                                                "![s]", "![v]", "!@@SCREEN Home", "![ENT]"]
+EXPECT_SIZE[("writer_type_foot", "cardputer")] = ["@@SCREEN Tab:menu ESC:close", "@@SCREEN TYPE 1:1 9w"]
+# Tab from typing: now the commands' letters work, and the hints are them, every menu's
+SEEDS["writer_menu_foot"] = WR_REG
+SCENARIOS["writer_menu_foot"] = "ENTER TAB SHOT:w_menu_foot"
+EXPECT_SIZE[("writer_menu_foot", "term512")] = ["@@SCREEN [m]\n@@SCREEN move", "@@SCREEN [s]\n@@SCREEN save",
+                                                "@@SCREEN [v]\n@@SCREEN slides", "@@SCREEN [j]\n@@SCREEN page down",
+                                                "@@SCREEN [ESC]\n@@SCREEN close", "@@SCREEN 1\n@@SCREEN Home",
+                                                "![RIGHT]", "![?]"]
+EXPECT_SIZE[("writer_menu_foot", "cardputer")] = ["switch app <>:menus ESC:close"]
+
+
+# The hints are only what works where you are (docs/UI.md): nothing to open or delete on an
+# empty list or day; on Home, x only on a file; on TERM512, what the arrows do as well
+SCENARIOS["agenda_none_foot"] = "ENTER"
+EXPECT_SIZE[("agenda_none_foot", "cardputer")] = ["@@SCREEN n:new a:agenda Tab:menu"]
+EXPECT_SIZE[("agenda_none_foot", "term512")] = ["@@SCREEN [,/]\n@@SCREEN prev/next day\n@@SCREEN [n]\n@@SCREEN new", "![x]",
+                                                "![ENT]", "![;.]"]
+SEEDS["agenda_day_foot"] = AG_SEED
+SCENARIOS["agenda_day_foot"] = "/ ENTER"
+EXPECT_SIZE[("agenda_day_foot", "cardputer")] = ["@@SCREEN ENT:edit n:new Tab:menu"]
+EXPECT_SIZE[("agenda_day_foot", "term512")] = ["@@SCREEN [,/]\n@@SCREEN prev/next day\n@@SCREEN [;.]\n@@SCREEN event\n"
+                                               "@@SCREEN [ENT]\n@@SCREEN edit"]
+SCENARIOS["writer_none_foot"] = ""
+EXPECT_SIZE[("writer_none_foot", "cardputer")] = ["@@SCREEN n:new Tab:menu"]
+EXPECT_SIZE[("writer_none_foot", "term512")] = ["@@SCREEN [n]\n@@SCREEN new\n@@SCREEN [Tab]\n@@SCREEN menu",
+                                                "![ENT]", "![x]", "![;.]"]
+SEEDS["writer_list_foot"] = WR_SEED
+SCENARIOS["writer_list_foot"] = ""
+EXPECT_SIZE[("writer_list_foot", "term512")] = ["@@SCREEN [;.]\n@@SCREEN select\n@@SCREEN [ENT]\n@@SCREEN open"]
+SEEDS["calc_grid_foot"] = CA_SEED
+SCENARIOS["calc_grid_foot"] = "ENTER . ;"
+EXPECT_SIZE[("calc_grid_foot", "term512")] = ["@@SCREEN [;.,/]\n@@SCREEN cell\n@@SCREEN [0-9 = Spc]\n@@SCREEN type",
+                                              "@@SCREEN [Tab]\n@@SCREEN menu"]
+SEEDS["calc_edit_foot"] = CA_SEED
+SCENARIOS["calc_edit_foot"] = "ENTER 1"
+EXPECT_SIZE[("calc_edit_foot", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN ok, menu"]
+EXPECT_SIZE[("calc_edit_foot", "cardputer")] = ["@@SCREEN ENT:ok ESC:cancel BS:delete"]
 
 
 def run_fork(name, app, script, screen):

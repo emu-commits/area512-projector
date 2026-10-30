@@ -18,9 +18,9 @@ class Calc
     render_bar
     render_grid
     if @edit
-      foot_pairs([["ENT", "ok"], ["ESC", "cancel"], ["BS", "delete"]], "")
+      foot_pairs(@wide ? EDIT_WIDE : EDIT_HINTS, "")
     else
-      foot(GRID_KEYS)
+      foot(GRID_KEYS, GRID_NAV)
     end
   end
 

@@ -3,12 +3,15 @@
 # small because the device compiles one def at a time (tools/ovl.py enforces it).
 
 assume_KEYS = "Assumption|1n new|2ENT check|3f face|x delete"
+# none yet: only n; a checked one: Enter unchecks it and there's nothing to face
+assume_NONE = "Assumption|1n new"
+assume_DONE = "Assumption|1n new|2ENT uncheck|x delete"
 
 
 def assume_main(self):
     sel = 0
     while True:
-        k = self.cmd(assume_KEYS, assume_r, (self, sel))
+        k = self.cmd(assume_keys(self, sel), assume_r, (self, sel))
         n = len(self.idea.assume)
         if k == "q" or k == "ESC":
             return
@@ -65,7 +68,20 @@ def assume_r(self, sel):
         Widget.center_lines(self.sp, [("What must be true?", self.c_em),
                                       ("n adds one.", self.c_text)])
     assume_rows(self, sel)
-    self.foot(assume_KEYS)
+    ks = assume_keys(self, sel)
+    if ks is assume_NONE:
+        self.foot(ks)
+    else:
+        self.foot(ks, NAV_ROWS)
+
+
+def assume_keys(self, sel):
+    a = self.idea.assume
+    if len(a) == 0:
+        return assume_NONE
+    if a[sel][0]:
+        return assume_DONE
+    return assume_KEYS
 
 
 def assume_rows(self, sel):

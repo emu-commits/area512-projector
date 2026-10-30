@@ -285,9 +285,11 @@ class UI:
         self.sp.fill(self.c_bg)
         Widget.header(self.sp, title, right)
 
-    def foot(self, hints):
+    def foot(self, hints, nav=None):
+        # nav: on TERM512, what the arrows do [(keys, label), ...], before the table's items
+        # (the Cardputer's one line has no room); a screen's table always comes with one nav
         if self.wfoot is not None:
-            self.wfoot(self, hints)
+            self.wfoot(self, hints, nav)
             return
         if self.msg != "":
             Widget.footer(self.sp, self.msg)

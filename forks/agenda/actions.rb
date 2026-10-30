@@ -3,10 +3,10 @@ class Agenda
     until @quit
       if @screen == :day
         clamp_cursor(day_events.length)
-        day_key(cmd(DAY_KEYS))
+        day_key(cmd(day_events.empty? ? DAY_NONE : DAY_KEYS))
       elsif @screen == :list
         refresh_rows
-        list_key(cmd(LIST_KEYS))
+        list_key(cmd(@rows.empty? ? LIST_NONE : LIST_KEYS))
       else
         month_key(cmd(MONTH_KEYS))
       end

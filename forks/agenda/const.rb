@@ -20,6 +20,13 @@ class Agenda < SuiteApp
   MONTH_KEYS = "Day|1ENT day|2n new|3a agenda;Month|[ previous|] next;File|s save" unless const_defined?(:MONTH_KEYS)
   DAY_KEYS = "Event|1ENT edit|2n new|3x delete;Day|a agenda|c calendar;File|s save" unless const_defined?(:DAY_KEYS)
   LIST_KEYS = "Event|1ENT open|2n new|3x delete;View|c calendar;File|s save" unless const_defined?(:LIST_KEYS)
+  # with no events there: no event to open or delete
+  DAY_NONE = "Event|1n new;Day|2a agenda|c calendar;File|s save" unless const_defined?(:DAY_NONE)
+  LIST_NONE = "Event|1n new;View|2c calendar;File|s save" unless const_defined?(:LIST_NONE)
+  # what the arrows do, on TERM512's hint lines (foot's nav)
+  MONTH_NAV = ";.,/ pick a day" unless const_defined?(:MONTH_NAV)
+  DAY_NAV = ",/ prev/next day|;. event" unless const_defined?(:DAY_NAV)
+  DAY_NAV0 = ",/ prev/next day" unless const_defined?(:DAY_NAV0)
 
   MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] unless const_defined?(:MONTHS)

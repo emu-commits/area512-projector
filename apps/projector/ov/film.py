@@ -254,7 +254,10 @@ def film_r_stage(self, i):
         s = "! " + c[1]
         col = self.c_sel
     self.t(6, y, Widget.clip(self.sp, s, self.W - 12), col)
-    self.foot([("l", "next"), ("h", "back"), ("e", "edit"), ("f", "face")])
+    if c is not None:
+        self.foot([("l", "next"), ("h", "back"), ("e", "edit"), ("f", "face")])
+    else:
+        self.foot([("l", "next"), ("h", "back"), ("e", "edit")])
 
 
 def film_end(self):

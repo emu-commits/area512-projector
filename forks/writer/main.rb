@@ -9,6 +9,7 @@ class Writer
     @kind = "document"
     @old = OLD_FILE
     @docs_keys = FILES_KEYS
+    @docs_none = "Document|1n new"
     @find = ""
   end
 

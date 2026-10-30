@@ -5,7 +5,7 @@ class Writer
         doc_step
       else
         refresh_docs if @docs.nil?
-        files_key(cmd(FILES_KEYS))
+        files_key(cmd(files_spec))
       end
     end
   end

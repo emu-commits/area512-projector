@@ -21,6 +21,10 @@ class Agenda
         i += 1
       end
     end
-    foot(LIST_KEYS)
+    if @rows.empty?
+      foot(LIST_NONE)
+    else
+      foot(LIST_KEYS, NAV_ROWS)
+    end
   end
 end

@@ -57,20 +57,20 @@ class Writer
     t(hx, y, part(s, a, b - a), @c_bg)
   end
 
-  # TYPE or MOVE, line:column and the words, right; the hint bar in what's left
+  # TYPE or MOVE, line:column and the words, right; the mode's hints in what's left
   def doc_foot
     st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" + (col_chars + 1).to_s +
          " " + @words.to_s + "w"
-    if @mode != :move
-      foot_pairs(@wide ? TYPE_HINTS : type_fit((@w - 3) / @cw - st.length - 2), st)
-    elsif @wide
-      if @hl_spec != DOC_KEYS                       # foot's cache: every key, on two lines
-        @hl = hint_all(DOC_KEYS)
-        @hl_spec = DOC_KEYS
+    if @wide
+      if @hl_spec != @mode                          # foot's cache, cut once to fit any status
+        @hl = hint_trim(pairs(@mode == :move ? MOVE_WIDE : TYPE_WIDE), 20 * @cw)
+        @hl_spec = @mode
       end
       foot_pairs(@hl, st)
-    else
+    elsif @mode == :move
       foot_pairs(hint_fit(DOC_KEYS, (@w - 3) / @cw - st.length - 11), st)
+    else
+      foot_pairs(type_fit((@w - 3) / @cw - st.length - 2), st)
     end
   end
 

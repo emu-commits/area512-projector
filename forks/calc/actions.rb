@@ -2,7 +2,7 @@ class Calc
   def main_loop
     until @quit
       if @screen != :doc
-        files_key(cmd(FILES_KEYS))
+        files_key(cmd(files_spec))
       elsif @edit
         paint
         @msg = ""

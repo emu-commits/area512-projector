@@ -8,6 +8,7 @@ class Slide
     @kind = "deck"
     @old = nil
     @docs_keys = FILES_KEYS
+    @docs_none = "Deck|1n new"
     @rh = @wide ? 16 : 14         # a row of text; a title on TERM512 is 24 px (render.rb)
     @back = nil                   # shown from Writer (its Tab v): where Esc goes
   end

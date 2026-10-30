@@ -9,7 +9,9 @@
 #   @old   its one file from before the fork, copied once as a document, or nil
 # and has: init_doc, open_doc(name) (true if opened), save_doc (false if it failed),
 # write_place, read_place(f), doc_preview(name) (lines, for TERM512's list), and @dirty,
-# and sets @docs_keys, the list's key table: "<Title>|1ENT open|2n new|3x delete|r rename".
+# and sets @docs_keys, the list's key table: "<Title>|1ENT open|2n new|3x delete|r rename",
+# and @docs_none, the same with nothing in the list: "<Title>|1n new". The list's screen
+# reads its keys with cmd(files_spec).
 
 class SuiteApp
   # the card's long names stop at 32 bytes, with ".txt"
@@ -105,6 +107,11 @@ class SuiteApp
 
   # ---- the list
 
+  # the list's key table: with nothing in it, only n (the rest would do nothing)
+  def files_spec
+    @docs && @docs.length == 0 ? @docs_none : @docs_keys
+  end
+
   def files_key(k)
     name = @docs[@sel]
     if k.length > 1 && k[0, 1] == "@"
@@ -148,7 +155,7 @@ class SuiteApp
       end
       preview if @wide
     end
-    foot(@docs_keys)
+    foot(files_spec, n > 0 ? NAV_ROWS : nil)
   end
 
   # TERM512: the selected document's first lines beside the list

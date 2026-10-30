@@ -33,7 +33,7 @@ class Agenda
       month_day(7 * cw + 6, @w - 7 * cw - 8)
       month_next(y0 + 6 * rh + 4, 7 * cw)
     end
-    foot(MONTH_KEYS)
+    foot(MONTH_KEYS, MONTH_NAV)
   end
 
   def col_sunday?(day)

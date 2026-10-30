@@ -12,7 +12,8 @@ OPEN = "/data/area512/open.txt"
 SUITE = [["Projector", "projector"], ["Writer", "writer"], ["Calc", "calc"],
          ["Agenda", "agenda scheduler"], ["Slide", "slide"]]
 MAX_FILES = 8
-HOME_KEYS = "App|1ENT open|2n new|3x delete"
+HOME_KEYS = "App|1ENT open|2x delete|3n new"   # on one of an app's files
+ICON_KEYS = "App|1ENT open|2n new"             # on the app: no file to delete
 EXTRA_KEYS = "App|1ENT open"
 
 
@@ -187,10 +188,7 @@ class Home(UI):
     def main(self):
         while True:
             ic = self.icons[self.sel]
-            keys = HOME_KEYS
-            if ic[2] == "":
-                keys = EXTRA_KEYS
-            k = self.cmd(keys, self.r_home, ())
+            k = self.cmd(self.keys(), self.r_home, ())
             n = len(ic[3])
             if k == "ESC" or k == "q":
                 return
@@ -277,11 +275,25 @@ class Home(UI):
             self.t(self.W - 7, y + 12, ">", self.c_em)
         if not self.wide:
             self.r_files(4, self.W - 8, self.icons[self.sel], True)
-        ic = self.icons[self.sel]
-        keys = HOME_KEYS
-        if ic[2] == "":
-            keys = EXTRA_KEYS
-        self.foot(keys)
+        self.foot(self.keys())
+
+    def foot(self, hints, nav=None):
+        # TERM512's line has room for the arrows too: icons left and right, files up and down
+        if self.wide and isinstance(hints, str) and self.msg == "":
+            nav = [(",/", "app"), (";.", "files")]
+            if self.icons[self.sel][2] == "":
+                nav = [(",/", "app")]
+            elif self.fsel >= 0:
+                nav = [(";.", "file")]
+            hints = nav + self.hint_list(hints)
+        UI.foot(self, hints)
+
+    def keys(self):
+        if self.icons[self.sel][2] == "":
+            return EXTRA_KEYS
+        if self.fsel < 0:
+            return ICON_KEYS
+        return HOME_KEYS
 
     def r_icon(self, x, y, sw, i):
         ic = self.icons[i]

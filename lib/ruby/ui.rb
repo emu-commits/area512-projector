@@ -10,10 +10,12 @@
 class SuiteApp
   REG_FILE = "/data/area512/apps.txt" unless const_defined?(:REG_FILE)
   OPEN_FILE = "/data/area512/open.txt" unless const_defined?(:OPEN_FILE)
-  # TERM512: three hint lines under the body, or two and the app row while the menu bar is
-  # open (docs/UI.md, PLAN_V1 5.1)
+  # TERM512: three hint lines under the body; the menu bar's hints and app row take what
+  # they need (docs/UI.md, PLAN_V1 5.1)
   FOOT_EXTRA = 28 unless const_defined?(:FOOT_EXTRA)
   FOOT_H = 14 unless const_defined?(:FOOT_H)        # Widget.hints' bar (WIDGET_FOOTER_HEIGHT)
+  # what the arrows do on a list, for foot's nav
+  NAV_ROWS = ";. select" unless const_defined?(:NAV_ROWS)
 
   def ui_init
     # TERM512: leave the 240x135 window (firmware after v2.7; older has no screen_width)
@@ -40,8 +42,7 @@ class SuiteApp
     @msg = ""
     @hl_spec = nil
     @hl = []
-    @menu = nil      # [menus, open menu, item] while the menu bar is open
-    @apps_up = false # the menu bar's footer: the app row under its hints
+    @menu = nil      # [menus, open menu, item, its hint lines] while the menu bar is open
   end
 
   # ---- keys
@@ -131,18 +132,32 @@ class SuiteApp
     end
   end
 
-  def foot(spec)
+  # nav: on TERM512, what the screen's arrows do ("keys label|keys label", as pairs reads),
+  # before the table's items; the Cardputer's one line has no room for it. Cached by spec: a
+  # screen's spec always comes with the same nav.
+  def foot(spec, nav = nil)
     if @hl_spec != spec
-      @hl = @wide ? hint_all(spec) : hint_list(spec)
+      @hl = @wide ? hint_trim((nav ? pairs(nav) : []) + hint_all(spec), 0) : hint_list(spec)
       @hl_spec = spec
     end
     foot_pairs(@hl, "")
   end
 
+  # "key label|key label" as [[key, label], ...], "_" in a key a space: a list of hints kept
+  # as one string, so it costs one object until it's shown
+  def pairs(s)
+    out = []
+    s.split("|").each do |it|
+      sp = it.index(" ")
+      out.push([it[0, sp].tr("_", " "), it[sp + 1, it.length]])
+    end
+    out
+  end
+
   # The bottom of the screen: a message, else the hints ([[key, label], ...]); right is a
-  # status on the right of the first line ("" for none). On TERM512 three lines of hints, or
-  # two and the app row under the menu bar; on the Cardputer one line, the hints cut to what
-  # fits beside right.
+  # status on the right of the first line ("" for none). On TERM512 three lines of hints
+  # (hint_trim them to fit), or the menu bar's (menu_render); on the Cardputer one line, the
+  # hints cut to what fits beside right.
   def foot_pairs(hs, right)
     if @wide
       wide_foot(hs, right)
@@ -161,33 +176,50 @@ class SuiteApp
     if @msg != ""
       t(3, y + 2, clip(@msg, @w - 6 - rw), @c_em)
     else
-      x = 3
-      ln = 0
-      n = @apps_up ? 2 : 3
-      i = 0
-      while i < hs.length && ln < n
-        kk = "[" + hs[i][0] + "]"
-        w = Widget.text_width(@sp, kk + " " + hs[i][1]) + @cw
-        lim = ln == 0 ? @w - 3 - rw : @w - 3
-        if x + w > lim && x > 3
-          ln += 1
-          x = 3
-        else
-          yy = y + 2 + ln * @lh
-          t(x, yy, kk, @c_em)
-          t(x + Widget.text_width(@sp, kk) + @cw, yy, hs[i][1], @c_text)
-          x += w
-          i += 1
-        end
-      end
+      hint_place(hs, rw, y, 3, true)
     end
     Widget.text_right(@sp, @w - 3, y + 2, right, @c_em) if right != ""
-    app_row if @apps_up
+  end
+
+  # "[key] label" pairs from y + 2 down, a key never split from its label, the first line
+  # stopping rw short; drawn on the first n lines. Returns the lines they all take.
+  def hint_place(hs, rw, y, n, draw)
+    @hx = 3
+    @hln = 0
+    i = 0
+    while i < hs.length
+      hint_at(hs[i][0], hs[i][1], rw, y, n, draw)
+      i += 1
+    end
+    @hln + 1
+  end
+
+  # one of them at line @hln, x @hx, and past it
+  def hint_at(k, label, rw, y, n, draw)
+    kk = "[" + k + "]"
+    w = Widget.text_width(@sp, kk + " " + label) + @cw
+    if @hx + w > (@hln == 0 ? @w - 3 - rw : @w - 3) && @hx > 3
+      @hln += 1
+      @hx = 3
+    end
+    if draw && @hln < n
+      yy = y + 2 + @hln * @lh
+      t(@hx, yy, kk, @c_em)
+      t(@hx + Widget.text_width(@sp, kk) + @cw, yy, label, @c_text)
+    end
+    @hx += w
+  end
+
+  # hs (the caller's own new list) cut to TERM512's three lines beside a status rw px wide:
+  # the last items go first, never the very last ([Tab] menu)
+  def hint_trim(hs, rw)
+    hs.delete_at(hs.length - 2) while hs.length > 1 && hint_place(hs, rw, 0, 0, false) > 3
+    hs
   end
 
   # the Series 3's application buttons: "1 Home  2 Projector ...", this app marked, shown
-  # under the menu bar, where Tab then the digit switches. Names are cut to 4 letters when
-  # all of them don't fit.
+  # under the menu bar on TERM512, where Tab then the digit switches. Names are cut to 4
+  # letters when all of them don't fit.
   def app_row
     if @row_apps.nil?
       @row_apps = reg_read
@@ -275,7 +307,8 @@ class SuiteApp
       ms.unshift(["Apps", apps])     # first, as on the Psion; opens on the screen's own
       m = 1
     end
-    @menu = [ms, m, 0]
+    @menu = [ms, m, 0, 0]
+    @menu[3] = menu_hints(ms, 0, 0, false) if @wide
     r = nil
     while true
       paint
@@ -369,18 +402,46 @@ class SuiteApp
       j += 1
     end
     menu_box(ms[@menu[1]][1], mx, hh + 1)
-    fh = @h - @bot - 1                           # Widget.hints draws over what's there
-    @sp.fill_rect(0, @h - fh, @w, fh, @c_bg)
     m = @msg
     @msg = ""
-    hs = [["<>", "menus"], ["ESC", "close"]]
-    if ms[0][0] == "Apps"                       # Tab then the digit: say so, and show them
-      hs.unshift(["1-" + ms[0][1][ms[0][1].length - 1][0], "switch app"])
-      @apps_up = true
+    if @wide
+      # every key that works in the bar, as many lines as they take, then the app row if
+      # Home has written one; from at least where the screen's three hint lines start
+      apps = ms[0][0] == "Apps"
+      y = (apps ? @h - FOOT_H : @h) - @menu[3] * @lh - 3
+      y = @h - FOOT_H - FOOT_EXTRA if y > @h - FOOT_H - FOOT_EXTRA
+      @sp.fill_rect(0, y, @w, @h - y, @c_bg)
+      @sp.line(0, y, @w - 1, y, @c_border)
+      menu_hints(ms, y, @menu[3], true)
+      app_row if apps
+    else
+      fh = @h - @bot - 1                         # Widget.hints draws over what's there
+      @sp.fill_rect(0, @h - fh, @w, fh, @c_bg)
+      hs = [["<>", "menus"], ["ESC", "close"]]
+      hs.unshift(["1-" + ms[0][1][ms[0][1].length - 1][0], "switch app"]) if ms[0][0] == "Apps"
+      foot_pairs(hs, "")
     end
-    foot_pairs(hs, "")
-    @apps_up = false
     @msg = m
+  end
+
+  # TERM512: what can be pressed in the menu bar, as hint_place lays it out: every item's own
+  # key (not the arrows, which move in it, nor Enter, which runs the one picked), from any
+  # menu, then Enter, the app digits, moving and closing. Read from the menus as it goes, no
+  # list made: Writer's save, right after, needs the memory in one piece.
+  def menu_hints(ms, y, n, draw)
+    @hx = 3
+    @hln = 0
+    ms.each do |mm|
+      if mm[0] == "Apps"
+        hint_at("1-" + mm[1][mm[1].length - 1][0], "switch app", 0, y, n, draw)
+      else
+        mm[1].each { |it| hint_at(it[0], it[1], 0, y, n, draw) if it[0].length == 1 && it[0] != "?" }
+      end
+    end
+    hint_at("ENT", "run", 0, y, n, draw)
+    hint_at("<>", "menus", 0, y, n, draw)
+    hint_at("ESC", "close", 0, y, n, draw)
+    @hln + 1
   end
 
   def menu_box(its, x, y)

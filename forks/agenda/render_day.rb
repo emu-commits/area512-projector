@@ -15,6 +15,10 @@ class Agenda
         i += 1
       end
     end
-    foot(DAY_KEYS)
+    if list.empty?
+      foot(DAY_NONE, DAY_NAV0)
+    else
+      foot(DAY_KEYS, DAY_NAV)
+    end
   end
 end

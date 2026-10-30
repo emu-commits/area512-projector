@@ -98,19 +98,23 @@ def menu_r(self, fn, args, ms, m, i):
     hh = Widget.header_height()
     mx = menu_bar(self, ms, m, hh)
     menu_box(self, ms[m][1], mx, hh + 1, i)
-    # Widget.hints draws over what's there: clear the screen's own hints first (on TERM512,
-    # its three hint lines)
-    fh = self.H - self.bot - 1
-    self.sp.fill_rect(0, self.H - fh, self.W, fh, self.c_bg)
     m = self.msg
     self.msg = ""
-    hs = [("<>", "menus"), ("ESC", "close")]
-    if ms[0][0] == "Apps":                      # Tab then the digit: say so, and show them
-        hs.insert(0, ("1-" + ms[0][1][-1][0], "switch app"))
-        self.wapps = True
-    self.foot(hs)
-    self.wapps = False
+    if self.wfoot is not None:
+        wide_menu(self, ms)     # TERM512 (Projector's overlay "wide"): every key, the app row
+    else:
+        menu_foot(self, ms)
     self.msg = m
+
+
+def menu_foot(self, ms):
+    # Widget.hints draws over what's there: clear the screen's own hints first
+    fh = self.H - self.bot - 1
+    self.sp.fill_rect(0, self.H - fh, self.W, fh, self.c_bg)
+    hs = [("<>", "menus"), ("ESC", "close")]
+    if ms[0][0] == "Apps":                      # Tab then the digit: say so
+        hs.insert(0, ("1-" + ms[0][1][-1][0], "switch app"))
+    self.foot(hs)
 
 
 def menu_bar(self, ms, m, hh):

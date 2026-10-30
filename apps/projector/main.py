@@ -33,6 +33,13 @@ LIB_KEYS = "Idea|1n new|2ENT open|3x archive"
 STRIP_KEYS = ("Idea|1p play|2c cracks|s save|w notes;Plan|5m money|b money sheet|v vision|a assume|o obstacle;"
               "Stage|3e edit|4n new|x delete")
 CRACK_KEYS = "Crack|1ENT deal with it"
+# with nothing to act on, only what does something: no ideas yet, an idea with no stages
+LIB_NONE = "Idea|1n new"
+STRIP_NONE = ("Idea|s save|w notes;Plan|2m money|b money sheet|v vision|a assume|o obstacle;"
+              "Stage|1n new")
+# what the arrows do, on TERM512's hint lines (UI.foot's nav)
+NAV_ROWS = [(";.", "select")]
+NAV_STAGE = [(",/", "stage")]
 
 
 # ---------------------------------------------------------------- helpers
@@ -633,7 +640,7 @@ class App(UI):
             self.lsel = sel
             if self.wide:
                 wide_pv(self, sel)
-            k = self.cmd(LIB_KEYS, self.r_library, (sel,))
+            k = self.cmd(self.lib_keys(), self.r_library, (sel,))
             if k != "UP" and k != "DOWN":
                 self.pv = None          # an idea may change: read it again
             if k == "q" or k == "ESC":
@@ -683,7 +690,18 @@ class App(UI):
             Widget.text_right(self.sp, self.W - 6, y, TAG.get(e[1], "?"), self.c_em)
             y = y + self.lh
             i = i + 1
-        self.foot(LIB_KEYS)
+        self.lib_foot()
+
+    def lib_keys(self):
+        if len(self.lib) == 0:
+            return LIB_NONE
+        return LIB_KEYS
+
+    def lib_foot(self):
+        if len(self.lib) == 0:
+            self.foot(LIB_NONE)
+        else:
+            self.foot(LIB_KEYS, NAV_ROWS)
 
     def archive(self, sel):
         e = self.lib[sel]
@@ -751,7 +769,7 @@ class App(UI):
                 self.sel = len(idea.stages) - 1
             if self.sel < 0:
                 self.sel = 0
-            k = self.cmd(STRIP_KEYS, self.r_strip, ())
+            k = self.cmd(self.strip_keys(), self.r_strip, ())
             if k == "q" or k == "ESC":
                 if self.leave():
                     return
@@ -859,7 +877,18 @@ class App(UI):
             self.t(6, y, Widget.clip(self.sp, "! " + first_open[1], self.W - 12), self.c_sel)
         elif n > 0:
             self.t(6, y, "The projection holds.", self.c_em)
-        self.foot(STRIP_KEYS)
+        self.strip_foot()
+
+    def strip_keys(self):
+        if len(self.idea.stages) == 0:
+            return STRIP_NONE
+        return STRIP_KEYS
+
+    def strip_foot(self):
+        if len(self.idea.stages) == 0:
+            self.foot(STRIP_NONE)
+        else:
+            self.foot(STRIP_KEYS, NAV_STAGE)
 
     def stage_flag(self, i):
         for c in self.cr:
@@ -985,7 +1014,7 @@ class App(UI):
         elif not is_open(self.idea, c):
             tail = fnote(self.idea.faced[c[0]])
         self.t(6, self.bot - self.lh, Widget.clip(self.sp, tail, self.W - 12), self.c_dim)
-        self.foot(CRACK_KEYS)
+        self.foot(CRACK_KEYS, NAV_ROWS)
 
     def crack_action(self, c):
         opts = ["Change the plan"]

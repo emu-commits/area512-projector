@@ -36,4 +36,9 @@ class Calc < SuiteApp
   # = - + ( or Space starts typing into the cell.
   GRID_KEYS = "Cell|1ENT edit|x clear|u undo|g go to|f find;Copy|2c copy|3v paste|4d fill down|r fill right;Sheet|w width|[ to A1|] to end|s save|o sheets|n new" unless const_defined?(:GRID_KEYS)
   FILES_KEYS = "Sheet|1ENT open|2n new|3x delete|r rename" unless const_defined?(:FILES_KEYS)
+  # TERM512's hint lines: the arrows and the keys that start typing, before the table's;
+  # while a cell is typed, Tab as well (the entry goes in, then the menu)
+  GRID_NAV = ";.,/ cell|0-9_=_Spc type" unless const_defined?(:GRID_NAV)
+  EDIT_HINTS = [["ENT", "ok"], ["ESC", "cancel"], ["BS", "delete"]] unless const_defined?(:EDIT_HINTS)
+  EDIT_WIDE = [["ENT", "ok"], ["ESC", "cancel"], ["BS", "delete"], ["Tab", "ok, menu"]] unless const_defined?(:EDIT_WIDE)
 end

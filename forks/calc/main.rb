@@ -8,6 +8,7 @@ class Calc
     @kind = "sheet"
     @old = OLD_FILE
     @docs_keys = FILES_KEYS
+    @docs_none = "Sheet|1n new"
     @find = ""
     @clip = nil       # [text, col, row]: the cell c copied
   end

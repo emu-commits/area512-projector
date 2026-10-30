@@ -44,10 +44,11 @@ goes through `Tab`. Writer's Move mode is `Tab` › Move; in Move, Esc goes back
 typing, Esc goes back out of the document, saving first (decision 9).
 
 Writer shows which it is: the hint bar's right end always reads `TYPE` or `MOVE`, with the line,
-column and word count. In Type the bar is only `[Tab] menu` (the table's keys can't be pressed
-bare there); in Move it's the table's numbered items as on any screen, and the cursor is a block
-instead of a bar. Writer's one table (`DOC_KEYS`) is both: the menu in Type, and in Move the bare
-keys and their menu.
+column and word count. In Type the bar is what works while letters type: `[Tab] menu`,
+`[Tab m] move` and `[ESC] close` (the table's letters can't be pressed bare there, so they
+aren't on it: they're on the menu's hint lines, where they work). In Move it's the bare keys,
+the arrows first, and the cursor is a block instead of a bar. Writer's one table (`DOC_KEYS`) is
+both: the menu in Type, and in Move the bare keys and their menu.
 
 Calc's grid is the other way round: its letters are commands (`c` copy, `d` fill, `x` clear),
 and typing into a cell starts on a key that can't be one: a digit, `=` `-` `+` `(`, or Space
@@ -91,6 +92,11 @@ and have no `Tab` menu.
 
 The bottom line (`Widget.hints`, drawn as `[key] label`, not clipped).
 
+- **Only what works here, now.** A key on the bar does something when pressed in this state,
+  or it isn't on the bar. A screen whose state changes what works swaps its table: a list or
+  day with nothing in it is `n` new alone (no open, no delete), Home's `x` is on a file, not
+  an app, Projector's film shows `f` face only when there's a crack to face. Where letters
+  type, their commands aren't on the bar (they need `Tab` first); under the menu bar they are.
 - The table's numbered items, in order, **while they fit**. Then `[Tab] menu`, always last, so
   everything else is one key away.
 - Esc isn't on it: it always means back.
@@ -152,15 +158,20 @@ Projector (`ask_text`, `ask_number`, `ask_choice`, `ask_yn`):
   row, one hint line. Every command stays reachable through the hint bar and `Tab`.
 - On TERM512, the extras: more hint lines, the app row (`1 Home  2 Projector …`) like the
   Series 3's silkscreen, and on wide screens a panel beside the content (step 2.4 and 5.1).
-  The body ends 28 px higher. Under it, three hint lines hold every item of the screen's key
-  table, the numbered ones first and `[Tab] menu` last; a message, or a status such as Writer's
-  TYPE/MOVE, goes on the first. The app row shows only while the menu bar is open, since its
-  digits work only after `Tab`: the menu's hint line says `[1-6] switch app`, and under it the
-  app row lists every app in the registry, digit then name, this one marked (names cut to 4
-  letters if they don't all fit). On the Cardputer the menu's hint line says the same. In the
-  Ruby apps it's `SuiteApp#foot` / `foot_pairs` (`lib/ruby/ui.rb`); in Projector, `ovl/wide`
-  (`wide_foot`), loaded only on TERM512. Question screens and the film keep a plain one-line
-  bar. Home has no app row: its icons are one.
+  The body ends 28 px higher. Under it, three hint lines: what the screen's arrows do (`foot`'s
+  `nav`: `[;.] select`, `[,/] stage`…), then every item of its key table, the numbered ones
+  first, and `[Tab] menu` last; what doesn't fit drops from the end, never `[Tab] menu`. A
+  message, or a status such as Writer's TYPE/MOVE, goes on the first line. While the menu bar
+  is open its hint lines are every key that works there: `[1-6] switch app`, each item's own
+  key from any menu (not the arrows, which move in the bar), `[ENT] run`, `[<>] menus` and
+  `[ESC] close`, as many lines as that takes, over the screen. Under them the app row, shown
+  only then since its digits work only after `Tab`: every app in the registry, digit then
+  name, this one marked (names cut to 4 letters if they don't all fit). On the Cardputer the
+  menu's hint line is `[1-6] switch app  [<>] menus  [ESC] close`, and the menu shows each
+  item's key beside it. In the Ruby apps it's `SuiteApp#foot` / `foot_pairs` / `menu_hints`
+  (`lib/ruby/ui.rb`); in Projector, `ovl/wide` (`wide_foot`, `wide_menu`), loaded only on
+  TERM512. Question screens and the film keep a plain one-line bar. Home has no app row: its
+  icons are one; its one line takes the arrows too.
 - TERM512's other screen, the Cardputer's own, shows the running app's `README.md` (the
   firmware does it, a page of 10 rows of 40, `##` and `###` larger, `` `code` `` and `**bold**`
   in the emphasis colour). Writer, Slide and Calc ship a `SCREEN.md` there instead of their

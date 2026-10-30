@@ -32,7 +32,8 @@ opened (split it on a computer first).
 Letters type, so Writer's commands are in the menu: **Tab**, then the command's key.
 
 - Enter: a new line. Backspace deletes.
-- The hint bar lists the commands: `[Tab] then: [s] save [f] find …` (as many as fit).
+- The hint bar shows what works while you type: `[Tab] menu`, `[Tab m] move`, `[ESC] close`.
+  Press Tab and the commands' keys are listed at the bottom (TERM512) and beside each item.
 - Fn+arrow moves the cursor; up and down go a row as you see it, even inside a long paragraph.
 - Esc: back to the list, saving first.
 - Tab `s` save, Tab `f` find, Tab `g` find the next one, Tab `o` the list, Tab `n` new,

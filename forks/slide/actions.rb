@@ -4,7 +4,7 @@ class Slide
       if @screen == :doc
         show_key(cmd(SHOW_KEYS))
       else
-        k = cmd(FILES_KEYS)
+        k = cmd(files_spec)
         if k == "e"
           edit_doc(@docs[@sel]) if @docs[@sel]
         else

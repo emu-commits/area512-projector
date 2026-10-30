@@ -9,7 +9,7 @@ def wide_strip(self, y):
         self.r_spark(4, y, self.W - 8, 40)
         y = wide_money(self, y + 44)
     wide_cracks(self, y)
-    self.foot(STRIP_KEYS)
+    self.strip_foot()
 
 
 def wide_money(self, y):
@@ -50,13 +50,13 @@ def wide_library(self, sel):
     if len(self.lib) == 0:
         Widget.center_lines(self.sp, [("No ideas yet.", self.c_em),
                                       ("Press n to start one.", self.c_text)])
-        self.foot(LIB_KEYS)
+        self.lib_foot()
         return
     lw = (self.W * 11) // 20
     wide_rows(self, sel, lw)
     Widget.vseparator(self.sp, lw + 2, self.top, self.bot - self.top)
     wide_pane(self, lw + 8, (self.W - lw - 12) // self.cw)
-    self.foot(LIB_KEYS)
+    self.lib_foot()
 
 
 def wide_rows(self, sel, lw):
@@ -131,21 +131,22 @@ def wide_pv2(idea, iid, pl, pw):
     return out
 
 
-# ---- the bottom of the screen on TERM512 (step 5.1): two hint lines with every key of the
-# screen's table, and the app row, as lib/ruby/ui.rb does for the Ruby apps
+# ---- the bottom of the screen on TERM512 (step 5.1): three hint lines with the screen's
+# arrows and every key of its table, and under the menu bar every key that works there and
+# the app row, as lib/ruby/ui.rb does for the Ruby apps
 
 def wide_init(self):
     self.bot = self.bot - 28
     self.ch = self.bot - self.top - 64     # the film's chart: App.__init__ had the taller body
     self.wfoot = wide_foot
     self.wrow = None
-    self.wapps = False         # under the menu bar: two hint lines and the app row
+    self.wm = None             # wide_menu's (menu list, keys, lines)
 
 
-def wide_foot(self, hints):
+def wide_foot(self, hints, nav):
     if isinstance(hints, str):
         if not (self.hl_spec is hints):
-            self.hl = wide_hints(hints)
+            self.hl = wide_trim(self, (nav or []) + wide_hints(hints))
             self.hl_spec = hints
         hints = self.hl
     y = self.H - 42
@@ -153,12 +154,12 @@ def wide_foot(self, hints):
     if self.msg != "":
         self.t(3, y + 2, Widget.clip(self.sp, self.msg, self.W - 6), self.c_em)
     else:
-        wide_lines(self, hints, y + 2, 1 if self.wapps else 2)
-    if self.wapps:
-        wide_apps(self)
+        wide_lines(self, hints, y + 2, 3)
 
 
-def wide_lines(self, hints, y, last):
+def wide_lines(self, hints, y, n):
+    # "[key] label", a key never split from its label, drawn on the first n lines (0: none);
+    # returns the lines they all take
     x = 3
     ln = 0
     for h in hints:
@@ -166,11 +167,54 @@ def wide_lines(self, hints, y, last):
         if x + w > self.W - 3 and x > 3:
             ln = ln + 1
             x = 3
-        if ln > last:
-            break
-        self.t(x, y + ln * self.lh, "[" + h[0] + "]", self.c_em)
-        self.t(x + (len(h[0]) + 3) * self.cw, y + ln * self.lh, h[1], self.c_text)
+        if ln < n:
+            self.t(x, y + ln * self.lh, "[" + h[0] + "]", self.c_em)
+            self.t(x + (len(h[0]) + 3) * self.cw, y + ln * self.lh, h[1], self.c_text)
         x = x + w
+    return ln + 1
+
+
+def wide_trim(self, hs):
+    # too many for three lines: the last go first, never the very last ([Tab] menu). hs is
+    # the caller's own new list.
+    while len(hs) > 1 and wide_lines(self, hs, 0, 0) > 3:
+        hs.pop(len(hs) - 2)
+    return hs
+
+
+def wide_menu(self, ms):
+    # under the menu bar: every key that works there, as many lines as they take, then the
+    # app row; worked out once per menu bar (ms is its list)
+    apps = ms[0][0] == "Apps"
+    if self.wm is None or not (self.wm[0] is ms):
+        hs = wide_mkeys(ms, apps)
+        self.wm = (ms, hs, wide_lines(self, hs, 0, 0))
+    n = self.wm[2]
+    b = self.H
+    if apps:
+        b = self.H - 14
+    y = b - n * self.lh - 3
+    if y > self.H - 42:
+        y = self.H - 42
+    self.sp.fill_rect(0, y, self.W, self.H - y, self.c_bg)
+    self.sp.line(0, y, self.W - 1, y, Widget.theme_border())
+    wide_lines(self, self.wm[1], y + 2, n)
+    if apps:
+        wide_apps(self)
+
+
+def wide_mkeys(ms, apps):
+    # the app digits, every item's own key from any menu (not the arrows, which move in the
+    # bar, nor Enter, which runs the one picked), then Enter, moving and closing
+    hs = []
+    if apps:
+        hs.append(("1-" + ms[0][1][-1][0], "switch app"))
+    for mm in ms:
+        if mm[0] != "Apps":
+            for it in mm[1]:
+                if len(it[0]) == 1 and it[0] != "?":
+                    hs.append(it)
+    return hs + [("ENT", "run"), ("<>", "menus"), ("ESC", "close")]
 
 
 def wide_hints(spec):
