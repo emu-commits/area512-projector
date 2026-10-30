@@ -32,9 +32,4 @@ class Slide < SuiteApp
   # The arrows turn and scroll (Enter, Space and Backspace read on, unlisted: a clicker's keys)
   SHOW_KEYS = "Page|1RIGHT next|2LEFT back|3DOWN scroll|4UP scroll up|[ first|] last;Deck|e edit|o decks" unless const_defined?(:SHOW_KEYS)
   FILES_KEYS = "Deck|1ENT show|2e edit|3n new|x delete|r rename" unless const_defined?(:FILES_KEYS)
-  # TERM512's list: how a deck works; "!" picks a line out (docs.rb guide_lines)
-  GUIDE = ["A deck is a Writer document.", "A line holding only", "!---", "starts the next slide.", "",
-           "e edits the deck in Writer.", "In Writer, Tab v shows it.", "",
-           "Slide draws the markdown:", "!# title  ## heading", "!- list  `code`  ``` block",
-           "The arrows turn and scroll."] unless const_defined?(:GUIDE)
 end

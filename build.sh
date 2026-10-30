@@ -61,7 +61,14 @@ rb_fork() {
     for f in lib/ruby/*.rb forks/$name/*.rb; do
         "$PICORBC" --remove-lv -o "$out/$(basename "$f" .rb).mrb" "$f" || { echo "$f does not compile"; exit 1; }
     done
-    cp forks/$name/main.manifest forks/$name/README.md "$out/"
+    cp forks/$name/main.manifest "$out/"
+    # README.md on the card is what TERM512's firmware shows on the Cardputer's own screen while
+    # the app runs, its first page only (10 rows of 40): SCREEN.md where the fork has one
+    if [ -f forks/$name/SCREEN.md ]; then
+        cp forks/$name/SCREEN.md "$out/README.md"
+    else
+        cp forks/$name/README.md "$out/"
+    fi
     for e in $(cat forks/$name/main.manifest); do
         [ -f "$out/$e" ] || { echo "forks/$name/main.manifest: no $e"; exit 1; }
     done

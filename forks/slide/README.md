@@ -14,7 +14,6 @@ the numbered pages you had in `/home/tool/slide/` (`1.md`, `2.md`, …) into the
 - `e`: edit it in Writer; `n`: a new one, in Writer
 - `x`: delete (asks first; it goes to `/data/writer/deleted/`, as from Writer); `r`: rename
 - Esc: leave (to Home, if it's installed)
-- On TERM512, the box beside the list says how a deck works
 
 ## A deck
 

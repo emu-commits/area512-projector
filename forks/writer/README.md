@@ -13,9 +13,6 @@ as it is).
 - `;` `.` (or `k` `j`): up and down the list; Enter opens one
 - `n`: a new document (it asks for a name); `r`: rename; `x`: delete (asks first)
 - Esc: leave (to Home, if it's installed)
-- On TERM512, the box beside the list shows the markdown Slide draws: `#` title, `##` heading,
-  `###` subheading, `-` list item, `` `x` `` code in a line, ```` ``` ```` a code block, `---`
-  the next slide.
 
 A deleted document goes to `/data/writer/deleted/`, so a slip can be undone from the Files app.
 Names are letters, digits, spaces, `-` `_` `(` `)`, up to 24 characters.

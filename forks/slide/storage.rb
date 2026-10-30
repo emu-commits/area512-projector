@@ -257,9 +257,25 @@ class Slide
     view(f["chunk"].to_i, f["scroll"].to_i) if f["chunk"]
   end
 
-  # TERM512's list: how a deck works
-  def guide(x, y, w, h)
-    guide_lines(x, y, GUIDE)
+  # TERM512's list: the deck's first page, its first lines, 64 bytes of each
+  def doc_preview(name)
+    text = read_file(path_of(name))
+    return [] if text.nil?
+    return ["(too big to open)"] if text.length > DECK_MAX
+    out = []
+    i = 0
+    while out.length < 16 && i < text.length
+      j = text.index("\n", i) || text.length
+      n = j - i
+      break if n == 3 && text[i, 3] == "---"
+      if n > 64
+        n = 64
+        n -= 1 while n > 0 && text.getbyte(i + n) >= 0x80 && text.getbyte(i + n) < 0xc0
+      end
+      out.push(text[i, n])
+      i = j + 1
+    end
+    out
   end
 
   # Writer's Tab v: "<file>:<line>", the deck on the page holding that line; Esc goes back

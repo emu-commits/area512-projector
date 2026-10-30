@@ -161,8 +161,11 @@ Projector (`ask_text`, `ask_number`, `ask_choice`, `ask_yn`):
   Ruby apps it's `SuiteApp#foot` / `foot_pairs` (`lib/ruby/ui.rb`); in Projector, `ovl/wide`
   (`wide_foot`), loaded only on TERM512. Question screens and the film keep a plain one-line
   bar. Home has no app row: its icons are one.
-- Writer, Slide and Calc's lists have a guide in the panel beside them: Writer the markdown
-  Slide draws (the marks large), Slide how a deck works, Calc what a formula can be.
+- TERM512's other screen, the Cardputer's own, shows the running app's `README.md` (the
+  firmware does it, a page of 10 rows of 40, `##` and `###` larger, `` `code` `` and `**bold**`
+  in the emphasis colour). Writer, Slide and Calc ship a `SCREEN.md` there instead of their
+  manual (`build.sh`): Writer the markdown Slide draws, Slide how a deck works, Calc what a
+  formula can be. `tests/fw.py NAME --term512 --lcd` takes its screenshots.
 
 Measured on a TERM512 (PLAN_V1 step 0.1): Projector has a 149 KB heap there, and 100 KB of it is
 still free with the largest idea after the film. The Cardputer ADV (about 53 KB) is the one that

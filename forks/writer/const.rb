@@ -45,7 +45,4 @@ class Writer < SuiteApp
   TYPE_HINTS = [["Tab", "then:"], ["s", "save"], ["f", "find"], ["g", "find next"], ["m", "move"],
                 ["v", "slides"], ["o", "documents"], ["n", "new"], ["r", "rename"],
                 ["[", "top"], ["]", "end"], ["k", "page up"], ["j", "page down"]] unless const_defined?(:TYPE_HINTS)
-  # TERM512's list: the markdown Slide draws (forks/slide/markdown.rb)
-  MD_GUIDE = [["#", "Title"], ["##", "Heading"], ["###", "Subheading"], ["-", "List item"],
-              ["`x`", "Code in a line"], ["```", "Code block fence"], ["---", "Next slide"]] unless const_defined?(:MD_GUIDE)
 end

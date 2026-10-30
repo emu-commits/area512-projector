@@ -8,6 +8,8 @@
                                    tests/seeds/<fork>; home* installs every fork built
   tests/fw.py NAME --term512       on the TERM512 build: shots are the 320x240 lid screen
                                    (firmware: $FW_TERM512, default <factory>/vendor/Area512TFT7789.bin)
+  tests/fw.py NAME --term512 --lcd the Cardputer's own screen instead, where the firmware shows
+                                   the app's README.md while it runs
   tests/fw.py --keys "SCRIPT" ...  a script of your own instead of a scenario
   --seed big                       start with tests/seeds/big on the card (the largest idea);
                                    a path works too
@@ -59,6 +61,8 @@ def main():
            "--dump", str(out), "--keys", keys]
     if "--term512" in args:
         cmd += ["--fw", os.environ.get("FW_TERM512", str(sim.FACTORY / "vendor/Area512TFT7789.bin"))]
+    if "--lcd" in args:
+        cmd += ["--screen", "lcd"]
     if "--seed" in opts:
         cmd += ["--seed", str(sim.ROOT / "tests/seeds" / opts["--seed"])]   # a name, or a path
     r = subprocess.run(cmd, capture_output=True, text=True)

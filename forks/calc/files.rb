@@ -108,8 +108,16 @@ class Calc
     @msg = ""
   end
 
-  # TERM512's list: what a formula can be
-  def guide(x, y, w, h)
-    guide_lines(x, y, GUIDE)
+  # TERM512's list: the selected sheet's first cells
+  def doc_preview(name)
+    text = read_file(path_of(name))
+    return [] if text.nil?
+    return ["(too big to open)"] if text.length > SHEET_MAX
+    out = []
+    text.split("\n").each do |line|
+      p = line.split("\t")
+      out.push(p[0] + "  " + p[1]) if p.length > 1 && p[0] != "WIDTH" && out.length < 16
+    end
+    out
   end
 end

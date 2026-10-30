@@ -13,7 +13,6 @@ the sheet "sheet" (and leaves the old file as it is).
 - `;` `.` (or `k` `j`): up and down the list; Enter opens one
 - `n`: a new sheet (it asks for a name); `r`: rename; `x`: delete (asks first)
 - Esc: leave (to Home, if it's installed)
-- On TERM512, the box beside the list shows what a formula can be (below)
 
 A deleted sheet goes to `/data/calc/deleted/`, so a slip can be undone from the Files app.
 
