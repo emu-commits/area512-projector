@@ -136,6 +136,7 @@ def wide_pv2(idea, iid, pl, pw):
 
 def wide_init(self):
     self.bot = self.bot - 28
+    self.ch = self.bot - self.top - 64     # the film's chart: App.__init__ had the taller body
     self.wfoot = wide_foot
     self.wrow = None
     self.wapps = False         # under the menu bar: two hint lines and the app row
