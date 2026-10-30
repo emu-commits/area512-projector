@@ -13,6 +13,9 @@ as it is).
 - `;` `.` (or `k` `j`): up and down the list; Enter opens one
 - `n`: a new document (it asks for a name); `r`: rename; `x`: delete (asks first)
 - Esc: leave (to Home, if it's installed)
+- On TERM512, the box beside the list shows the markdown Slide draws: `#` title, `##` heading,
+  `###` subheading, `-` list item, `` `x` `` code in a line, ```` ``` ```` a code block, `---`
+  the next slide.
 
 A deleted document goes to `/data/writer/deleted/`, so a slip can be undone from the Files app.
 Names are letters, digits, spaces, `-` `_` `(` `)`, up to 24 characters.
@@ -32,6 +35,7 @@ opened (split it on a computer first).
 Letters type, so Writer's commands are in the menu: **Tab**, then the command's key.
 
 - Enter: a new line. Backspace deletes.
+- The hint bar lists the commands: `[Tab] then: [s] save [f] find …` (as many as fit).
 - Fn+arrow moves the cursor; up and down go a row as you see it, even inside a long paragraph.
 - Esc: back to the list, saving first.
 - Tab `s` save, Tab `f` find, Tab `g` find the next one, Tab `o` the list, Tab `n` new,

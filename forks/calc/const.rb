@@ -36,4 +36,10 @@ class Calc < SuiteApp
   # = - + ( or Space starts typing into the cell.
   GRID_KEYS = "Cell|1ENT edit|x clear|u undo|g go to|f find;Copy|2c copy|3v paste|4d fill down|r fill right;Sheet|w width|[ to A1|] to end|s save|o sheets|n new" unless const_defined?(:GRID_KEYS)
   FILES_KEYS = "Sheet|1ENT open|2n new|3x delete|r rename" unless const_defined?(:FILES_KEYS)
+  # TERM512's list: what a formula can be (eval_parse.rb); "!" picks a line out (docs.rb)
+  GUIDE = ["A formula starts with =:", "!=A1+B2*3   =(A1-5)/2", "+ - * / ( ), numbers, cells",
+           "(B3; an empty one is 0).", "!=SUM(B1:B9)  =AVG(B1:B9)", "!=MIN(..) =MAX(..) =COUNT(..)",
+           "over a range; they skip", "empty cells and text.", "!=B$1  =$B$1",
+           "$ stays put when copied", "(c, v) or filled (d, r).", "#ERR: a slip, /0, text in",
+           "a sum, or a loop."] unless const_defined?(:GUIDE)
 end

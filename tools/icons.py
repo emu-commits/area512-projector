@@ -12,7 +12,7 @@ import pathlib, struct, sys, zlib
 
 PALETTE = [0x0000, 0xFFFF, 0xFAA8, 0xFE66, 0x3FE0, 0x367F, 0xC61F, 0xFB3F,
            0x0000, 0x8410, 0xFC40, 0x0400, 0x0010, 0x8010, 0x8A22, 0xC618]
-CLEAR, WHITE, BLACK, GREY, AMBER, LIGHT = 0, 1, 8, 9, 10, 15
+CLEAR, WHITE, GREEN, BLACK, GREY, AMBER, LIGHT = 0, 1, 4, 8, 9, 10, 15
 N = 32
 
 
@@ -77,17 +77,20 @@ def writer():
 
 
 def calc():
-    # a calculator: a display and a 4x4 grid of keys
+    # a spreadsheet: a green title band, grey column letters and row numbers, a grid of
+    # cells, the selected one marked
     ic = Icon()
-    ic.fill(6, 2, 20, 28, BLACK)
-    ic.box(6, 2, 20, 28, AMBER)
-    ic.fill(9, 5, 14, 6, LIGHT)
-    ic.fill(17, 7, 4, 2, BLACK)                 # digits on the display
-    ic.fill(12, 7, 3, 2, BLACK)
-    for r in range(4):
-        for c in range(4):
-            col = AMBER if c == 3 else WHITE
-            ic.fill(9 + c * 4, 13 + r * 4, 3, 3, col)
+    ic.fill(3, 4, 26, 24, WHITE)
+    ic.fill(3, 4, 26, 4, GREEN)                 # the title band
+    ic.fill(3, 8, 26, 3, LIGHT)                 # column letters
+    ic.fill(3, 8, 4, 20, LIGHT)                 # row numbers
+    for x in (7, 14, 21):                       # columns
+        ic.fill(x, 8, 1, 20, GREY)
+    for y in (11, 15, 19, 23):                  # rows
+        ic.fill(3, y, 26, 1, GREY)
+    ic.box(3, 4, 26, 24, GREY)
+    ic.box(14, 15, 8, 5, AMBER)                 # the selected cell
+    ic.fill(16, 17, 4, 1, BLACK)                # a number in it
     return ic
 
 

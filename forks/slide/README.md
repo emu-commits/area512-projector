@@ -14,15 +14,16 @@ the numbered pages you had in `/home/tool/slide/` (`1.md`, `2.md`, …) into the
 - `e`: edit it in Writer; `n`: a new one, in Writer
 - `x`: delete (asks first; it goes to `/data/writer/deleted/`, as from Writer); `r`: rename
 - Esc: leave (to Home, if it's installed)
+- On TERM512, the box beside the list says how a deck works
 
 ## A deck
 
-- Enter or Space: on, a screen at a time down a long page, then the next page; Backspace:
-  back the same way
 - `/` (→) and `,` (←): the next and the previous page, wherever you are on this one
-- `.` `;` (or `j` `k`): scroll a row. A document with no `---` is one long page: it scrolls
+- `.` (↓) and `;` (↑): scroll a row. A document with no `---` is one long page: it scrolls
   to the end
-- `[` and `]` (in the menu): the first and last page
+- `[` and `]`: the first and last page
+- Enter or Space (a presenter's clicker): on, a screen at a time down a long page, then the
+  next page; Backspace: back the same way. Not on the hint bar: the arrows are
 - `e`: edit it in Writer; Esc or `o`: back to the list. Shown from Writer (its Tab `v`), Esc
   goes back to Writer, where you were, and `o` to the list
 - The header shows the page, as `3/12`

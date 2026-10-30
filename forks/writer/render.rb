@@ -62,7 +62,7 @@ class Writer
     st = (@mode == :move ? "MOVE " : "TYPE ") + (@row + 1).to_s + ":" + (col_chars + 1).to_s +
          " " + @words.to_s + "w"
     if @mode != :move
-      foot_pairs([["Tab", "menu"]], st)
+      foot_pairs(@wide ? TYPE_HINTS : type_fit((@w - 3) / @cw - st.length - 2), st)
     elsif @wide
       if @hl_spec != DOC_KEYS                       # foot's cache: every key, on two lines
         @hl = hint_all(DOC_KEYS)
@@ -74,26 +74,28 @@ class Writer
     end
   end
 
-  # TERM512's list: the selected document's first lines, only as many as show, and only
-  # their first 64 bytes. Not the whole text split: the list keeps them, and a second copy of
-  # the document while it opens ran the VM out at 12 KB on the TERM512 build. And a long
-  # paragraph whole made Widget.clip, which drops a character at a time, slow every band.
-  def doc_preview(name)
-    text = read_file(path_of(name))
-    return [] if text.nil?
-    return ["(too big to open)"] if share_of(text) > 100
+  # the Cardputer's one line: TYPE_HINTS while they fit in room characters
+  def type_fit(room)
     out = []
     i = 0
-    while out.length < 16 && i < text.length
-      j = text.index("\n", i) || text.length
-      n = j - i
-      if n > 64
-        n = 64
-        n -= 1 while n > 0 && text.getbyte(i + n) >= 0x80 && text.getbyte(i + n) < 0xc0
-      end
-      out.push(text[i, n])
-      i = j + 1
+    while i < TYPE_HINTS.length
+      room -= TYPE_HINTS[i][0].length + TYPE_HINTS[i][1].length + 4
+      break if room < 0
+      out.push(TYPE_HINTS[i])
+      i += 1
     end
     out
+  end
+
+  # TERM512's list: the markdown Slide shows a document in, the marks big, what they make
+  # beside them
+  def guide(x, y, w, h)
+    rh = h / MD_GUIDE.length
+    rh = 24 if rh > 24
+    MD_GUIDE.each do |g|
+      Widget.big_text(@sp, x, y, g[0], @c_em)
+      t(x + 44, y + 6, clip(g[1], w - 44), @c_text)
+      y += rh
+    end
   end
 end

@@ -14,7 +14,7 @@ class Slide
     end
   end
 
-  # A key on a page, bare or from the menu (which hands back j and k as they are)
+  # A key on a page, bare or from the menu
   def show_key(k)
     if k.length > 1 && k[0, 1] == "@"
       switch_to(k[1, k.length])
@@ -26,9 +26,9 @@ class Slide
       next_page
     elsif k == "LEFT"
       previous_page
-    elsif k == "DOWN" || k == "j"
+    elsif k == "DOWN"
       scroll_down
-    elsif k == "UP" || k == "k"
+    elsif k == "UP"
       scroll_up
     elsif k == "["
       go_page(0)

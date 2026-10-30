@@ -10,7 +10,8 @@
 class SuiteApp
   REG_FILE = "/data/area512/apps.txt" unless const_defined?(:REG_FILE)
   OPEN_FILE = "/data/area512/open.txt" unless const_defined?(:OPEN_FILE)
-  # TERM512: a second hint line and the app row under the body (docs/UI.md, PLAN_V1 5.1)
+  # TERM512: three hint lines under the body, or two and the app row while the menu bar is
+  # open (docs/UI.md, PLAN_V1 5.1)
   FOOT_EXTRA = 28 unless const_defined?(:FOOT_EXTRA)
   FOOT_H = 14 unless const_defined?(:FOOT_H)        # Widget.hints' bar (WIDGET_FOOTER_HEIGHT)
 
@@ -40,6 +41,7 @@ class SuiteApp
     @hl_spec = nil
     @hl = []
     @menu = nil      # [menus, open menu, item] while the menu bar is open
+    @apps_up = false # the menu bar's footer: the app row under its hints
   end
 
   # ---- keys
@@ -138,8 +140,9 @@ class SuiteApp
   end
 
   # The bottom of the screen: a message, else the hints ([[key, label], ...]); right is a
-  # status on the right of the first line ("" for none). On TERM512 two lines of hints and the
-  # app row; on the Cardputer one line, the hints cut to what fits beside right.
+  # status on the right of the first line ("" for none). On TERM512 three lines of hints, or
+  # two and the app row under the menu bar; on the Cardputer one line, the hints cut to what
+  # fits beside right.
   def foot_pairs(hs, right)
     if @wide
       wide_foot(hs, right)
@@ -160,8 +163,9 @@ class SuiteApp
     else
       x = 3
       ln = 0
+      n = @apps_up ? 2 : 3
       i = 0
-      while i < hs.length && ln < 2
+      while i < hs.length && ln < n
         kk = "[" + hs[i][0] + "]"
         w = Widget.text_width(@sp, kk + " " + hs[i][1]) + @cw
         lim = ln == 0 ? @w - 3 - rw : @w - 3
@@ -178,11 +182,12 @@ class SuiteApp
       end
     end
     Widget.text_right(@sp, @w - 3, y + 2, right, @c_em) if right != ""
-    app_row
+    app_row if @apps_up
   end
 
-  # the Series 3's application buttons: "1 Home  2 Projector ...", this app marked. Names
-  # are cut to 4 letters when all of them don't fit.
+  # the Series 3's application buttons: "1 Home  2 Projector ...", this app marked, shown
+  # under the menu bar, where Tab then the digit switches. Names are cut to 4 letters when
+  # all of them don't fit.
   def app_row
     if @row_apps.nil?
       @row_apps = reg_read
@@ -368,7 +373,13 @@ class SuiteApp
     @sp.fill_rect(0, @h - fh, @w, fh, @c_bg)
     m = @msg
     @msg = ""
-    foot_pairs([["<>", "menu"], ["ENT", "do"], ["ESC", "close"]], "")
+    hs = [["<>", "menus"], ["ESC", "close"]]
+    if ms[0][0] == "Apps"                       # Tab then the digit: say so, and show them
+      hs.unshift(["1-" + ms[0][1][ms[0][1].length - 1][0], "switch app"])
+      @apps_up = true
+    end
+    foot_pairs(hs, "")
+    @apps_up = false
     @msg = m
   end
 

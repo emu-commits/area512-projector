@@ -260,8 +260,14 @@ EXPECT["sheet_nocalc"] = ["@@SCREEN Calc isn't installed", "!@@RUN_NEXT", "!/dat
 # TERM512 (step 5.1): the library's keys on two lines, and the app row with Projector marked
 SEEDS["foot_lib"] = SEEDS["switch"]
 SCENARIOS["foot_lib"] = "SHOT:p_foot"
-EXPECT_SIZE[("foot_lib", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN menu\n@@SCREEN 1\n@@SCREEN Home\n@@SCREEN 2\n@@SCREEN Projector"]
+EXPECT_SIZE[("foot_lib", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN menu", "!@@SCREEN Home"]   # the app row is the menu's
 EXPECT_SIZE[("foot_lib", "cardputer")] = ["!@@SCREEN Home"]
+# Tab: "Tab then the digit" said, and on TERM512 the app row under it
+SEEDS["foot_menu"] = SEEDS["switch"]
+SCENARIOS["foot_menu"] = "TAB SHOT:p_foot_menu"
+EXPECT_SIZE[("foot_menu", "term512")] = ["@@SCREEN [1-3]\n@@SCREEN switch app\n@@SCREEN [<>]\n@@SCREEN menus",
+                                         "@@SCREEN 1\n@@SCREEN Home\n@@SCREEN 2\n@@SCREEN Projector"]
+EXPECT_SIZE[("foot_menu", "cardputer")] = ["@@SCREEN 1-3:switch app <>:menus ESC:close"]
 
 
 # Home: a card with Projector, four bundled apps and two games. Slide isn't installed, so
@@ -738,16 +744,26 @@ EXPECT["slide_from_writer_o"] = ["@@SCREEN SLIDE", "!@@RUN_NEXT"]
 # TERM512 (step 5.1): every key of the screen on two hint lines, and the app row with this app
 SEEDS["slide_foot"] = dict(SL_SEED, **{"/data/area512/apps.txt": SL_APPS})
 SCENARIOS["slide_foot"] = "ENTER SHOT:s_foot"
-EXPECT_SIZE[("slide_foot", "term512")] = ["@@SCREEN [ENT]\n@@SCREEN next\n@@SCREEN [BS]\n@@SCREEN back\n@@SCREEN [e]\n@@SCREEN edit\n"
-                                          "@@SCREEN [j]\n@@SCREEN down", "@@SCREEN [Tab]\n@@SCREEN menu",
-                                          "@@SCREEN 1\n@@SCREEN Home\n@@SCREEN 2\n@@SCREEN Projector\n@@SCREEN 3\n"
-                                          "@@SCREEN Writer\n@@SCREEN 4\n@@SCREEN Slide"]
-EXPECT_SIZE[("slide_foot", "cardputer")] = ["@@SCREEN ENT:next BS:back Tab:menu", "!@@SCREEN Projector"]
+EXPECT_SIZE[("slide_foot", "term512")] = ["@@SCREEN [RIGHT]\n@@SCREEN next\n@@SCREEN [LEFT]\n@@SCREEN back\n"
+                                          "@@SCREEN [DOWN]\n@@SCREEN scroll\n@@SCREEN [UP]\n@@SCREEN scroll up",
+                                          "@@SCREEN [Tab]\n@@SCREEN menu", "![j]", "![ENT]", "!@@SCREEN Home"]
+EXPECT_SIZE[("slide_foot", "cardputer")] = ["@@SCREEN RIGHT:next LEFT:back Tab:menu", "!@@SCREEN Projector"]
+SEEDS["slide_foot_menu"] = SEEDS["slide_foot"]
+SCENARIOS["slide_foot_menu"] = "ENTER TAB SHOT:s_foot_menu"
+EXPECT_SIZE[("slide_foot_menu", "term512")] = ["@@SCREEN [1-4]\n@@SCREEN switch app",
+                                               "@@SCREEN 1\n@@SCREEN Home\n@@SCREEN 2\n@@SCREEN Projector\n@@SCREEN 3\n"
+                                               "@@SCREEN Writer\n@@SCREEN 4\n@@SCREEN Slide"]
+EXPECT_SIZE[("slide_foot_menu", "cardputer")] = ["@@SCREEN 1-4:switch app <>:menus ESC:close", "!@@SCREEN Projector"]
 SEEDS["writer_foot"] = WR_REG
 SCENARIOS["writer_foot"] = "ENTER TAB m SHOT:w_foot"
-EXPECT_SIZE[("writer_foot", "term512")] = ["@@SCREEN [h]\n@@SCREEN word left", "@@SCREEN MOVE 1:1 9w",
-                                           "@@SCREEN 3\n@@SCREEN Writer"]
+EXPECT_SIZE[("writer_foot", "term512")] = ["@@SCREEN [h]\n@@SCREEN word left", "@@SCREEN MOVE 1:1 9w"]
 EXPECT_SIZE[("writer_foot", "cardputer")] = ["@@SCREEN MOVE 1:1 9w", "!@@SCREEN Projector"]
+# typing: the commands are Tab then a letter, and the hint bar lists them
+SEEDS["writer_type_foot"] = WR_REG
+SCENARIOS["writer_type_foot"] = "ENTER SHOT:w_type_foot"
+EXPECT_SIZE[("writer_type_foot", "term512")] = ["@@SCREEN [Tab]\n@@SCREEN then:\n@@SCREEN [s]\n@@SCREEN save",
+                                                "@@SCREEN [v]\n@@SCREEN slides", "!@@SCREEN Home", "![ENT]"]
+EXPECT_SIZE[("writer_type_foot", "cardputer")] = ["@@SCREEN Tab:then: s:save", "@@SCREEN TYPE 1:1 9w"]
 
 
 def run_fork(name, app, script, screen):

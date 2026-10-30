@@ -138,6 +138,7 @@ def wide_init(self):
     self.bot = self.bot - 28
     self.wfoot = wide_foot
     self.wrow = None
+    self.wapps = False         # under the menu bar: two hint lines and the app row
 
 
 def wide_foot(self, hints):
@@ -151,11 +152,12 @@ def wide_foot(self, hints):
     if self.msg != "":
         self.t(3, y + 2, Widget.clip(self.sp, self.msg, self.W - 6), self.c_em)
     else:
-        wide_lines(self, hints, y + 2)
-    wide_apps(self)
+        wide_lines(self, hints, y + 2, 1 if self.wapps else 2)
+    if self.wapps:
+        wide_apps(self)
 
 
-def wide_lines(self, hints, y):
+def wide_lines(self, hints, y, last):
     x = 3
     ln = 0
     for h in hints:
@@ -163,7 +165,7 @@ def wide_lines(self, hints, y):
         if x + w > self.W - 3 and x > 3:
             ln = ln + 1
             x = 3
-        if ln > 1:
+        if ln > last:
             break
         self.t(x, y + ln * self.lh, "[" + h[0] + "]", self.c_em)
         self.t(x + (len(h[0]) + 3) * self.cw, y + ln * self.lh, h[1], self.c_text)
@@ -188,7 +190,8 @@ def wide_hints(spec):
 
 
 def wide_apps(self):
-    # "1 Home  2 Projector ...", this app marked; names cut to 4 letters if all don't fit
+    # "1 Home  2 Projector ...", this app marked, under the menu bar, where Tab then the
+    # digit switches; names cut to 4 letters if all don't fit
     if self.wrow is None:
         wide_appsread(self)
     y = self.H - 14

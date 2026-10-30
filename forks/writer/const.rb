@@ -41,4 +41,11 @@ class Writer < SuiteApp
   # Tab then the key; in Move (Tab m) they work bare, and the digits are Move's hint bar.
   DOC_KEYS = "Edit|1ENT type|m move|2f find|3g find next;Cursor|h word left|l word right|k page up|j page down|a line start|e line end|[ top|] end;File|s save|o documents|n new|r rename|v slides" unless const_defined?(:DOC_KEYS)
   FILES_KEYS = "Document|1ENT open|2n new|3x delete|r rename" unless const_defined?(:FILES_KEYS)
+  # Typing: the commands are Tab then the key; the hint bar says so and lists them
+  TYPE_HINTS = [["Tab", "then:"], ["s", "save"], ["f", "find"], ["g", "find next"], ["m", "move"],
+                ["v", "slides"], ["o", "documents"], ["n", "new"], ["r", "rename"],
+                ["[", "top"], ["]", "end"], ["k", "page up"], ["j", "page down"]] unless const_defined?(:TYPE_HINTS)
+  # TERM512's list: the markdown Slide draws (forks/slide/markdown.rb)
+  MD_GUIDE = [["#", "Title"], ["##", "Heading"], ["###", "Subheading"], ["-", "List item"],
+              ["`x`", "Code in a line"], ["```", "Code block fence"], ["---", "Next slide"]] unless const_defined?(:MD_GUIDE)
 end
